@@ -4,6 +4,36 @@ import (
 	"testing"
 )
 
+/*
+
+permit (
+	principal = User::"johnny",
+	action in [Action::"sow", Action::"cast"],
+	resource is Seed in Genus::"Malus"
+) when {
+	true
+} unless {
+ 	false
+};
+
+forbid {
+	principal = User::"johnny",
+	action,
+	resource in Classification::"Poisonous"
+};
+
+forbid {
+	principal,
+	action,
+	resource
+} when {
+	resource.tags.contains("private")
+} unless {
+	resource in principal.account
+};
+
+*/
+
 func TestTypes(t *testing.T) {
 	t.Parallel()
 
