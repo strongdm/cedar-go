@@ -30,7 +30,6 @@ func FromStdTime(t time.Time) Datetime {
 func ParseDatetime(s string) (Datetime, error) {
 	var (
 		year, month, day, hour, minute, second, milli int
-		offsetHour, offsetMinute                      time.Duration
 		i                                             int
 	)
 
@@ -158,20 +157,20 @@ func ParseDatetime(s string) (Datetime, error) {
 	c = rune(s[i])
 	if c == '.' {
 		i++
-		if i+3 <= length {
-			if !(unicode.IsDigit(rune(s[i])) &&
-				unicode.IsDigit(rune(s[i+1])) &&
-				unicode.IsDigit(rune(s[i+2]))) {
-				return Datetime{}, fmt.Errorf("%w: invalid millisecond", ErrDatetime)
-			}
 
-			milli = 100*int(rune(s[i])-'0') + 10*int(rune(s[i+1])-'0') + int(rune(s[i+2])-'0')
-			i = i + 3
-		} else {
+		if i+3 > length {
 			return Datetime{}, fmt.Errorf("%w: invalid millisecond", ErrDatetime)
 		}
-	}
 
+		if !(unicode.IsDigit(rune(s[i])) &&
+			unicode.IsDigit(rune(s[i+1])) &&
+			unicode.IsDigit(rune(s[i+2]))) {
+			return Datetime{}, fmt.Errorf("%w: invalid millisecond", ErrDatetime)
+		}
+
+		milli = 100*int(rune(s[i])-'0') + 10*int(rune(s[i+1])-'0') + int(rune(s[i+2])-'0')
+		i = i + 3
+	}
 
 	if i >= length {
 		return Datetime{}, fmt.Errorf("%w: expected timezone indicator", ErrDatetime)
@@ -213,13 +212,13 @@ func ParseDatetime(s string) (Datetime, error) {
 		return Datetime{}, fmt.Errorf("%w: invalid time offset", ErrDatetime)
 	}
 
-	offsetHour = time.Duration(10*int64(rune(s[i])-'0')+int64(rune(s[i+1])-'0')) * time.Hour
-	offsetMinute = time.Duration(10*int64(rune(s[i+2])-'0')+int64(rune(s[i+3])-'0')) * time.Minute
+	offsetH := time.Duration(10*int64(rune(s[i])-'0')+int64(rune(s[i+1])-'0')) * time.Hour
+	offsetM := time.Duration(10*int64(rune(s[i+2])-'0')+int64(rune(s[i+3])-'0')) * time.Minute
 
 	t := time.Date(year, time.Month(month), day,
 		hour, minute, second,
 		int(time.Duration(milli)*time.Millisecond), time.UTC)
-	t = t.Add(sign * (offsetHour + offsetMinute))
+	t = t.Add(sign * (offsetH + offsetM))
 	return Datetime{Value: t.UnixMilli()}, nil
 }
 
