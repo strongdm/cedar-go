@@ -123,6 +123,18 @@ func evalDecimal(n Evaler, ctx *Context) (types.Decimal, error) {
 	return d, nil
 }
 
+func evalDuration(n Evaler, ctx *Context) (types.Duration, error) {
+	v, err := n.Eval(ctx)
+	if err != nil {
+		return types.Duration{}, err
+	}
+	d, err := ValueToDuration(v)
+	if err != nil {
+		return types.Duration{}, err
+	}
+	return d, nil
+}
+
 func evalIP(n Evaler, ctx *Context) (types.IPAddr, error) {
 	v, err := n.Eval(ctx)
 	if err != nil {
@@ -1052,6 +1064,28 @@ func (n *datetimeLiteralEval) Eval(ctx *Context) (types.Value, error) {
 	return d, nil
 }
 
+type durationLiteralEval struct {
+	literal Evaler
+}
+
+func newDurationLiteralEval(literal Evaler) *durationLiteralEval {
+	return &durationLiteralEval{literal: literal}
+}
+
+func (n *durationLiteralEval) Eval(ctx *Context) (types.Value, error) {
+	literal, err := evalString(n.literal, ctx)
+	if err != nil {
+		return zeroValue(), err
+	}
+
+	d, err := types.ParseDuration(string(literal))
+	if err != nil {
+		return zeroValue(), err
+	}
+
+	return d, nil
+}
+
 type ipLiteralEval struct {
 	literal Evaler
 }
@@ -1239,4 +1273,142 @@ func (n *toDateEval) Eval(ctx *Context) (types.Value, error) {
 		return zeroValue(), err
 	}
 	return types.Datetime{Value: lhs.Value - (lhs.Value % millisPerDay)}, nil
+}
+
+type toTimeEval struct {
+	lhs Evaler
+}
+
+func newToTimeEval(lhs Evaler) *toTimeEval {
+	return &toTimeEval{lhs: lhs}
+}
+
+func (n *toTimeEval) Eval(ctx *Context) (types.Value, error) {
+	lhs, err := evalDatetime(n.lhs, ctx)
+	if err != nil {
+		return zeroValue(), err
+	}
+	return types.Duration{Value: lhs.Value % millisPerDay}, nil
+}
+
+type toMillisecondsEval struct {
+	lhs Evaler
+}
+
+func newToMillisecondsEval(lhs Evaler) *toMillisecondsEval {
+	return &toMillisecondsEval{lhs: lhs}
+}
+
+func (n *toMillisecondsEval) Eval(ctx *Context) (types.Value, error) {
+	lhs, err := evalDuration(n.lhs, ctx)
+	if err != nil {
+		return zeroValue(), err
+	}
+	return types.Long(lhs.Value), nil
+}
+
+type toSecondsEval struct {
+	lhs Evaler
+}
+
+func newToSecondsEval(lhs Evaler) *toSecondsEval {
+	return &toSecondsEval{lhs: lhs}
+}
+
+func (n *toSecondsEval) Eval(ctx *Context) (types.Value, error) {
+	lhs, err := evalDuration(n.lhs, ctx)
+	if err != nil {
+		return zeroValue(), err
+	}
+	return types.Long(lhs.Value / 1000), nil
+}
+
+type toMinutesEval struct {
+	lhs Evaler
+}
+
+func newToMinutesEval(lhs Evaler) *toMinutesEval {
+	return &toMinutesEval{lhs: lhs}
+}
+
+func (n *toMinutesEval) Eval(ctx *Context) (types.Value, error) {
+	lhs, err := evalDuration(n.lhs, ctx)
+	if err != nil {
+		return zeroValue(), err
+	}
+	return types.Long(lhs.Value / 1000 / 60), nil
+}
+
+type toHoursEval struct {
+	lhs Evaler
+}
+
+func newToHoursEval(lhs Evaler) *toHoursEval {
+	return &toHoursEval{lhs: lhs}
+}
+
+func (n *toHoursEval) Eval(ctx *Context) (types.Value, error) {
+	lhs, err := evalDuration(n.lhs, ctx)
+	if err != nil {
+		return zeroValue(), err
+	}
+	return types.Long(lhs.Value / 1000 / 60 / 60), nil
+}
+
+type toDaysEval struct {
+	lhs Evaler
+}
+
+func newToDaysEval(lhs Evaler) *toDaysEval {
+	return &toDaysEval{lhs: lhs}
+}
+
+func (n *toDaysEval) Eval(ctx *Context) (types.Value, error) {
+	lhs, err := evalDuration(n.lhs, ctx)
+	if err != nil {
+		return zeroValue(), err
+	}
+	return types.Long(lhs.Value / 1000 / 60 / 60 / 24), nil
+}
+
+type offsetEval struct {
+	lhs Evaler
+	rhs Evaler
+}
+
+func newOffsetEval(lhs Evaler, rhs Evaler) *offsetEval {
+	return &offsetEval{lhs: lhs, rhs: rhs}
+}
+
+func (n *offsetEval) Eval(ctx *Context) (types.Value, error) {
+	lhs, err := evalDatetime(n.lhs, ctx)
+	if err != nil {
+		return zeroValue(), err
+	}
+	rhs, err := evalDuration(n.rhs, ctx)
+	if err != nil {
+		return zeroValue(), err
+	}
+	return types.Datetime{Value: lhs.Value + rhs.Value}, nil
+}
+
+type durationSinceEval struct {
+	lhs Evaler
+	rhs Evaler
+}
+
+func newDurationSinceEval(lhs Evaler, rhs Evaler) *durationSinceEval {
+	return &durationSinceEval{lhs: lhs, rhs: rhs}
+}
+
+func (n *durationSinceEval) Eval(ctx *Context) (types.Value, error) {
+	lhs, err := evalDatetime(n.lhs, ctx)
+	if err != nil {
+		return zeroValue(), err
+	}
+	rhs, err := evalDatetime(n.rhs, ctx)
+	if err != nil {
+		return zeroValue(), err
+	}
+	return types.Duration{Value: lhs.Value - rhs.Value}, nil
 }

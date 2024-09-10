@@ -38,6 +38,8 @@ func toEval(n ast.IsNode) Evaler {
 				return newDecimalLiteralEval(toEval(v.Args[0]))
 			case v.Name == "datetime":
 				return newDatetimeLiteralEval(toEval(v.Args[0]))
+			case v.Name == "duration":
+				return newDurationLiteralEval(toEval(v.Args[0]))
 
 			case v.Name == "lessThan":
 				return newDecimalLessThanEval(toEval(v.Args[0]), toEval(v.Args[1]))
@@ -61,6 +63,23 @@ func toEval(n ast.IsNode) Evaler {
 
 			case v.Name == "toDate":
 				return newToDateEval(toEval(v.Args[0]))
+			case v.Name == "toTime":
+				return newToTimeEval(toEval(v.Args[0]))
+			case v.Name == "toMilliseconds":
+				return newToMillisecondsEval(toEval(v.Args[0]))
+			case v.Name == "toSeconds":
+				return newToSecondsEval(toEval(v.Args[0]))
+			case v.Name == "toMinutes":
+				return newToMinutesEval(toEval(v.Args[0]))
+			case v.Name == "toHours":
+				return newToHoursEval(toEval(v.Args[0]))
+			case v.Name == "toDays":
+				return newToDaysEval(toEval(v.Args[0]))
+
+			case v.Name == "offset":
+				return newOffsetEval(toEval(v.Args[0]), toEval(v.Args[1]))
+			case v.Name == "durationSince":
+				return newDurationSinceEval(toEval(v.Args[0]), toEval(v.Args[1]))
 			}
 		}
 		return newErrorEval(fmt.Errorf("%w: %s", errUnknownExtensionFunction, v.Name))
