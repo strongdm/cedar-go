@@ -87,4 +87,15 @@ func TestLong(t *testing.T) {
 		t.Parallel()
 		testutil.Equals(t, types.Long(1).String(), "1")
 	})
+
+	t.Run("Hash", func(t *testing.T) {
+		t.Parallel()
+
+		testutil.Equals(t, types.Long(42).Hash(), types.Long(42).Hash())
+		testutil.Equals(t, types.Long(-42).Hash(), types.Long(-42).Hash())
+
+		// This isn't necessarily true for all values of Long, but we want to ensure we aren't just returning the
+		// same Hash value for Long.Hash() for every instance.
+		testutil.FatalIf(t, types.Long(42).Hash() == types.Long(1337).Hash(), "unexpected Hash collision")
+	})
 }

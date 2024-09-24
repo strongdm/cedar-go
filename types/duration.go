@@ -295,6 +295,6 @@ func (v Duration) ToMilliseconds() int64 {
 	return v.value
 }
 
-func (v Duration) hash() uint64 {
+func (v Duration) Hash() uint64 {
 	return uint64(v.value)
 }

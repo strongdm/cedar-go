@@ -64,4 +64,15 @@ func TestEntityUIDSet(t *testing.T) {
 
 		testutil.Equals(t, s1.Equal(s2), true)
 	})
+
+	t.Run("Hash", func(t *testing.T) {
+		t.Parallel()
+
+		testutil.Equals(t, types.NewEntityUID("type", "id").Hash(), types.NewEntityUID("type", "id").Hash())
+		testutil.Equals(t, types.NewEntityUID("type2", "id2").Hash(), types.NewEntityUID("type2", "id2").Hash())
+
+		// This isn't necessarily true for all EntityUIDs, but we want to make sure we're not just returning the same
+		// Hash value for all EntityUIDs
+		testutil.FatalIf(t, types.NewEntityUID("type", "id").Hash() == types.NewEntityUID("type2", "id2").Hash(), "unexpected hash collision")
+	})
 }

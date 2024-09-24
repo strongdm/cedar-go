@@ -22,7 +22,7 @@ type Record struct {
 
 // NewRecord returns an immutable Record given a Go map of Strings to Values
 func NewRecord(m RecordMap) Record {
-	// Special case hashVal for empty map to 0 so that the return value of Value.hash() of Record{} and
+	// Special case hashVal for empty map to 0 so that the return value of Value.Hash() of Record{} and
 	// NewRecord(RecordMap{}) are the same
 	var hashVal uint64
 	if len(m) > 0 {
@@ -32,7 +32,7 @@ func NewRecord(m RecordMap) Record {
 		h := fnv.New64()
 		for _, k := range orderedKeys {
 			_, _ = h.Write([]byte(k))
-			_ = binary.Write(h, binary.LittleEndian, m[k].hash())
+			_ = binary.Write(h, binary.LittleEndian, m[k].Hash())
 		}
 		hashVal = h.Sum64()
 	}
@@ -154,6 +154,6 @@ func (r Record) MarshalCedar() []byte {
 	return sb.Bytes()
 }
 
-func (v Record) hash() uint64 {
+func (v Record) Hash() uint64 {
 	return v.hashVal
 }

@@ -36,6 +36,6 @@ func (v Long) MarshalCedar() []byte {
 	return []byte(v.String())
 }
 
-func (v Long) hash() uint64 {
+func (v Long) Hash() uint64 {
 	return uint64(v)
 }

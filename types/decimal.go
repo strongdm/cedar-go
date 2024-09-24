@@ -186,6 +186,6 @@ func (v Decimal) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func (v Decimal) hash() uint64 {
+func (v Decimal) Hash() uint64 {
 	return uint64(v.Value)
 }

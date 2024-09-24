@@ -200,4 +200,14 @@ func TestDatetime(t *testing.T) {
 		testutil.OK(t, err)
 		testutil.Equals(t, string(bs), `{"__extn":{"fn":"datetime","arg":"1970-01-01T00:00:00.042Z"}}`)
 	})
+
+	t.Run("Hash", func(t *testing.T) {
+		t.Parallel()
+
+		testutil.Equals(t, types.FromStdTime(time.UnixMilli(42)).Hash(), types.FromStdTime(time.UnixMilli(42)).Hash())
+
+		// This isn't necessarily true for all DateTimes, but we want to make sure we're not just returning the same
+		// hash value for all EntityUIDs
+		testutil.FatalIf(t, types.FromStdTime(time.UnixMilli(42)).Hash() == types.FromStdTime(time.UnixMilli(1337)).Hash(), "unexpected hash collision")
+	})
 }

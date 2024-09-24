@@ -179,4 +179,14 @@ func TestDuration(t *testing.T) {
 		testutil.OK(t, err)
 		testutil.Equals(t, string(bs), `{"__extn":{"fn":"duration","arg":"42ms"}}`)
 	})
+
+	t.Run("Hash", func(t *testing.T) {
+		t.Parallel()
+
+		testutil.Equals(t, types.FromStdDuration(42*time.Millisecond).Hash(), types.FromStdDuration(42*time.Millisecond).Hash())
+
+		// This isn't necessarily true for all DateTimes, but we want to make sure we're not just returning the same
+		// hash value for all EntityUIDs
+		testutil.FatalIf(t, types.FromStdDuration(42*time.Millisecond).Hash() == types.FromStdDuration(1337*time.Millisecond).Hash(), "unexpected hash collision")
+	})
 }

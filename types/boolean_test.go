@@ -28,4 +28,12 @@ func TestBool(t *testing.T) {
 		testutil.Equals(t, types.Boolean(true).String(), "true")
 		testutil.Equals(t, types.Boolean(false).String(), "false")
 	})
+
+	t.Run("Hash", func(t *testing.T) {
+		t.Parallel()
+
+		testutil.Equals(t, types.Boolean(true).Hash(), types.Boolean(true).Hash())
+		testutil.Equals(t, types.Boolean(false).Hash(), types.Boolean(false).Hash())
+		testutil.FatalIf(t, types.Boolean(true).Hash() == types.Boolean(false).Hash(), "unexpected Hash collision")
+	})
 }

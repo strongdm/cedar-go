@@ -557,9 +557,9 @@ func TestJSONMarshal(t *testing.T) {
 		{
 			"set",
 			NewSet([]Value{
-				String("av"),
 				String("cv"),
 				String("bv"),
+				String("av"),
 			}),
 			`["cv","bv","av"]`,
 		},
@@ -596,7 +596,7 @@ func (j *jsonErr) String() string               { return "" }
 func (j *jsonErr) MarshalCedar() []byte         { return nil }
 func (j *jsonErr) Equal(Value) bool             { return false }
 func (j *jsonErr) MarshalJSON() ([]byte, error) { return nil, fmt.Errorf("jsonErr") }
-func (j *jsonErr) hash() uint64                 { return 0 }
+func (j *jsonErr) Hash() uint64                 { return 0 }
 
 func TestJSONSet(t *testing.T) {
 	t.Parallel()

@@ -24,7 +24,7 @@ func (v Boolean) MarshalCedar() []byte {
 	return []byte("false")
 }
 
-func (v Boolean) hash() uint64 {
+func (v Boolean) Hash() uint64 {
 	if v {
 		return 1
 	}

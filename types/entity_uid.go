@@ -74,7 +74,7 @@ func (v EntityUID) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func (v EntityUID) hash() uint64 {
+func (v EntityUID) Hash() uint64 {
 	h := fnv.New64()
 	_, _ = h.Write([]byte(v.Type))
 	_, _ = h.Write([]byte(v.ID))

@@ -19,5 +19,5 @@ type Value interface {
 	// MarshalCedar produces a valid MarshalCedar language representation of the Value.
 	MarshalCedar() []byte
 	Equal(Value) bool
-	hash() uint64
+	Hash() uint64
 }

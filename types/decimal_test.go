@@ -124,4 +124,15 @@ func TestDecimal(t *testing.T) {
 		t.Parallel()
 		testutil.Equals(t, string(types.UnsafeDecimal(42).MarshalCedar()), `decimal("42.0")`)
 	})
+
+	t.Run("Hash", func(t *testing.T) {
+		t.Parallel()
+
+		testutil.Equals(t, types.UnsafeDecimal(42).Hash(), types.UnsafeDecimal(42).Hash())
+		testutil.Equals(t, types.UnsafeDecimal(-42).Hash(), types.UnsafeDecimal(-42).Hash())
+
+		// This isn't necessarily true for all values of Decimal, but we want to ensure we aren't just returning the
+		// same Hash value for Decimal.Hash() for every instance.
+		testutil.FatalIf(t, types.UnsafeDecimal(42).Hash() == types.UnsafeDecimal(1337).Hash(), "unexpected Hash collision")
+	})
 }

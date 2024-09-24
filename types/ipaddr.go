@@ -149,7 +149,7 @@ func (v IPAddr) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func (v IPAddr) hash() uint64 {
+func (v IPAddr) Hash() uint64 {
 	// MarshalBinary() cannot actually fail
 	bytes, _ := netip.Prefix(v).MarshalBinary()
 	h := fnv.New64()

@@ -269,4 +269,27 @@ func TestIP(t *testing.T) {
 			})
 		}
 	})
+
+	t.Run("Hash", func(t *testing.T) {
+		t.Parallel()
+
+		ipaddr1, err := types.ParseIPAddr("0.0.0.0")
+		testutil.OK(t, err)
+
+		ipaddr2, err := types.ParseIPAddr("0.0.0.0")
+		testutil.OK(t, err)
+
+		ipaddr3, err := types.ParseIPAddr("0.0.0.1")
+		testutil.OK(t, err)
+
+		ipaddr4, err := types.ParseIPAddr("0.0.0.1")
+		testutil.OK(t, err)
+
+		testutil.Equals(t, ipaddr1.Hash(), ipaddr2.Hash())
+		testutil.Equals(t, ipaddr3.Hash(), ipaddr4.Hash())
+
+		// This isn't necessarily true for all IPAddrs, but we want to make sure we're not just returning the same Hash
+		// value for all IPAddrs
+		testutil.FatalIf(t, ipaddr1.Hash() == ipaddr3.Hash(), "unexpected Hash collision")
+	})
 }

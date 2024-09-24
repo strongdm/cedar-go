@@ -219,4 +219,48 @@ func TestRecord(t *testing.T) {
 
 		testutil.Equals(t, got, types.RecordMap{"foo": types.Long(42), "bar": types.Long(1337)})
 	})
+
+	t.Run("Hash", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("independent of key order", func(t *testing.T) {
+			t.Parallel()
+			m1 := types.NewRecord(types.RecordMap{"foo": types.Long(42), "bar": types.Long(1337)})
+			m2 := types.NewRecord(types.RecordMap{"bar": types.Long(1337), "foo": types.Long(42)})
+			testutil.Equals(t, m1.Hash(), m2.Hash())
+		})
+
+		t.Run("empty record", func(t *testing.T) {
+			t.Parallel()
+			m1 := types.Record{}
+			m2 := types.NewRecord(types.RecordMap{})
+			testutil.Equals(t, m1.Hash(), m2.Hash())
+		})
+
+		// These tests don't necessarily hold for all values of Record, but we want to ensure we are considering
+		// different aspects of the Record, which these particular tests demonstrate.
+
+		t.Run("same keys, different values", func(t *testing.T) {
+			t.Parallel()
+			m1 := types.NewRecord(types.RecordMap{"foo": types.Long(42), "bar": types.Long(1337)})
+			m2 := types.NewRecord(types.RecordMap{"foo": types.Long(1337), "bar": types.Long(42)})
+			testutil.FatalIf(t, m1.Hash() == m2.Hash(), "unexpected Hash collision")
+		})
+
+		t.Run("same values, different keys", func(t *testing.T) {
+			t.Parallel()
+			m1 := types.NewRecord(types.RecordMap{"foo": types.Long(42), "bar": types.Long(1337)})
+			m2 := types.NewRecord(types.RecordMap{"foo2": types.Long(42), "bar2": types.Long(1337)})
+			testutil.FatalIf(t, m1.Hash() == m2.Hash(), "unepxected Hash collision")
+		})
+
+		t.Run("extra key", func(t *testing.T) {
+			t.Parallel()
+			m1 := types.NewRecord(types.RecordMap{"foo": types.Long(42), "bar": types.Long(1337)})
+			m2 := types.NewRecord(
+				types.RecordMap{"foo": types.Long(42), "bar": types.Long(1337), "baz": types.Long(0)},
+			)
+			testutil.FatalIf(t, m1.Hash() == m2.Hash(), "unepxected Hash collision")
+		})
+	})
 }

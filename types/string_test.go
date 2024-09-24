@@ -25,4 +25,15 @@ func TestString(t *testing.T) {
 		testutil.Equals(t, types.String("hello").String(), `hello`)
 		testutil.Equals(t, types.String("hello\ngoodbye").String(), "hello\ngoodbye")
 	})
+
+	t.Run("Hash", func(t *testing.T) {
+		t.Parallel()
+
+		testutil.Equals(t, types.String("foo").Hash(), types.String("foo").Hash())
+		testutil.Equals(t, types.String("bar").Hash(), types.String("bar").Hash())
+
+		// This isn't necessarily true for all values of types.String, but we want to ensure we aren't just returning the
+		// same Hash value for types.String.Hash() for every instance.
+		testutil.FatalIf(t, types.String("foo").Hash() == types.String("bar").Hash(), "unexpected Hash collision")
+	})
 }
