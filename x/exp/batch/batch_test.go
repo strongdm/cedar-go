@@ -603,17 +603,7 @@ func TestIgnoreReasons(t *testing.T) {
 	);
 
 	`
-
-	ps := cedar.NewPolicySet()
-	pp, err := cedar.NewPolicyListFromBytes("policy.cedar", []byte(doc))
-	testutil.OK(t, err)
-	for _, p := range pp {
-		pid := types.PolicyID(p.Annotations()["id"])
-		testutil.FatalIf(t, ps.Get(pid) != nil, "policy already exists: %v", pid)
-		if !ps.Add(pid, p) {
-			panic("duplicate policy IDs")
-		}
-	}
+	ps := testLoadPoliciesById(t, doc)
 
 	tests := []struct {
 		Name     string
@@ -790,4 +780,544 @@ func TestFindVariables(t *testing.T) {
 		})
 	}
 
+}
+
+func testLoadPoliciesById(t *testing.T, doc string) *cedar.PolicySet {
+	ps := cedar.NewPolicySet()
+	pp, err := cedar.NewPolicyListFromBytes("policy.cedar", []byte(doc))
+	testutil.OK(t, err)
+	for _, p := range pp {
+		pid := types.PolicyID(p.Annotations()["id"])
+		testutil.FatalIf(t, ps.Get(pid) != nil, "policy already exists: %v", pid)
+		testutil.FatalIf(t, !ps.Add(pid, p), "duplicate policy IDs")
+	}
+	return ps
+}
+
+func TestBatchPermitForbids(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name     string
+		entities types.EntityMap
+		policy   string
+		request  Request
+		allows   int
+		denys    int
+	}{
+
+		{
+			name:     "global",
+			entities: types.EntityMap{},
+			policy: `
+			@id("myPermit")
+			permit (principal, action, resource);
+
+			@id("myForbid")
+			forbid(principal, action, resource);
+			`,
+			request: Request{
+				Principal: types.NewEntityUID("Principal", "123"),
+				Action:    types.NewEntityUID("Action", "test"),
+				Resource:  types.NewEntityUID("Resource", "456"),
+				Context:   types.Record{},
+			},
+			allows: 0, denys: 1,
+		},
+		{
+			name:     "resourceIs",
+			entities: types.EntityMap{},
+			policy: `
+			@id("myPermit")
+			permit (principal, action, resource is Resource);
+
+			@id("myForbid")
+			forbid(principal, action, resource is Resource);
+			`,
+			request: Request{
+				Principal: types.NewEntityUID("Principal", "123"),
+				Action:    types.NewEntityUID("Action", "test"),
+				Resource:  types.NewEntityUID("Resource", "456"),
+				Context:   types.Record{},
+			},
+			allows: 0, denys: 1,
+		},
+		{
+			name:     "actionIn",
+			entities: types.EntityMap{},
+			policy: `
+			@id("myPermit")
+			permit (principal, action in [Action::"test"], resource);
+
+			@id("myForbid")
+			forbid(principal, action in [Action::"test"], resource);
+			`,
+			request: Request{
+				Principal: types.NewEntityUID("Principal", "123"),
+				Action:    types.NewEntityUID("Action", "test"),
+				Resource:  types.NewEntityUID("Resource", "456"),
+				Context:   types.Record{},
+			},
+			allows: 0, denys: 1,
+		},
+		{
+			name:     "actionAndResource",
+			entities: types.EntityMap{},
+			policy: `
+			@id("myPermit")
+			permit (principal, action in [Action::"test"], resource is Resource);
+
+			@id("myForbid")
+			forbid(principal, action in [Action::"test"], resource is Resource);
+			`,
+			request: Request{
+				Principal: types.NewEntityUID("Principal", "123"),
+				Action:    types.NewEntityUID("Action", "test"),
+				Resource:  types.NewEntityUID("Resource", "456"),
+				Context:   types.Record{},
+			},
+			allows: 0, denys: 1,
+		},
+
+		{
+			name:     "1d-batch/global",
+			entities: types.EntityMap{},
+			policy: `
+			@id("myPermit")
+			permit (principal, action, resource);
+
+			@id("myForbid")
+			forbid(principal, action, resource);
+			`,
+			request: Request{
+				Principal: types.NewEntityUID("Principal", "123"),
+				Action:    Variable("action"),
+				Resource:  types.NewEntityUID("Resource", "456"),
+				Context:   types.Record{},
+				Variables: Variables{
+					"action": []types.Value{types.NewEntityUID("Action", "test"), types.NewEntityUID("Action", "test2")},
+				},
+			},
+			allows: 0, denys: 2,
+		},
+		{
+			name:     "1d-batch/resourceIs",
+			entities: types.EntityMap{},
+			policy: `
+			@id("myPermit")
+			permit (principal, action, resource is Resource);
+
+			@id("myForbid")
+			forbid(principal, action, resource is Resource);
+			`,
+			request: Request{
+				Principal: types.NewEntityUID("Principal", "123"),
+				Action:    Variable("action"),
+				Resource:  types.NewEntityUID("Resource", "456"),
+				Context:   types.Record{},
+				Variables: Variables{
+					"action": []types.Value{types.NewEntityUID("Action", "test"), types.NewEntityUID("Action", "test2")},
+				},
+			},
+			allows: 0, denys: 2,
+		},
+		{
+			name:     "1d-batch/actionIn",
+			entities: types.EntityMap{},
+			policy: `
+			@id("myPermit")
+			permit (principal, action in [Action::"test", Action::"test2"], resource);
+
+			@id("myForbid")
+			forbid(principal, action in [Action::"test", Action::"test2"], resource);
+			`,
+			request: Request{
+				Principal: types.NewEntityUID("Principal", "123"),
+				Action:    Variable("action"),
+				Resource:  types.NewEntityUID("Resource", "456"),
+				Context:   types.Record{},
+				Variables: Variables{
+					"action": []types.Value{types.NewEntityUID("Action", "test"), types.NewEntityUID("Action", "test2")},
+				},
+			},
+			allows: 0, denys: 2,
+		},
+		{
+			name:     "1d-batch/actionAndResource",
+			entities: types.EntityMap{},
+			policy: `
+			@id("myPermit")
+			permit (principal, action in [Action::"test", Action::"test2"], resource is Resource);
+
+			@id("myForbid")
+			forbid(principal, action in [Action::"test", Action::"test2"], resource is Resource);
+			`,
+			request: Request{
+				Principal: types.NewEntityUID("Principal", "123"),
+				Action:    Variable("action"),
+				Resource:  types.NewEntityUID("Resource", "456"),
+				Context:   types.Record{},
+				Variables: Variables{
+					"action": []types.Value{types.NewEntityUID("Action", "test"), types.NewEntityUID("Action", "test2")},
+				},
+			},
+			allows: 0, denys: 2,
+		},
+
+		{
+			name:     "2d-batch/global",
+			entities: types.EntityMap{},
+			policy: `
+			@id("myPermit")
+			permit (principal, action, resource);
+
+			@id("myForbid")
+			forbid(principal, action, resource);
+			`,
+			request: Request{
+				Principal: types.NewEntityUID("Principal", "123"),
+				Action:    Variable("action"),
+				Resource:  Variable("resource"),
+				Context:   types.Record{},
+				Variables: Variables{
+					"action":   []types.Value{types.NewEntityUID("Action", "test"), types.NewEntityUID("Action", "test2")},
+					"resource": []types.Value{types.NewEntityUID("Resource", "456"), types.NewEntityUID("Resource", "789")},
+				},
+			},
+			allows: 0, denys: 4,
+		},
+		{
+			name:     "2d-batch/resourceIs",
+			entities: types.EntityMap{},
+			policy: `
+			@id("myPermit")
+			permit (principal, action, resource is Resource);
+
+			@id("myForbid")
+			forbid(principal, action, resource is Resource);
+			`,
+			request: Request{
+				Principal: types.NewEntityUID("Principal", "123"),
+				Action:    Variable("action"),
+				Resource:  Variable("resource"),
+				Context:   types.Record{},
+				Variables: Variables{
+					"action":   []types.Value{types.NewEntityUID("Action", "test"), types.NewEntityUID("Action", "test2")},
+					"resource": []types.Value{types.NewEntityUID("Resource", "456"), types.NewEntityUID("Resource", "789")},
+				},
+			},
+			allows: 0, denys: 4,
+		},
+		{
+			name:     "2d-batch/actionIn",
+			entities: types.EntityMap{},
+			policy: `
+			@id("myPermit")
+			permit (principal, action in [Action::"test", Action::"test2"], resource);
+
+			@id("myForbid")
+			forbid(principal, action in [Action::"test", Action::"test2"], resource);
+			`,
+			request: Request{
+				Principal: types.NewEntityUID("Principal", "123"),
+				Action:    Variable("action"),
+				Resource:  Variable("resource"),
+				Context:   types.Record{},
+				Variables: Variables{
+					"action":   []types.Value{types.NewEntityUID("Action", "test"), types.NewEntityUID("Action", "test2")},
+					"resource": []types.Value{types.NewEntityUID("Resource", "456"), types.NewEntityUID("Resource", "789")},
+				},
+			},
+			allows: 0, denys: 4,
+		},
+		{
+			name:     "2d-batch/actionAndResource",
+			entities: types.EntityMap{},
+			policy: `
+			@id("myPermit")
+			permit (principal, action in [Action::"test", Action::"test2"], resource is Resource);
+
+			@id("myForbid")
+			forbid(principal, action in [Action::"test", Action::"test2"], resource is Resource);
+			`,
+			request: Request{
+				Principal: types.NewEntityUID("Principal", "123"),
+				Action:    Variable("action"),
+				Resource:  Variable("resource"),
+				Context:   types.Record{},
+				Variables: Variables{
+					"action":   []types.Value{types.NewEntityUID("Action", "test"), types.NewEntityUID("Action", "test2")},
+					"resource": []types.Value{types.NewEntityUID("Resource", "456"), types.NewEntityUID("Resource", "789")},
+				},
+			},
+			allows: 0, denys: 4,
+		},
+
+		// now ignore context
+
+		{
+			name:     "ignore-context/global",
+			entities: types.EntityMap{},
+			policy: `
+			@id("myPermit")
+			permit (principal, action, resource);
+
+			@id("myForbid")
+			forbid(principal, action, resource);
+			`,
+			request: Request{
+				Principal: types.NewEntityUID("Principal", "123"),
+				Action:    types.NewEntityUID("Action", "test"),
+				Resource:  types.NewEntityUID("Resource", "456"),
+				Context:   Ignore(),
+			},
+			allows: 0, denys: 1,
+		},
+		{
+			name:     "ignore-context/resourceIs",
+			entities: types.EntityMap{},
+			policy: `
+			@id("myPermit")
+			permit (principal, action, resource is Resource);
+
+			@id("myForbid")
+			forbid(principal, action, resource is Resource);
+			`,
+			request: Request{
+				Principal: types.NewEntityUID("Principal", "123"),
+				Action:    types.NewEntityUID("Action", "test"),
+				Resource:  types.NewEntityUID("Resource", "456"),
+				Context:   Ignore(),
+			},
+			allows: 0, denys: 1,
+		},
+		{
+			name:     "ignore-context/actionIn",
+			entities: types.EntityMap{},
+			policy: `
+			@id("myPermit")
+			permit (principal, action in [Action::"test"], resource);
+
+			@id("myForbid")
+			forbid(principal, action in [Action::"test"], resource);
+			`,
+			request: Request{
+				Principal: types.NewEntityUID("Principal", "123"),
+				Action:    types.NewEntityUID("Action", "test"),
+				Resource:  types.NewEntityUID("Resource", "456"),
+				Context:   Ignore(),
+			},
+			allows: 0, denys: 1,
+		},
+		{
+			name:     "ignore-context/actionAndResource",
+			entities: types.EntityMap{},
+			policy: `
+			@id("myPermit")
+			permit (principal, action in [Action::"test"], resource is Resource);
+
+			@id("myForbid")
+			forbid(principal, action in [Action::"test"], resource is Resource);
+			`,
+			request: Request{
+				Principal: types.NewEntityUID("Principal", "123"),
+				Action:    types.NewEntityUID("Action", "test"),
+				Resource:  types.NewEntityUID("Resource", "456"),
+				Context:   Ignore(),
+			},
+			allows: 0, denys: 1,
+		},
+
+		{
+			name:     "ignore-context/1d-batch/global",
+			entities: types.EntityMap{},
+			policy: `
+			@id("myPermit")
+			permit (principal, action, resource);
+
+			@id("myForbid")
+			forbid(principal, action, resource);
+			`,
+			request: Request{
+				Principal: types.NewEntityUID("Principal", "123"),
+				Action:    Variable("action"),
+				Resource:  types.NewEntityUID("Resource", "456"),
+				Context:   Ignore(),
+				Variables: Variables{
+					"action": []types.Value{types.NewEntityUID("Action", "test"), types.NewEntityUID("Action", "test2")},
+				},
+			},
+			allows: 0, denys: 2,
+		},
+		{
+			name:     "ignore-context/1d-batch/resourceIs",
+			entities: types.EntityMap{},
+			policy: `
+			@id("myPermit")
+			permit (principal, action, resource is Resource);
+
+			@id("myForbid")
+			forbid(principal, action, resource is Resource);
+			`,
+			request: Request{
+				Principal: types.NewEntityUID("Principal", "123"),
+				Action:    Variable("action"),
+				Resource:  types.NewEntityUID("Resource", "456"),
+				Context:   Ignore(),
+				Variables: Variables{
+					"action": []types.Value{types.NewEntityUID("Action", "test"), types.NewEntityUID("Action", "test2")},
+				},
+			},
+			allows: 0, denys: 2,
+		},
+		{
+			name:     "ignore-context/1d-batch/actionIn",
+			entities: types.EntityMap{},
+			policy: `
+			@id("myPermit")
+			permit (principal, action in [Action::"test", Action::"test2"], resource);
+
+			@id("myForbid")
+			forbid(principal, action in [Action::"test", Action::"test2"], resource);
+			`,
+			request: Request{
+				Principal: types.NewEntityUID("Principal", "123"),
+				Action:    Variable("action"),
+				Resource:  types.NewEntityUID("Resource", "456"),
+				Context:   Ignore(),
+				Variables: Variables{
+					"action": []types.Value{types.NewEntityUID("Action", "test"), types.NewEntityUID("Action", "test2")},
+				},
+			},
+			allows: 0, denys: 2,
+		},
+		{
+			name:     "ignore-context/1d-batch/actionAndResource",
+			entities: types.EntityMap{},
+			policy: `
+			@id("myPermit")
+			permit (principal, action in [Action::"test", Action::"test2"], resource is Resource);
+
+			@id("myForbid")
+			forbid(principal, action in [Action::"test", Action::"test2"], resource is Resource);
+			`,
+			request: Request{
+				Principal: types.NewEntityUID("Principal", "123"),
+				Action:    Variable("action"),
+				Resource:  types.NewEntityUID("Resource", "456"),
+				Context:   Ignore(),
+				Variables: Variables{
+					"action": []types.Value{types.NewEntityUID("Action", "test"), types.NewEntityUID("Action", "test2")},
+				},
+			},
+			allows: 0, denys: 2,
+		},
+
+		{
+			name:     "ignore-context/2d-batch/global",
+			entities: types.EntityMap{},
+			policy: `
+			@id("myPermit")
+			permit (principal, action, resource);
+
+			@id("myForbid")
+			forbid(principal, action, resource);
+			`,
+			request: Request{
+				Principal: types.NewEntityUID("Principal", "123"),
+				Action:    Variable("action"),
+				Resource:  Variable("resource"),
+				Context:   Ignore(),
+				Variables: Variables{
+					"action":   []types.Value{types.NewEntityUID("Action", "test"), types.NewEntityUID("Action", "test2")},
+					"resource": []types.Value{types.NewEntityUID("Resource", "456"), types.NewEntityUID("Resource", "789")},
+				},
+			},
+			allows: 0, denys: 4,
+		},
+		{
+			name:     "ignore-context/2d-batch/resourceIs",
+			entities: types.EntityMap{},
+			policy: `
+			@id("myPermit")
+			permit (principal, action, resource is Resource);
+
+			@id("myForbid")
+			forbid(principal, action, resource is Resource);
+			`,
+			request: Request{
+				Principal: types.NewEntityUID("Principal", "123"),
+				Action:    Variable("action"),
+				Resource:  Variable("resource"),
+				Context:   Ignore(),
+				Variables: Variables{
+					"action":   []types.Value{types.NewEntityUID("Action", "test"), types.NewEntityUID("Action", "test2")},
+					"resource": []types.Value{types.NewEntityUID("Resource", "456"), types.NewEntityUID("Resource", "789")},
+				},
+			},
+			allows: 0, denys: 4,
+		},
+		{
+			name:     "ignore-context/2d-batch/actionIn",
+			entities: types.EntityMap{},
+			policy: `
+			@id("myPermit")
+			permit (principal, action in [Action::"test", Action::"test2"], resource);
+
+			@id("myForbid")
+			forbid(principal, action in [Action::"test", Action::"test2"], resource);
+			`,
+			request: Request{
+				Principal: types.NewEntityUID("Principal", "123"),
+				Action:    Variable("action"),
+				Resource:  Variable("resource"),
+				Context:   Ignore(),
+				Variables: Variables{
+					"action":   []types.Value{types.NewEntityUID("Action", "test"), types.NewEntityUID("Action", "test2")},
+					"resource": []types.Value{types.NewEntityUID("Resource", "456"), types.NewEntityUID("Resource", "789")},
+				},
+			},
+			allows: 0, denys: 4,
+		},
+		{
+			name:     "ignore-context/2d-batch/actionAndResource",
+			entities: types.EntityMap{},
+			policy: `
+			@id("myPermit")
+			permit (principal, action in [Action::"test", Action::"test2"], resource is Resource);
+
+			@id("myForbid")
+			forbid(principal, action in [Action::"test", Action::"test2"], resource is Resource);
+			`,
+			request: Request{
+				Principal: types.NewEntityUID("Principal", "123"),
+				Action:    Variable("action"),
+				Resource:  Variable("resource"),
+				Context:   Ignore(),
+				Variables: Variables{
+					"action":   []types.Value{types.NewEntityUID("Action", "test"), types.NewEntityUID("Action", "test2")},
+					"resource": []types.Value{types.NewEntityUID("Resource", "456"), types.NewEntityUID("Resource", "789")},
+				},
+			},
+			allows: 0, denys: 4,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			ps := testLoadPoliciesById(t, tt.policy)
+
+			var denys, allows int
+			err := Authorize(context.Background(), ps, tt.entities, tt.request, func(r Result) error {
+				if r.Decision == cedar.Allow {
+					allows++
+				} else {
+					denys++
+				}
+				return nil
+			})
+			testutil.OK(t, err)
+			testutil.Equals(t, allows, tt.allows)
+			testutil.Equals(t, denys, tt.denys)
+		})
+	}
 }
