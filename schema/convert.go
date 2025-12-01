@@ -1,6 +1,10 @@
 package schema
 
-import "github.com/cedar-policy/cedar-go/internal/schema/ast"
+import (
+	"fmt"
+
+	"github.com/cedar-policy/cedar-go/internal/schema/ast"
+)
 
 // convertJSONTypeToType converts an internal JSON type to a public Type.
 func convertJSONTypeToType(jsonType *ast.JSONType) Type {
@@ -196,7 +200,7 @@ func convertTypeToJSONType(typ Type) *ast.JSONType {
 		return jsonType
 
 	default:
-		return nil
+		panic(fmt.Sprintf("unknown Type implementation: %T", typ))
 	}
 }
 
