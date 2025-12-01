@@ -35,9 +35,9 @@ type PathType struct {
 }
 
 // Ensure types implement the Type interface
-func (*RecordType) isType() {}
-func (*SetType) isType()    {}
-func (*PathType) isType()   {}
+func (*RecordType) isType() { _ = 0 }
+func (*SetType) isType()    { _ = 0 }
+func (*PathType) isType()   { _ = 0 }
 
 // Record creates a new record type with the given attributes.
 func Record(attrs ...*Attribute) *RecordType {
