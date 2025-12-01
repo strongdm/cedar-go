@@ -297,9 +297,9 @@ func (s *Schema) UnmarshalCedar(data []byte) error {
 func (s *Schema) MarshalCedar() ([]byte, error) {
 	// Convert to JSON format first
 	jsonData, err := s.MarshalJSON()
-	if err != nil {
-		return nil, err
-	}
+	// This error should never occur - MarshalJSON only fails if json.Marshal fails on our Schema structure,
+	// which contains only marshalable types. If this fails, it indicates memory corruption or an internal bug.
+	panicOnErr(err, "marshaling Schema to JSON")
 
 	// Parse as JSON schema
 	var jsonSchema ast.JSONSchema
