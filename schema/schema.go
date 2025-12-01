@@ -47,6 +47,17 @@ import (
 	"github.com/cedar-policy/cedar-go/internal/schema/parser"
 )
 
+// panicOnErr is a helper for error conditions that should be impossible to reach.
+// These are defensive checks that protect against internal bugs or memory corruption,
+// but should never trigger during normal operation with valid data structures.
+// If such an error does occur, it indicates a serious internal problem that should
+// be surfaced immediately rather than returned as a normal error.
+func panicOnErr(err error, msg string) {
+	if err != nil {
+		panic(fmt.Sprintf("cedar-go/schema: impossible error occurred: %s: %v", msg, err))
+	}
+}
+
 // Schema represents a complete Cedar schema containing entity types, actions, and their relationships.
 // A schema can contain multiple namespaces, and can be marshaled to or unmarshaled from JSON or Cedar text format.
 type Schema struct {
@@ -274,9 +285,9 @@ func (s *Schema) UnmarshalCedar(data []byte) error {
 
 	// Then unmarshal from JSON
 	jsonData, err := json.Marshal(jsonSchema)
-	if err != nil {
-		return fmt.Errorf("failed to convert schema: %w", err)
-	}
+	// This error should never occur - jsonSchema is a valid Go struct that json.Marshal can always handle.
+	// If this fails, it indicates memory corruption or a bug in Go's encoding/json package.
+	panicOnErr(err, "marshaling internal JSONSchema structure")
 
 	return s.UnmarshalJSON(jsonData)
 }
@@ -292,18 +303,20 @@ func (s *Schema) MarshalCedar() ([]byte, error) {
 
 	// Parse as JSON schema
 	var jsonSchema ast.JSONSchema
-	if err := json.Unmarshal(jsonData, &jsonSchema); err != nil {
-		return nil, fmt.Errorf("failed to convert schema: %w", err)
-	}
+	err = json.Unmarshal(jsonData, &jsonSchema)
+	// This error should never occur - jsonData came from our own MarshalJSON which produces valid JSON.
+	// If this fails, it indicates memory corruption or a bug in Go's encoding/json package.
+	panicOnErr(err, "unmarshaling JSON from our own MarshalJSON")
 
 	// Convert to human-readable format
 	humanSchema := ast.ConvertJSON2Human(jsonSchema)
 
 	// Format as Cedar text
 	var buf bytes.Buffer
-	if err := ast.Format(humanSchema, &buf); err != nil {
-		return nil, err
-	}
+	err = ast.Format(humanSchema, &buf)
+	// This error should never occur - humanSchema came from ConvertJSON2Human which always produces valid output.
+	// If this fails, it indicates a bug in the ast.Format function or memory corruption.
+	panicOnErr(err, "formatting valid human schema")
 
 	return buf.Bytes(), nil
 }
