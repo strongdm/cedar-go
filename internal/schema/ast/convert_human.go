@@ -35,7 +35,11 @@ func convertNamespace(n *Namespace) *JSONNamespace {
 	jsNamespace.CommonTypes = make(map[string]*JSONCommonType)
 	jsNamespace.Annotations = make(map[string]string)
 	for _, a := range n.Annotations {
-		jsNamespace.Annotations[a.Key.String()] = a.Value.String()
+		if a.Value != nil {
+			jsNamespace.Annotations[a.Key.String()] = a.Value.String()
+		} else {
+			jsNamespace.Annotations[a.Key.String()] = ""
+		}
 	}
 
 	for _, astDecl := range n.Decls {
@@ -45,7 +49,11 @@ func convertNamespace(n *Namespace) *JSONNamespace {
 				jsAction := new(JSONAction)
 				jsAction.Annotations = make(map[string]string)
 				for _, a := range astDecl.Annotations {
-					jsAction.Annotations[a.Key.String()] = a.Value.String()
+					if a.Value != nil {
+						jsAction.Annotations[a.Key.String()] = a.Value.String()
+					} else {
+						jsAction.Annotations[a.Key.String()] = ""
+					}
 				}
 				jsNamespace.Actions[astActionName.String()] = jsAction
 				for _, astMember := range astDecl.In {
@@ -79,7 +87,11 @@ func convertNamespace(n *Namespace) *JSONNamespace {
 				entity := new(JSONEntity)
 				entity.Annotations = make(map[string]string)
 				for _, a := range astDecl.Annotations {
-					entity.Annotations[a.Key.String()] = a.Value.String()
+					if a.Value != nil {
+						entity.Annotations[a.Key.String()] = a.Value.String()
+					} else {
+						entity.Annotations[a.Key.String()] = ""
+					}
 				}
 				jsNamespace.EntityTypes[name.String()] = entity
 				for _, member := range astDecl.In {
@@ -101,7 +113,11 @@ func convertNamespace(n *Namespace) *JSONNamespace {
 			commonType.JSONType = convertType(astDecl.Value)
 			commonType.Annotations = make(map[string]string)
 			for _, a := range astDecl.Annotations {
-				commonType.Annotations[a.Key.String()] = a.Value.String()
+				if a.Value != nil {
+					commonType.Annotations[a.Key.String()] = a.Value.String()
+				} else {
+					commonType.Annotations[a.Key.String()] = ""
+				}
 			}
 			jsNamespace.CommonTypes[astDecl.Name.String()] = commonType
 		}
@@ -149,7 +165,11 @@ func convertRecordType(t *RecordType) *JSONType {
 		jt.Attributes[attr.Key.String()] = jsAttr
 		jsAttr.Annotations = make(map[string]string)
 		for _, a := range attr.Annotations {
-			jsAttr.Annotations[a.Key.String()] = a.Value.String()
+			if a.Value != nil {
+				jsAttr.Annotations[a.Key.String()] = a.Value.String()
+			} else {
+				jsAttr.Annotations[a.Key.String()] = ""
+			}
 		}
 	}
 	return jt
