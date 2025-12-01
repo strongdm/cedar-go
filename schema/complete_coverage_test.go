@@ -194,7 +194,9 @@ func TestCompleteCoverage(t *testing.T) {
 		}
 
 		var parsed map[string]interface{}
-		json.Unmarshal(jsonData, &parsed)
+		if err := json.Unmarshal(jsonData, &parsed); err != nil {
+			t.Fatalf("Failed to unmarshal JSON: %v", err)
+		}
 		testNS := parsed["Test"].(map[string]interface{})
 
 		entities := testNS["entityTypes"].(map[string]interface{})
@@ -251,7 +253,9 @@ func TestCompleteCoverage(t *testing.T) {
 		}
 
 		var parsed map[string]interface{}
-		json.Unmarshal(jsonData, &parsed)
+		if err := json.Unmarshal(jsonData, &parsed); err != nil {
+			t.Fatalf("Failed to unmarshal JSON: %v", err)
+		}
 		testNS := parsed["Test"].(map[string]interface{})
 		entities := testNS["entityTypes"].(map[string]interface{})
 		user := entities["User"].(map[string]interface{})
@@ -287,7 +291,9 @@ func TestCompleteCoverage(t *testing.T) {
 
 		// Parse JSON to verify all types are correct
 		var parsed map[string]interface{}
-		json.Unmarshal(jsonData, &parsed)
+		if err := json.Unmarshal(jsonData, &parsed); err != nil {
+			t.Fatalf("Failed to unmarshal JSON: %v", err)
+		}
 		testNS := parsed["Test"].(map[string]interface{})
 		entities := testNS["entityTypes"].(map[string]interface{})
 		allTypes := entities["AllTypes"].(map[string]interface{})

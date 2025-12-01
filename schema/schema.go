@@ -180,7 +180,7 @@ func (s *Schema) UnmarshalJSON(data []byte) error {
 // MarshalJSON converts the schema to JSON format as specified by the Cedar documentation.
 // See: https://docs.cedarpolicy.com/schema/json-schema.html
 func (s *Schema) MarshalJSON() ([]byte, error) {
-	if s.namespaces == nil || len(s.namespaces) == 0 {
+	if len(s.namespaces) == 0 {
 		return []byte("{}"), nil
 	}
 
@@ -193,7 +193,7 @@ func (s *Schema) MarshalJSON() ([]byte, error) {
 			CommonTypes: make(map[string]*ast.JSONCommonType),
 		}
 
-		if ns.annotations != nil && len(ns.annotations) > 0 {
+		if len(ns.annotations) > 0 {
 			jsonNS.Annotations = ns.annotations
 		}
 
