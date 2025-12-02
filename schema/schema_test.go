@@ -55,8 +55,12 @@ func TestSchemaJSONRoundTrip(t *testing.T) {
 
 	// Compare JSON output (should be identical)
 	var json1, json2 interface{}
-	json.Unmarshal(jsonData, &json1)
-	json.Unmarshal(jsonData2, &json2)
+	if err := json.Unmarshal(jsonData, &json1); err != nil {
+		t.Fatalf("Failed to unmarshal first JSON: %v", err)
+	}
+	if err := json.Unmarshal(jsonData2, &json2); err != nil {
+		t.Fatalf("Failed to unmarshal second JSON: %v", err)
+	}
 
 	if !jsonEqual(t, json1, json2) {
 		t.Errorf("JSON round-trip produced different results:\nFirst:  %s\nSecond: %s", jsonData, jsonData2)
@@ -115,8 +119,12 @@ namespace PhotoApp {
 	}
 
 	var j1, j2 interface{}
-	json.Unmarshal(json1, &j1)
-	json.Unmarshal(json2, &j2)
+	if err := json.Unmarshal(json1, &j1); err != nil {
+		t.Fatalf("Failed to unmarshal first JSON: %v", err)
+	}
+	if err := json.Unmarshal(json2, &j2); err != nil {
+		t.Fatalf("Failed to unmarshal second JSON: %v", err)
+	}
 
 	if !jsonEqual(t, j1, j2) {
 		t.Errorf("Cedar round-trip produced different results")
@@ -267,8 +275,12 @@ func TestComplexTypes(t *testing.T) {
 	}
 
 	var j1, j2 interface{}
-	json.Unmarshal(jsonData, &j1)
-	json.Unmarshal(jsonData2, &j2)
+	if err := json.Unmarshal(jsonData, &j1); err != nil {
+		t.Fatalf("Failed to unmarshal first JSON: %v", err)
+	}
+	if err := json.Unmarshal(jsonData2, &j2); err != nil {
+		t.Fatalf("Failed to unmarshal second JSON: %v", err)
+	}
 
 	if !jsonEqual(t, j1, j2) {
 		t.Error("Complex type round-trip failed")
@@ -321,8 +333,14 @@ func jsonEqual(t *testing.T, a, b interface{}) bool {
 	bJSON, _ := json.Marshal(b)
 
 	var aVal, bVal interface{}
-	json.Unmarshal(aJSON, &aVal)
-	json.Unmarshal(bJSON, &bVal)
+	if err := json.Unmarshal(aJSON, &aVal); err != nil {
+		t.Errorf("Failed to unmarshal aJSON: %v", err)
+		return false
+	}
+	if err := json.Unmarshal(bJSON, &bVal); err != nil {
+		t.Errorf("Failed to unmarshal bJSON: %v", err)
+		return false
+	}
 
 	aStr, _ := json.MarshalIndent(aVal, "", "  ")
 	bStr, _ := json.MarshalIndent(bVal, "", "  ")

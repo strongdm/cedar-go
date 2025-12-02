@@ -48,7 +48,9 @@ func TestFullCoverage(t *testing.T) {
 
 		// Verify annotation is present
 		var parsed map[string]interface{}
-		json.Unmarshal(jsonData, &parsed)
+		if err := json.Unmarshal(jsonData, &parsed); err != nil {
+			t.Fatalf("Failed to unmarshal JSON: %v", err)
+		}
 		testNS := parsed["Test"].(map[string]interface{})
 		entities := testNS["entityTypes"].(map[string]interface{})
 		user := entities["User"].(map[string]interface{})
@@ -122,7 +124,9 @@ func TestFullCoverage(t *testing.T) {
 		}
 
 		var parsed map[string]interface{}
-		json.Unmarshal(jsonData, &parsed)
+		if err := json.Unmarshal(jsonData, &parsed); err != nil {
+			t.Fatalf("Failed to unmarshal JSON: %v", err)
+		}
 		testNS := parsed["Test"].(map[string]interface{})
 		entities := testNS["entityTypes"].(map[string]interface{})
 		e := entities["E"].(map[string]interface{})
@@ -149,7 +153,9 @@ func TestFullCoverage(t *testing.T) {
 		}
 
 		var parsed map[string]interface{}
-		json.Unmarshal(jsonData, &parsed)
+		if err := json.Unmarshal(jsonData, &parsed); err != nil {
+			t.Fatalf("Failed to unmarshal JSON: %v", err)
+		}
 		testNS := parsed["Test"].(map[string]interface{})
 		actions := testNS["actions"].(map[string]interface{})
 		viewPhoto := actions["viewPhoto"].(map[string]interface{})
@@ -172,7 +178,9 @@ func TestFullCoverage(t *testing.T) {
 		}
 
 		var parsed map[string]interface{}
-		json.Unmarshal(jsonData, &parsed)
+		if err := json.Unmarshal(jsonData, &parsed); err != nil {
+			t.Fatalf("Failed to unmarshal JSON: %v", err)
+		}
 		testNS := parsed["Test"].(map[string]interface{})
 		actions := testNS["actions"].(map[string]interface{})
 		listPhotos := actions["listPhotos"].(map[string]interface{})
@@ -217,7 +225,9 @@ func TestFullCoverage(t *testing.T) {
 		}
 
 		var parsed map[string]interface{}
-		json.Unmarshal(jsonData, &parsed)
+		if err := json.Unmarshal(jsonData, &parsed); err != nil {
+			t.Fatalf("Failed to unmarshal JSON: %v", err)
+		}
 		testNS := parsed["Test"].(map[string]interface{})
 		entities := testNS["entityTypes"].(map[string]interface{})
 		resource := entities["Resource"].(map[string]interface{})
@@ -252,7 +262,9 @@ func TestFullCoverage(t *testing.T) {
 		}
 
 		var parsed map[string]interface{}
-		json.Unmarshal(jsonOutput, &parsed)
+		if err := json.Unmarshal(jsonOutput, &parsed); err != nil {
+			t.Fatalf("Failed to unmarshal JSON: %v", err)
+		}
 		testNS := parsed["Test"].(map[string]interface{})
 		annotations := testNS["annotations"].(map[string]interface{})
 		if annotations["doc"] != "Test namespace" {
@@ -293,7 +305,9 @@ func TestEdgeCases(t *testing.T) {
 		}
 
 		var parsed map[string]interface{}
-		json.Unmarshal(jsonData, &parsed)
+		if err := json.Unmarshal(jsonData, &parsed); err != nil {
+			t.Fatalf("Failed to unmarshal JSON: %v", err)
+		}
 		if parsed[""] == nil {
 			t.Error("Expected empty namespace to be present")
 		}
@@ -314,7 +328,9 @@ func TestEdgeCases(t *testing.T) {
 		}
 
 		var parsed map[string]interface{}
-		json.Unmarshal(jsonData, &parsed)
+		if err := json.Unmarshal(jsonData, &parsed); err != nil {
+			t.Fatalf("Failed to unmarshal JSON: %v", err)
+		}
 		if parsed["App1"] == nil || parsed["App2"] == nil {
 			t.Error("Expected both namespaces to be present")
 		}
@@ -332,7 +348,9 @@ func TestEdgeCases(t *testing.T) {
 		}
 
 		var parsed map[string]interface{}
-		json.Unmarshal(jsonData, &parsed)
+		if err := json.Unmarshal(jsonData, &parsed); err != nil {
+			t.Fatalf("Failed to unmarshal JSON: %v", err)
+		}
 		testNS := parsed["Test"].(map[string]interface{})
 		entities := testNS["entityTypes"].(map[string]interface{})
 		user := entities["User"].(map[string]interface{})
@@ -388,7 +406,9 @@ func TestEdgeCases(t *testing.T) {
 		}
 
 		var parsed map[string]interface{}
-		json.Unmarshal(jsonData, &parsed)
+		if err := json.Unmarshal(jsonData, &parsed); err != nil {
+			t.Fatalf("Failed to unmarshal JSON: %v", err)
+		}
 		testNS := parsed["Test"].(map[string]interface{})
 		actions := testNS["actions"].(map[string]interface{})
 		groupAction := actions["groupAction"].(map[string]interface{})
@@ -430,7 +450,9 @@ func TestEdgeCases(t *testing.T) {
 		}
 
 		var parsed map[string]interface{}
-		json.Unmarshal(jsonOutput, &parsed)
+		if err := json.Unmarshal(jsonOutput, &parsed); err != nil {
+			t.Fatalf("Failed to unmarshal JSON: %v", err)
+		}
 		testNS := parsed["Test"].(map[string]interface{})
 		entities := testNS["entityTypes"].(map[string]interface{})
 		network := entities["Network"].(map[string]interface{})

@@ -9,22 +9,8 @@ import (
 
 // TestErrorPathsWithInvalidInternalState tests error paths by creating invalid internal state
 func TestErrorPathsWithInvalidInternalState(t *testing.T) {
-	t.Run("MarshalCedar with invalid schema causing MarshalJSON to fail", func(t *testing.T) {
-		// Create a schema with internal state that will cause json.Marshal to fail
-		// We'll create a namespace with an action that has an invalid AppliesTo context
-
-		// Create a type that contains a channel (which can't be marshaled to JSON)
-		type unmarshalableType struct {
-			Ch chan int // channels can't be marshaled to JSON
-		}
-
-		// However, our Type interface only allows PathType, SetType, RecordType
-		// So we can't directly inject an unmarshalable type through the public API
-
-		// Instead, let's test the error path by creating a schema and then
-		// manipulating its internal state to cause MarshalJSON to fail
-
-		// Actually, with our current type system, it's impossible to create
+	t.Run("MarshalCedar with valid schema", func(t *testing.T) {
+		// With our current type system, it's impossible to create
 		// a Schema that causes MarshalJSON to fail because all fields are
 		// marshalable. This error path is truly defensive.
 
@@ -42,12 +28,12 @@ func TestErrorPathsWithInvalidInternalState(t *testing.T) {
 		// Even deeply nested structures should work
 
 		deepRecord := Record()
-		current := deepRecord
 
 		// Create 100 levels of nesting
+		current := deepRecord
 		for i := 0; i < 100; i++ {
 			nested := Record()
-			current = current.WithAttribute("nested", nested)
+			current.WithAttribute("nested", nested)
 			current = nested
 		}
 

@@ -17,7 +17,7 @@ func TestFinal100Percent(t *testing.T) {
 			t.Errorf("Expected 'Record', got %v", jsonRecord.Type)
 		}
 		// annotations should not be set if nil
-		if jsonRecord.Annotations != nil && len(jsonRecord.Annotations) > 0 {
+		if len(jsonRecord.Annotations) > 0 {
 			t.Error("Expected nil or empty annotations")
 		}
 	})
