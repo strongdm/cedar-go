@@ -67,6 +67,12 @@ func (s *Schema) UnmarshalCedarWithFilename(filename string, data []byte) error 
 		return err
 	}
 
+	return s.unmarshalFromInternal(savedFilename, internalSchema)
+}
+
+// unmarshalFromInternal converts an internal schema to a Schema.
+// This is separated from UnmarshalCedarWithFilename for testability.
+func (s *Schema) unmarshalFromInternal(savedFilename string, internalSchema *internalast.Schema) error {
 	result := New()
 	if err := convertInternalSchema(result, internalSchema); err != nil {
 		return err
