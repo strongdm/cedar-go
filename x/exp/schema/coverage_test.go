@@ -2879,3 +2879,501 @@ func TestSetFilename(t *testing.T) {
 		t.Errorf("expected error to contain filename, got: %v", err)
 	}
 }
+
+// unknownType is a test type that implements isType but isn't a known type variant
+type unknownType struct{}
+
+func (unknownType) isType()             {}
+func (unknownType) equal(o isType) bool { return false }
+
+func TestTypeToJSONUnknownType(t *testing.T) {
+	t.Parallel()
+
+	// Create a Type with an unknown variant
+	typ := Type{v: unknownType{}}
+
+	_, err := typeToJSON(typ)
+	if err == nil {
+		t.Error("expected error for unknown type")
+	}
+	if !contains(err.Error(), "unknown type") {
+		t.Errorf("expected 'unknown type' in error, got: %v", err)
+	}
+}
+
+func TestAttrToJSONUnknownType(t *testing.T) {
+	t.Parallel()
+
+	// Create an attribute with an unknown type variant
+	attr := Attribute{
+		Name:     "test",
+		Type:     Type{v: unknownType{}},
+		Required: true,
+	}
+
+	_, err := attrToJSON(attr)
+	if err == nil {
+		t.Error("expected error for unknown type")
+	}
+	if !contains(err.Error(), "unknown type") {
+		t.Errorf("expected 'unknown type' in error, got: %v", err)
+	}
+}
+
+func TestJSONMarshalUnknownTypeInEntity(t *testing.T) {
+	t.Parallel()
+
+	s := New()
+	entity := NewEntity("User")
+	entity.SetAttributes(Attribute{
+		Name:     "bad",
+		Type:     Type{v: unknownType{}},
+		Required: true,
+	})
+	s.AddEntity(entity)
+
+	_, err := s.MarshalJSON()
+	if err == nil {
+		t.Error("expected error for unknown type")
+	}
+}
+
+func TestJSONMarshalUnknownTypeInAction(t *testing.T) {
+	t.Parallel()
+
+	s := New()
+	action := NewAction("view")
+	action.SetContext(Type{v: unknownType{}})
+	s.AddAction(action)
+
+	_, err := s.MarshalJSON()
+	if err == nil {
+		t.Error("expected error for unknown type in action context")
+	}
+}
+
+func TestJSONMarshalUnknownTypeInCommonType(t *testing.T) {
+	t.Parallel()
+
+	s := New()
+	ct := NewCommonType("Bad", Type{v: unknownType{}})
+	s.AddCommonType(ct)
+
+	_, err := s.MarshalJSON()
+	if err == nil {
+		t.Error("expected error for unknown type in common type")
+	}
+}
+
+func TestJSONMarshalUnknownTypeInSetElement(t *testing.T) {
+	t.Parallel()
+
+	s := New()
+	entity := NewEntity("User")
+	entity.SetAttributes(Attribute{
+		Name:     "items",
+		Type:     SetOf(Type{v: unknownType{}}),
+		Required: true,
+	})
+	s.AddEntity(entity)
+
+	_, err := s.MarshalJSON()
+	if err == nil {
+		t.Error("expected error for unknown type in set element")
+	}
+}
+
+func TestJSONMarshalUnknownTypeInNestedRecord(t *testing.T) {
+	t.Parallel()
+
+	s := New()
+	entity := NewEntity("User")
+	entity.SetAttributes(Attribute{
+		Name: "nested",
+		Type: Record(Attribute{
+			Name:     "bad",
+			Type:     Type{v: unknownType{}},
+			Required: true,
+		}),
+		Required: true,
+	})
+	s.AddEntity(entity)
+
+	_, err := s.MarshalJSON()
+	if err == nil {
+		t.Error("expected error for unknown type in nested record")
+	}
+}
+
+func TestJSONMarshalUnknownTypeInTags(t *testing.T) {
+	t.Parallel()
+
+	s := New()
+	entity := NewEntity("User")
+	entity.SetTags(Type{v: unknownType{}})
+	s.AddEntity(entity)
+
+	_, err := s.MarshalJSON()
+	if err == nil {
+		t.Error("expected error for unknown type in tags")
+	}
+}
+
+func TestJSONMarshalUnknownTypeInAttrSetElement(t *testing.T) {
+	t.Parallel()
+
+	// Test attrToJSON with Set containing unknown type
+	attr := Attribute{
+		Name:     "items",
+		Type:     SetOf(Type{v: unknownType{}}),
+		Required: true,
+	}
+
+	_, err := attrToJSON(attr)
+	if err == nil {
+		t.Error("expected error for unknown type in set element")
+	}
+}
+
+func TestJSONMarshalUnknownTypeInAttrNestedRecord(t *testing.T) {
+	t.Parallel()
+
+	// Test attrToJSON with nested Record containing unknown type
+	attr := Attribute{
+		Name: "nested",
+		Type: Record(Attribute{
+			Name:     "bad",
+			Type:     Type{v: unknownType{}},
+			Required: true,
+		}),
+		Required: true,
+	}
+
+	_, err := attrToJSON(attr)
+	if err == nil {
+		t.Error("expected error for unknown type in nested record")
+	}
+}
+
+func TestCedarWriteTypeUnknown(t *testing.T) {
+	t.Parallel()
+
+	s := New()
+	entity := NewEntity("User")
+	entity.SetAttributes(Attribute{
+		Name:     "bad",
+		Type:     Type{v: unknownType{}},
+		Required: true,
+	})
+	s.AddEntity(entity)
+
+	// This should fail when trying to write the unknown type
+	_, err := s.MarshalCedar()
+	if err == nil {
+		t.Error("expected error for unknown type")
+	}
+}
+
+func TestJSONTypeFromJSONNil(t *testing.T) {
+	t.Parallel()
+
+	// Test typeFromJSON with nil input
+	result, err := typeFromJSON(nil)
+	if err != nil {
+		t.Errorf("typeFromJSON(nil) error = %v", err)
+	}
+	if result.v != nil {
+		t.Error("expected nil type")
+	}
+}
+
+func TestJSONTypeFromJSONSetElementError(t *testing.T) {
+	t.Parallel()
+
+	// Test with invalid Set element type
+	input := `{
+		"": {
+			"entityTypes": {
+				"User": {
+					"shape": {
+						"type": "Record",
+						"attributes": {
+							"items": {
+								"type": "Set",
+								"element": {"type": "Unknown"},
+								"required": true
+							}
+						}
+					}
+				}
+			},
+			"actions": {}
+		}
+	}`
+
+	var s Schema
+	err := s.UnmarshalJSON([]byte(input))
+	if err == nil {
+		t.Error("expected error for invalid Set element type")
+	}
+}
+
+func TestJSONAttrFromJSONNestedRecordError(t *testing.T) {
+	t.Parallel()
+
+	// Test with invalid nested Record attribute type
+	input := `{
+		"": {
+			"entityTypes": {
+				"User": {
+					"shape": {
+						"type": "Record",
+						"attributes": {
+							"profile": {
+								"type": "Record",
+								"required": true,
+								"attributes": {
+									"bad": {"type": "Unknown", "required": true}
+								}
+							}
+						}
+					}
+				}
+			},
+			"actions": {}
+		}
+	}`
+
+	var s Schema
+	err := s.UnmarshalJSON([]byte(input))
+	if err == nil {
+		t.Error("expected error for invalid nested Record type")
+	}
+}
+
+func TestJSONTypeFromJSONSetElementInTopLevelType(t *testing.T) {
+	t.Parallel()
+
+	// Test with invalid Set element in top-level type (common type)
+	input := `{
+		"": {
+			"entityTypes": {},
+			"actions": {},
+			"commonTypes": {
+				"MySet": {
+					"type": "Set",
+					"element": {"type": "Unknown"}
+				}
+			}
+		}
+	}`
+
+	var s Schema
+	err := s.UnmarshalJSON([]byte(input))
+	if err == nil {
+		t.Error("expected error for invalid Set element in common type")
+	}
+}
+
+func TestJSONTypeFromJSONRecordAttrError(t *testing.T) {
+	t.Parallel()
+
+	// Test with invalid Record attribute in top-level type (common type)
+	input := `{
+		"": {
+			"entityTypes": {},
+			"actions": {},
+			"commonTypes": {
+				"MyRecord": {
+					"type": "Record",
+					"attributes": {
+						"bad": {"type": "Unknown", "required": true}
+					}
+				}
+			}
+		}
+	}`
+
+	var s Schema
+	err := s.UnmarshalJSON([]byte(input))
+	if err == nil {
+		t.Error("expected error for invalid Record attribute in common type")
+	}
+}
+
+func TestTypeToJSONSetElementError(t *testing.T) {
+	t.Parallel()
+
+	// Test typeToJSON with Set containing unknown element type
+	typ := SetOf(Type{v: unknownType{}})
+
+	_, err := typeToJSON(typ)
+	if err == nil {
+		t.Error("expected error for unknown type in Set element")
+	}
+}
+
+func TestWriteCedarActionMemberOfBracketsFailure(t *testing.T) {
+	t.Parallel()
+
+	// Create an action with multiple memberOf to test bracket write failures
+	s := New()
+	action := NewAction("test")
+	action.InActions(
+		ActionRef{Name: "a"},
+		ActionRef{Name: "b"},
+		ActionRef{Name: "c"},
+	)
+	s.AddAction(action)
+
+	// Test failures at various points where brackets and commas are written
+	// The output should look like: action test in [a, b, c];
+	for i := 0; i < 50; i++ {
+		writer := &failingWriter{failAt: i}
+		_ = s.WriteCedar(writer)
+	}
+}
+
+func TestWriteCedarUnknownTypeInTags(t *testing.T) {
+	t.Parallel()
+
+	s := New()
+	entity := NewEntity("User")
+	entity.SetTags(Type{v: unknownType{}})
+	s.AddEntity(entity)
+
+	_, err := s.MarshalCedar()
+	if err == nil {
+		t.Error("expected error for unknown type in tags")
+	}
+}
+
+func TestWriteCedarUnknownTypeInSet(t *testing.T) {
+	t.Parallel()
+
+	s := New()
+	entity := NewEntity("User")
+	entity.SetAttributes(Attribute{
+		Name:     "items",
+		Type:     SetOf(Type{v: unknownType{}}),
+		Required: true,
+	})
+	s.AddEntity(entity)
+
+	_, err := s.MarshalCedar()
+	if err == nil {
+		t.Error("expected error for unknown type in Set element")
+	}
+}
+
+func TestWriteCedarUnknownTypeInRecord(t *testing.T) {
+	t.Parallel()
+
+	s := New()
+	entity := NewEntity("User")
+	entity.SetAttributes(Attribute{
+		Name: "profile",
+		Type: Record(Attribute{
+			Name:     "bad",
+			Type:     Type{v: unknownType{}},
+			Required: true,
+		}),
+		Required: true,
+	})
+	s.AddEntity(entity)
+
+	_, err := s.MarshalCedar()
+	if err == nil {
+		t.Error("expected error for unknown type in Record attribute")
+	}
+}
+
+func TestWriteCedarUnknownTypeInContext(t *testing.T) {
+	t.Parallel()
+
+	s := New()
+	action := NewAction("test")
+	action.SetContext(Type{v: unknownType{}})
+	s.AddAction(action)
+
+	_, err := s.MarshalCedar()
+	if err == nil {
+		t.Error("expected error for unknown type in context")
+	}
+}
+
+func TestWriteCedarUnknownTypeInCommonType(t *testing.T) {
+	t.Parallel()
+
+	s := New()
+	ct := NewCommonType("Bad", Type{v: unknownType{}})
+	s.AddCommonType(ct)
+
+	_, err := s.MarshalCedar()
+	if err == nil {
+		t.Error("expected error for unknown type in common type")
+	}
+}
+
+func TestWriteCedarNilTypeInAttribute(t *testing.T) {
+	t.Parallel()
+
+	s := New()
+	entity := NewEntity("User")
+	entity.SetAttributes(Attribute{
+		Name:     "empty",
+		Type:     Type{}, // nil type
+		Required: true,
+	})
+	s.AddEntity(entity)
+
+	// Should succeed - nil types are allowed
+	_, err := s.MarshalCedar()
+	if err != nil {
+		t.Errorf("MarshalCedar() error = %v", err)
+	}
+}
+
+func TestWriteCedarNilTypeInCommonType(t *testing.T) {
+	t.Parallel()
+
+	s := New()
+	ct := NewCommonType("Empty", Type{}) // nil type
+	s.AddCommonType(ct)
+
+	// Should succeed
+	_, err := s.MarshalCedar()
+	if err != nil {
+		t.Errorf("MarshalCedar() error = %v", err)
+	}
+}
+
+func TestWriteCedarNilTypeInTags(t *testing.T) {
+	t.Parallel()
+
+	s := New()
+	entity := NewEntity("User")
+	entity.SetTags(Type{}) // nil type
+	s.AddEntity(entity)
+
+	// Should succeed
+	_, err := s.MarshalCedar()
+	if err != nil {
+		t.Errorf("MarshalCedar() error = %v", err)
+	}
+}
+
+func TestWriteCedarNilTypeInContext(t *testing.T) {
+	t.Parallel()
+
+	s := New()
+	action := NewAction("test")
+	action.SetContext(Type{}) // nil type
+	s.AddAction(action)
+
+	// Should succeed
+	_, err := s.MarshalCedar()
+	if err != nil {
+		t.Errorf("MarshalCedar() error = %v", err)
+	}
+}

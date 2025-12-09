@@ -518,7 +518,6 @@ func typeFromJSON(jsType *jsonType) (Type, error) {
 
 func attrFromJSON(name types.Ident, jsAttr *jsonAttr) (Attribute, error) {
 	var t Type
-	var err error
 
 	switch jsAttr.Type {
 	case "Boolean":
@@ -557,10 +556,6 @@ func attrFromJSON(name types.Ident, jsAttr *jsonAttr) (Attribute, error) {
 		t = Extension(types.Path(jsAttr.Name))
 	default:
 		return Attribute{}, fmt.Errorf("unknown JSON attribute type: %s", jsAttr.Type)
-	}
-
-	if err != nil {
-		return Attribute{}, err
 	}
 
 	return Attribute{
