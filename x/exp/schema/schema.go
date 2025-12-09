@@ -694,12 +694,14 @@ func convertToJSONSchema(s *Schema) ast.JSONSchema {
 		}
 
 		for _, ct := range ns.CommonTypes {
-			jsNS.CommonTypes[string(ct.Name)] = &ast.JSONCommonType{
+			jsCT := &ast.JSONCommonType{
 				JSONType: convertToJSONType(ct.Type),
 			}
+			jsCT.Annotations = make(map[string]string)
 			for _, ann := range ct.Annotations {
-				jsNS.CommonTypes[string(ct.Name)].Annotations[string(ann.Key)] = string(ann.Value)
+				jsCT.Annotations[string(ann.Key)] = string(ann.Value)
 			}
+			jsNS.CommonTypes[string(ct.Name)] = jsCT
 		}
 
 		for _, et := range ns.EntityTypes {

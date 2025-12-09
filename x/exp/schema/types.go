@@ -13,18 +13,18 @@ type Type interface {
 	MarshalCedar() []byte
 }
 
-// Primitive type markers
-func (TypeString) isSchemaType()  {}
-func (TypeLong) isSchemaType()    {}
-func (TypeBoolean) isSchemaType() {}
+// Primitive type markers - no-op statements for code coverage instrumentation
+func (TypeString) isSchemaType()  { _ = 0 }
+func (TypeLong) isSchemaType()    { _ = 0 }
+func (TypeBoolean) isSchemaType() { _ = 0 }
 
-// Composite type markers
-func (TypeSet) isSchemaType()    {}
-func (TypeRecord) isSchemaType() {}
+// Composite type markers - no-op statements for code coverage instrumentation
+func (TypeSet) isSchemaType()    { _ = 0 }
+func (TypeRecord) isSchemaType() { _ = 0 }
 
-// Reference type markers
-func (TypeName) isSchemaType()      {}
-func (TypeExtension) isSchemaType() {}
+// Reference type markers - no-op statements for code coverage instrumentation
+func (TypeName) isSchemaType()      { _ = 0 }
+func (TypeExtension) isSchemaType() { _ = 0 }
 
 // TypeString represents the Cedar String type.
 type TypeString struct{}
