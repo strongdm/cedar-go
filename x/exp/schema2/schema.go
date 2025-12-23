@@ -2,9 +2,8 @@
 package schema2
 
 import (
-	"encoding/json"
-
 	"github.com/cedar-policy/cedar-go/x/exp/schema2/ast"
+	"github.com/cedar-policy/cedar-go/x/exp/schema2/internal/json"
 	"github.com/cedar-policy/cedar-go/x/exp/schema2/internal/parser"
 )
 
@@ -15,9 +14,10 @@ func UnmarshalCedar(src []byte) (*ast.Schema, error) {
 
 // UnmarshalJSON parses Cedar JSON schema format into an AST.
 func UnmarshalJSON(src []byte) (*ast.Schema, error) {
-	var s ast.Schema
-	if err := json.Unmarshal(src, &s); err != nil {
-		return nil, err
-	}
-	return &s, nil
+	return json.Unmarshal(src)
+}
+
+// MarshalJSON serializes a schema to Cedar JSON schema format.
+func MarshalJSON(s *ast.Schema) ([]byte, error) {
+	return json.Marshal(s)
 }

@@ -1,7 +1,6 @@
 package schema2_test
 
 import (
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -159,7 +158,7 @@ func TestJSONCorpus(t *testing.T) {
 			}
 
 			// Cedar -> JSON
-			jsonData, err := json.MarshalIndent(schema, "", "    ")
+			jsonData, err := schema2.MarshalJSON(schema)
 			if err != nil {
 				t.Fatalf("failed to marshal to JSON: %v", err)
 			}
@@ -174,7 +173,7 @@ func TestJSONCorpus(t *testing.T) {
 			verifyJSONWithCedarCLI(t, string(jsonData))
 
 			// JSON -> Cedar -> JSON round-trip stability
-			jsonData2, err := json.MarshalIndent(schema2Parsed, "", "    ")
+			jsonData2, err := schema2.MarshalJSON(schema2Parsed)
 			if err != nil {
 				t.Fatalf("failed to re-marshal to JSON: %v", err)
 			}
@@ -216,7 +215,7 @@ func TestJSONRoundTripStability(t *testing.T) {
 			testutil.OK(t, err)
 
 			// Cedar -> JSON
-			json1, err := json.Marshal(schema1)
+			json1, err := schema2.MarshalJSON(schema1)
 			testutil.OK(t, err)
 
 			// JSON -> Schema
@@ -224,7 +223,7 @@ func TestJSONRoundTripStability(t *testing.T) {
 			testutil.OK(t, err)
 
 			// Schema -> JSON again
-			json2, err := json.Marshal(schema2Parsed)
+			json2, err := schema2.MarshalJSON(schema2Parsed)
 			testutil.OK(t, err)
 
 			// Verify JSON round-trip stability
@@ -272,7 +271,7 @@ func TestJSONCorpusFiles(t *testing.T) {
 			verifyWithCedarCLI(t, string(cedarData))
 
 			// Schema -> JSON
-			jsonData2, err := json.MarshalIndent(schema, "", "    ")
+			jsonData2, err := schema2.MarshalJSON(schema)
 			if err != nil {
 				t.Fatalf("failed to marshal schema to JSON: %v", err)
 			}
