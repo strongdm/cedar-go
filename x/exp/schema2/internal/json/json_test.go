@@ -330,7 +330,7 @@ func TestUnmarshalErrors(t *testing.T) {
 		{
 			name:    "set without element",
 			json:    `{"": {"entityTypes": {"User": {"shape": {"type": "Set"}}}, "actions": {}}}`,
-			wantErr: "Set type missing element",
+			wantErr: "set type missing element",
 		},
 		{
 			name:    "unknown type",
@@ -360,12 +360,12 @@ func TestUnmarshalErrors(t *testing.T) {
 		{
 			name:    "attr set without element",
 			json:    `{"": {"entityTypes": {"User": {"shape": {"type": "Record", "attributes": {"data": {"type": "Set"}}}}}, "actions": {}}}`,
-			wantErr: "Set type missing element",
+			wantErr: "set type missing element",
 		},
 		{
 			name:    "nested attr error",
 			json:    `{"": {"entityTypes": {"User": {"shape": {"type": "Record", "attributes": {"nested": {"type": "Record", "attributes": {"bad": {"type": "Set"}}}}}}}, "actions": {}}}`,
-			wantErr: "Set type missing element",
+			wantErr: "set type missing element",
 		},
 	}
 
@@ -397,7 +397,6 @@ func findSubstring(s, substr string) bool {
 	}
 	return false
 }
-
 
 func TestCollectEntityNames(t *testing.T) {
 	t.Parallel()
@@ -966,7 +965,7 @@ func TestUnmarshalNestedSetError(t *testing.T) {
 
 	_, err := Unmarshal([]byte(jsonData))
 	testutil.Error(t, err)
-	testutil.Equals(t, strings.Contains(err.Error(), "Set type missing element"), true)
+	testutil.Equals(t, strings.Contains(err.Error(), "set type missing element"), true)
 }
 
 // TestUnmarshalNestedRecordError tests error propagation for invalid Record attribute
@@ -978,7 +977,7 @@ func TestUnmarshalNestedRecordError(t *testing.T) {
 
 	_, err := Unmarshal([]byte(jsonData))
 	testutil.Error(t, err)
-	testutil.Equals(t, strings.Contains(err.Error(), "Set type missing element"), true)
+	testutil.Equals(t, strings.Contains(err.Error(), "set type missing element"), true)
 }
 
 // TestUnmarshalEmptyTypeName tests error for empty TypeName
@@ -1014,7 +1013,7 @@ func TestUnmarshalAttrNestedSetError(t *testing.T) {
 
 	_, err := Unmarshal([]byte(jsonData))
 	testutil.Error(t, err)
-	testutil.Equals(t, strings.Contains(err.Error(), "Set type missing element"), true)
+	testutil.Equals(t, strings.Contains(err.Error(), "set type missing element"), true)
 }
 
 // TestUnmarshalAttrNestedRecordError tests error in nested Record attribute
@@ -1026,7 +1025,7 @@ func TestUnmarshalAttrNestedRecordError(t *testing.T) {
 
 	_, err := Unmarshal([]byte(jsonData))
 	testutil.Error(t, err)
-	testutil.Equals(t, strings.Contains(err.Error(), "Set type missing element"), true)
+	testutil.Equals(t, strings.Contains(err.Error(), "set type missing element"), true)
 }
 
 // TestUnmarshalNamespaceError tests error propagation from named namespace
@@ -1038,7 +1037,7 @@ func TestUnmarshalNamespaceError(t *testing.T) {
 
 	_, err := Unmarshal([]byte(jsonData))
 	testutil.Error(t, err)
-	testutil.Equals(t, strings.Contains(err.Error(), "Set type missing element"), true)
+	testutil.Equals(t, strings.Contains(err.Error(), "set type missing element"), true)
 }
 
 // TestUnmarshalAttrSetWithBadElement tests error in Set attribute with bad element
@@ -1050,7 +1049,7 @@ func TestUnmarshalAttrSetWithBadElement(t *testing.T) {
 
 	_, err := Unmarshal([]byte(jsonData))
 	testutil.Error(t, err)
-	testutil.Equals(t, strings.Contains(err.Error(), "Set type missing element"), true)
+	testutil.Equals(t, strings.Contains(err.Error(), "set type missing element"), true)
 }
 
 // TestMarshalNilTypeInCommonType tests marshalling a common type with nil type

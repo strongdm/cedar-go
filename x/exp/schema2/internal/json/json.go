@@ -498,7 +498,7 @@ func jsonToType(jt *Type) (ast.IsType, error) {
 		return ast.ExtensionType{Name: types.Ident(jt.Name)}, nil
 	case "Set":
 		if jt.Element == nil {
-			return nil, fmt.Errorf("Set type missing element")
+			return nil, fmt.Errorf("set type missing element")
 		}
 		elem, err := jsonToType(jt.Element)
 		if err != nil {
@@ -550,7 +550,7 @@ func jsonAttrToType(ja *Attr) (ast.IsType, error) {
 		return ast.ExtensionType{Name: types.Ident(ja.Name)}, nil
 	case "Set":
 		if ja.Element == nil {
-			return nil, fmt.Errorf("Set type missing element")
+			return nil, fmt.Errorf("set type missing element")
 		}
 		elem, err := jsonToType(ja.Element)
 		if err != nil {
