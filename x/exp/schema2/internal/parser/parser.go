@@ -107,17 +107,21 @@ func (p *Parser) Parse() (*ast.Schema, error) {
 			}
 			nodes = append(nodes, ns)
 		case "entity":
-			entity, err := p.parseEntity(annotations)
+			entities, err := p.parseEntity(annotations)
 			if err != nil {
 				return nil, err
 			}
-			nodes = append(nodes, entity)
+			for _, entity := range entities {
+				nodes = append(nodes, entity)
+			}
 		case "action":
-			action, err := p.parseAction(annotations)
+			actions, err := p.parseAction(annotations)
 			if err != nil {
 				return nil, err
 			}
-			nodes = append(nodes, action)
+			for _, action := range actions {
+				nodes = append(nodes, action)
+			}
 		case "type":
 			ct, err := p.parseCommonType(annotations)
 			if err != nil {
@@ -187,17 +191,19 @@ func (p *Parser) parseNamespace(annotations []ast.Annotation) (*ast.NamespaceNod
 		tok := p.peek()
 		switch tok.Text {
 		case "entity":
-			entity, err := p.parseEntity(declAnnotations)
+			entities, err := p.parseEntity(declAnnotations)
 			if err != nil {
 				return nil, err
 			}
-			decls = append(decls, entity)
+			decls = append(decls, entities...)
 		case "action":
-			action, err := p.parseAction(declAnnotations)
+			actions, err := p.parseAction(declAnnotations)
 			if err != nil {
 				return nil, err
 			}
-			decls = append(decls, action)
+			for _, action := range actions {
+				decls = append(decls, action)
+			}
 		case "type":
 			ct, err := p.parseCommonType(declAnnotations)
 			if err != nil {
@@ -218,18 +224,34 @@ func (p *Parser) parseNamespace(annotations []ast.Annotation) (*ast.NamespaceNod
 	return ns, nil
 }
 
-func (p *Parser) parseEntity(annotations []ast.Annotation) (ast.IsDeclaration, error) {
+func (p *Parser) parseEntity(annotations []ast.Annotation) ([]ast.IsDeclaration, error) {
 	if _, err := p.expect("entity"); err != nil {
 		return nil, err
 	}
 
+	// Parse comma-separated entity names
+	var names []string
 	name, err := p.expectIdent()
 	if err != nil {
 		return nil, err
 	}
+	names = append(names, name)
+
+	for p.peek().Text == "," {
+		p.advance()
+		name, err := p.expectIdent()
+		if err != nil {
+			return nil, err
+		}
+		names = append(names, name)
+	}
 
 	// Check for enum syntax: entity Name enum ["val1", "val2"];
+	// Note: enum only supports single entity name
 	if p.peek().Text == "enum" {
+		if len(names) > 1 {
+			return nil, fmt.Errorf("enum entity cannot have multiple names")
+		}
 		p.advance()
 		values, err := p.parseEnumValues()
 		if err != nil {
@@ -238,22 +260,23 @@ func (p *Parser) parseEntity(annotations []ast.Annotation) (ast.IsDeclaration, e
 		if _, err := p.expect(";"); err != nil {
 			return nil, err
 		}
-		enum := ast.Enum(types.EntityType(name), values...)
+		enum := ast.Enum(types.EntityType(names[0]), values...)
 		enum.Annotations = annotations
-		return enum, nil
+		return []ast.IsDeclaration{enum}, nil
 	}
 
-	entity := ast.Entity(types.EntityType(name))
-	entity.Annotations = annotations
+	// Parse shared modifiers for all entities
+	var parents []ast.EntityTypeRef
+	var pairs []ast.Pair
+	var tagsType ast.IsType
 
 	// Parse "in" clause
 	if p.peek().Text == "in" {
 		p.advance()
-		parents, err := p.parseEntityTypeRefs()
+		parents, err = p.parseEntityTypeRefs()
 		if err != nil {
 			return nil, err
 		}
-		entity.MemberOf(parents...)
 	}
 
 	// Parse optional "=" before shape
@@ -263,28 +286,43 @@ func (p *Parser) parseEntity(annotations []ast.Annotation) (ast.IsDeclaration, e
 
 	// Parse shape
 	if p.peek().Text == "{" {
-		pairs, err := p.parseRecordPairs()
+		pairs, err = p.parseRecordPairs()
 		if err != nil {
 			return nil, err
 		}
-		entity.Shape(pairs...)
 	}
 
 	// Parse tags
 	if p.peek().Text == "tags" {
 		p.advance()
-		t, err := p.parseType()
+		tagsType, err = p.parseType()
 		if err != nil {
 			return nil, err
 		}
-		entity.Tags(t)
 	}
 
 	if _, err := p.expect(";"); err != nil {
 		return nil, err
 	}
 
-	return entity, nil
+	// Create entity nodes for each name
+	var entities []ast.IsDeclaration
+	for _, n := range names {
+		entity := ast.Entity(types.EntityType(n))
+		entity.Annotations = annotations
+		if len(parents) > 0 {
+			entity.MemberOf(parents...)
+		}
+		if len(pairs) > 0 {
+			entity.Shape(pairs...)
+		}
+		if tagsType != nil {
+			entity.Tags(tagsType)
+		}
+		entities = append(entities, entity)
+	}
+
+	return entities, nil
 }
 
 func (p *Parser) parseEnumValues() ([]types.String, error) {
@@ -345,31 +383,47 @@ func (p *Parser) parseEntityTypeRefs() ([]ast.EntityTypeRef, error) {
 	return []ast.EntityTypeRef{ast.EntityType(types.EntityType(path))}, nil
 }
 
-func (p *Parser) parseAction(annotations []ast.Annotation) (*ast.ActionNode, error) {
+func (p *Parser) parseAction(annotations []ast.Annotation) ([]*ast.ActionNode, error) {
 	if _, err := p.expect("action"); err != nil {
 		return nil, err
 	}
 
+	// Parse comma-separated action names
+	var names []string
 	name, err := p.parseActionName()
 	if err != nil {
 		return nil, err
 	}
+	names = append(names, name)
 
-	action := ast.Action(types.String(name))
-	action.Annotations = annotations
+	for p.peek().Text == "," {
+		p.advance()
+		name, err := p.parseActionName()
+		if err != nil {
+			return nil, err
+		}
+		names = append(names, name)
+	}
+
+	// Parse shared modifiers for all actions
+	var memberOf []ast.EntityRef
+	var principals []ast.EntityTypeRef
+	var resources []ast.EntityTypeRef
+	var contextType ast.IsType
+	hasAppliesTo := false
 
 	// Parse "in" clause for action groups
 	if p.peek().Text == "in" {
 		p.advance()
-		refs, err := p.parseEntityRefs()
+		memberOf, err = p.parseEntityRefs()
 		if err != nil {
 			return nil, err
 		}
-		action.MemberOf(refs...)
 	}
 
 	// Parse "appliesTo" clause
 	if p.peek().Text == "appliesTo" {
+		hasAppliesTo = true
 		p.advance()
 		if _, err := p.expect("{"); err != nil {
 			return nil, err
@@ -383,31 +437,28 @@ func (p *Parser) parseAction(annotations []ast.Annotation) (*ast.ActionNode, err
 				if _, err := p.expect(":"); err != nil {
 					return nil, err
 				}
-				refs, err := p.parseEntityTypeRefs()
+				principals, err = p.parseEntityTypeRefs()
 				if err != nil {
 					return nil, err
 				}
-				action.Principal(refs...)
 			case "resource":
 				p.advance()
 				if _, err := p.expect(":"); err != nil {
 					return nil, err
 				}
-				refs, err := p.parseEntityTypeRefs()
+				resources, err = p.parseEntityTypeRefs()
 				if err != nil {
 					return nil, err
 				}
-				action.Resource(refs...)
 			case "context":
 				p.advance()
 				if _, err := p.expect(":"); err != nil {
 					return nil, err
 				}
-				t, err := p.parseType()
+				contextType, err = p.parseType()
 				if err != nil {
 					return nil, err
 				}
-				action.Context(t)
 			default:
 				return nil, fmt.Errorf("unexpected %q in appliesTo at %d:%d", tok.Text, tok.Pos.Line, tok.Pos.Column)
 			}
@@ -426,7 +477,29 @@ func (p *Parser) parseAction(annotations []ast.Annotation) (*ast.ActionNode, err
 		return nil, err
 	}
 
-	return action, nil
+	// Create action nodes for each name
+	var actions []*ast.ActionNode
+	for _, n := range names {
+		action := ast.Action(types.String(n))
+		action.Annotations = annotations
+		if len(memberOf) > 0 {
+			action.MemberOf(memberOf...)
+		}
+		if hasAppliesTo {
+			if len(principals) > 0 {
+				action.Principal(principals...)
+			}
+			if len(resources) > 0 {
+				action.Resource(resources...)
+			}
+			if contextType != nil {
+				action.Context(contextType)
+			}
+		}
+		actions = append(actions, action)
+	}
+
+	return actions, nil
 }
 
 func (p *Parser) parseActionName() (string, error) {

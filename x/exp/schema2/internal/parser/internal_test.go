@@ -418,6 +418,91 @@ func (r *errorReader) Read(p []byte) (n int, err error) {
 	return n, nil
 }
 
+func TestCommaSeparatedDeclarations(t *testing.T) {
+	t.Parallel()
+
+	t.Run("multiple entities", func(t *testing.T) {
+		t.Parallel()
+		schema, err := ParseSchema([]byte(`entity User, Admin, Guest;`))
+		testutil.OK(t, err)
+		testutil.Equals(t, len(schema.Nodes), 3)
+	})
+
+	t.Run("multiple entities with shared in clause", func(t *testing.T) {
+		t.Parallel()
+		schema, err := ParseSchema([]byte(`entity Group; entity User, Admin in [Group];`))
+		testutil.OK(t, err)
+		testutil.Equals(t, len(schema.Nodes), 3)
+	})
+
+	t.Run("multiple entities with shared shape", func(t *testing.T) {
+		t.Parallel()
+		schema, err := ParseSchema([]byte(`entity User, Admin { name: String };`))
+		testutil.OK(t, err)
+		testutil.Equals(t, len(schema.Nodes), 2)
+	})
+
+	t.Run("multiple actions", func(t *testing.T) {
+		t.Parallel()
+		schema, err := ParseSchema([]byte(`action read, write, delete;`))
+		testutil.OK(t, err)
+		testutil.Equals(t, len(schema.Nodes), 3)
+	})
+
+	t.Run("multiple actions with shared appliesTo", func(t *testing.T) {
+		t.Parallel()
+		schema, err := ParseSchema([]byte(`entity User; entity Doc; action read, write appliesTo { principal: User, resource: Doc };`))
+		testutil.OK(t, err)
+		testutil.Equals(t, len(schema.Nodes), 4)
+	})
+
+	t.Run("multiple actions with shared memberOf", func(t *testing.T) {
+		t.Parallel()
+		schema, err := ParseSchema([]byte(`action baseAction; action read, write in ["baseAction"];`))
+		testutil.OK(t, err)
+		testutil.Equals(t, len(schema.Nodes), 3)
+	})
+
+	t.Run("multiple quoted action names", func(t *testing.T) {
+		t.Parallel()
+		schema, err := ParseSchema([]byte(`action "view doc", "edit doc", "delete doc";`))
+		testutil.OK(t, err)
+		testutil.Equals(t, len(schema.Nodes), 3)
+	})
+
+	t.Run("enum cannot have multiple names", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`entity Status, OtherStatus enum ["a", "b"];`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("entity comma followed by invalid token", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`entity User, 123;`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("action comma followed by invalid token", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`action read, 123;`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("namespace with comma-separated entities", func(t *testing.T) {
+		t.Parallel()
+		schema, err := ParseSchema([]byte(`namespace App { entity User, Admin; }`))
+		testutil.OK(t, err)
+		testutil.Equals(t, len(schema.Nodes), 1)
+	})
+
+	t.Run("namespace with comma-separated actions", func(t *testing.T) {
+		t.Parallel()
+		schema, err := ParseSchema([]byte(`namespace App { action read, write; }`))
+		testutil.OK(t, err)
+		testutil.Equals(t, len(schema.Nodes), 1)
+	})
+}
+
 func TestDirectMethodCalls(t *testing.T) {
 	t.Parallel()
 
