@@ -54,6 +54,29 @@ func verifyWithCedarCLI(t *testing.T, schemaContent string) {
 	}
 }
 
+// verifyJSONWithCedarCLI checks that a JSON schema parses correctly using the reference implementation.
+func verifyJSONWithCedarCLI(t *testing.T, jsonContent string) {
+	t.Helper()
+	cli := cedarCLI()
+	if cli == "" {
+		t.Skip("cedar CLI not available, skipping verification")
+	}
+
+	// Write schema to temp file
+	tmpDir := t.TempDir()
+	schemaFile := filepath.Join(tmpDir, "schema.cedarschema.json")
+	if err := os.WriteFile(schemaFile, []byte(jsonContent), 0o644); err != nil {
+		t.Fatalf("failed to write temp schema: %v", err)
+	}
+
+	// Run cedar check-parse --schema-format json
+	cmd := exec.Command(cli, "check-parse", "--schema", schemaFile, "--schema-format", "json")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Errorf("cedar CLI rejected JSON schema:\n%s\nOutput: %s", jsonContent, string(output))
+	}
+}
+
 // TestReferenceSchemas tests our parser against schemas from the Rust reference implementation.
 func TestReferenceSchemas(t *testing.T) {
 	t.Parallel()

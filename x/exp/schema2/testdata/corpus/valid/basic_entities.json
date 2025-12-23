@@ -1,0 +1,10 @@
+{
+    "": {
+        "entityTypes": {
+            "Admin": {},
+            "Guest": {},
+            "User": {}
+        },
+        "actions": {}
+    }
+}

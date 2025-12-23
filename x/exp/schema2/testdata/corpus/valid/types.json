@@ -1,0 +1,81 @@
+{
+    "": {
+        "commonTypes": {
+            "Address": {
+                "type": "Record",
+                "attributes": {
+                    "city": {
+                        "type": "String"
+                    },
+                    "street": {
+                        "type": "String"
+                    },
+                    "zip": {
+                        "type": "String",
+                        "required": false
+                    }
+                }
+            },
+            "Count": {
+                "type": "Long"
+            },
+            "Flag": {
+                "type": "Boolean"
+            },
+            "IP": {
+                "type": "Extension",
+                "name": "ipaddr"
+            },
+            "Matrix": {
+                "type": "Set",
+                "element": {
+                    "type": "Set",
+                    "element": {
+                        "type": "Long"
+                    }
+                }
+            },
+            "Name": {
+                "type": "String"
+            },
+            "Nested": {
+                "type": "Record",
+                "attributes": {
+                    "level1": {
+                        "type": "Record",
+                        "attributes": {
+                            "level2": {
+                                "type": "Record",
+                                "attributes": {
+                                    "value": {
+                                        "type": "String"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "Price": {
+                "type": "Extension",
+                "name": "decimal"
+            },
+            "Tags": {
+                "type": "Set",
+                "element": {
+                    "type": "String"
+                }
+            },
+            "Timeout": {
+                "type": "Extension",
+                "name": "duration"
+            },
+            "Timestamp": {
+                "type": "Extension",
+                "name": "datetime"
+            }
+        },
+        "entityTypes": {},
+        "actions": {}
+    }
+}

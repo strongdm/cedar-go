@@ -1,0 +1,26 @@
+{
+    "Annotated": {
+        "entityTypes": {
+            "User": {}
+        },
+        "actions": {}
+    },
+    "App": {
+        "commonTypes": {
+            "Name": {
+                "type": "String"
+            }
+        },
+        "entityTypes": {
+            "Document": {},
+            "User": {}
+        },
+        "actions": {
+            "view": {}
+        }
+    },
+    "Empty": {
+        "entityTypes": {},
+        "actions": {}
+    }
+}
