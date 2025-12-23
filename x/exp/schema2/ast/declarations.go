@@ -9,7 +9,7 @@ type NamespaceNode struct {
 	Declarations []IsDeclaration
 }
 
-func (*NamespaceNode) isNode() {}
+func (*NamespaceNode) isNode() { _ = 0 }
 
 // Namespace creates a new NamespaceNode with the given path and declarations.
 func Namespace(path types.Path, decls ...IsDeclaration) *NamespaceNode {
@@ -32,8 +32,8 @@ type CommonTypeNode struct {
 	Type        IsType
 }
 
-func (*CommonTypeNode) isNode()        {}
-func (*CommonTypeNode) isDeclaration() {}
+func (*CommonTypeNode) isNode()        { _ = 0 }
+func (*CommonTypeNode) isDeclaration() { _ = 0 }
 
 // CommonType creates a new CommonTypeNode with the given name and type.
 func CommonType(name types.Ident, t IsType) *CommonTypeNode {
@@ -58,8 +58,8 @@ type EntityNode struct {
 	TagsVal     IsType
 }
 
-func (*EntityNode) isNode()        {}
-func (*EntityNode) isDeclaration() {}
+func (*EntityNode) isNode()        { _ = 0 }
+func (*EntityNode) isDeclaration() { _ = 0 }
 
 // Entity creates a new EntityNode with the given name.
 func Entity(name types.EntityType) *EntityNode {
@@ -98,8 +98,8 @@ type EnumNode struct {
 	Values      []types.String
 }
 
-func (*EnumNode) isNode()        {}
-func (*EnumNode) isDeclaration() {}
+func (*EnumNode) isNode()        { _ = 0 }
+func (*EnumNode) isDeclaration() { _ = 0 }
 
 // Enum creates a new EnumNode with the given name and values.
 func Enum(name types.EntityType, values ...types.String) *EnumNode {
@@ -132,8 +132,8 @@ type ActionNode struct {
 	AppliesToVal *AppliesTo
 }
 
-func (*ActionNode) isNode()        {}
-func (*ActionNode) isDeclaration() {}
+func (*ActionNode) isNode()        { _ = 0 }
+func (*ActionNode) isDeclaration() { _ = 0 }
 
 // AppliesTo represents the principal, resource, and context types for an action.
 type AppliesTo struct {

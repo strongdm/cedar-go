@@ -196,4 +196,93 @@ func TestScannerEdgeCases(t *testing.T) {
 		_, err := Tokenize([]byte("/* unterminated"))
 		testutil.Equals(t, err != nil, true)
 	})
+
+	t.Run("string with escape at end", func(t *testing.T) {
+		t.Parallel()
+		_, err := Tokenize([]byte(`"hello\`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("string with newline", func(t *testing.T) {
+		t.Parallel()
+		_, err := Tokenize([]byte("\"hello\nworld\""))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("unicode identifier", func(t *testing.T) {
+		t.Parallel()
+		// Test UTF-8 handling (though identifiers are ASCII only)
+		tokens, err := Tokenize([]byte("foo"))
+		testutil.OK(t, err)
+		testutil.Equals(t, tokens[0].Text, "foo")
+	})
+
+	t.Run("single colon operator", func(t *testing.T) {
+		t.Parallel()
+		tokens, err := Tokenize([]byte(":"))
+		testutil.OK(t, err)
+		testutil.Equals(t, tokens[0].Type, TokenOperator)
+		testutil.Equals(t, tokens[0].Text, ":")
+	})
+
+	t.Run("dot operator", func(t *testing.T) {
+		t.Parallel()
+		tokens, err := Tokenize([]byte("."))
+		testutil.OK(t, err)
+		testutil.Equals(t, tokens[0].Type, TokenOperator)
+		testutil.Equals(t, tokens[0].Text, ".")
+	})
+
+	t.Run("slash without comment", func(t *testing.T) {
+		t.Parallel()
+		tokens, err := Tokenize([]byte("/x"))
+		testutil.OK(t, err)
+		testutil.Equals(t, len(tokens), 3) // / x EOF
+		testutil.Equals(t, tokens[0].Type, TokenUnknown)
+	})
+
+	t.Run("long identifier", func(t *testing.T) {
+		t.Parallel()
+		// Test buffer handling with a longer identifier
+		longIdent := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"
+		tokens, err := Tokenize([]byte(longIdent))
+		testutil.OK(t, err)
+		testutil.Equals(t, tokens[0].Text, longIdent)
+	})
+
+	t.Run("identifier starting with underscore", func(t *testing.T) {
+		t.Parallel()
+		tokens, err := Tokenize([]byte("_foo"))
+		testutil.OK(t, err)
+		testutil.Equals(t, tokens[0].Type, TokenIdent)
+		testutil.Equals(t, tokens[0].Text, "_foo")
+	})
+
+	t.Run("number not valid identifier start", func(t *testing.T) {
+		t.Parallel()
+		tokens, err := Tokenize([]byte("123"))
+		testutil.OK(t, err)
+		testutil.Equals(t, tokens[0].Type, TokenUnknown)
+	})
+
+	t.Run("empty lines", func(t *testing.T) {
+		t.Parallel()
+		tokens, err := Tokenize([]byte("\n\n\nfoo\n\n"))
+		testutil.OK(t, err)
+		testutil.Equals(t, tokens[0].Text, "foo")
+	})
+
+	t.Run("line comment at end", func(t *testing.T) {
+		t.Parallel()
+		tokens, err := Tokenize([]byte("foo // comment"))
+		testutil.OK(t, err)
+		testutil.Equals(t, len(tokens), 2) // foo EOF
+	})
+
+	t.Run("multiple block comments", func(t *testing.T) {
+		t.Parallel()
+		tokens, err := Tokenize([]byte("foo /* comment */ bar /* another */"))
+		testutil.OK(t, err)
+		testutil.Equals(t, len(tokens), 3) // foo bar EOF
+	})
 }

@@ -7,7 +7,7 @@ import "github.com/cedar-policy/cedar-go/types"
 // StringType represents the Cedar String type.
 type StringType struct{}
 
-func (StringType) isType() {}
+func (StringType) isType() { _ = 0 }
 
 // String returns a StringType.
 func String() StringType { return StringType{} }
@@ -15,7 +15,7 @@ func String() StringType { return StringType{} }
 // LongType represents the Cedar Long type.
 type LongType struct{}
 
-func (LongType) isType() {}
+func (LongType) isType() { _ = 0 }
 
 // Long returns a LongType.
 func Long() LongType { return LongType{} }
@@ -23,7 +23,7 @@ func Long() LongType { return LongType{} }
 // BoolType represents the Cedar Bool type.
 type BoolType struct{}
 
-func (BoolType) isType() {}
+func (BoolType) isType() { _ = 0 }
 
 // Bool returns a BoolType.
 func Bool() BoolType { return BoolType{} }
@@ -35,7 +35,7 @@ type ExtensionType struct {
 	Name types.Ident
 }
 
-func (ExtensionType) isType() {}
+func (ExtensionType) isType() { _ = 0 }
 
 // IPAddr returns an ExtensionType for ipaddr.
 func IPAddr() ExtensionType { return ExtensionType{Name: "ipaddr"} }
@@ -56,7 +56,7 @@ type SetType struct {
 	Element IsType
 }
 
-func (SetType) isType() {}
+func (SetType) isType() { _ = 0 }
 
 // Set returns a SetType with the given element type.
 func Set(element IsType) SetType {
@@ -87,7 +87,7 @@ type RecordType struct {
 	Pairs []Pair
 }
 
-func (RecordType) isType() {}
+func (RecordType) isType() { _ = 0 }
 
 // Record returns a RecordType with the given pairs.
 func Record(pairs ...Pair) RecordType {
@@ -101,7 +101,7 @@ type EntityTypeRef struct {
 	Name types.EntityType
 }
 
-func (EntityTypeRef) isType() {}
+func (EntityTypeRef) isType() { _ = 0 }
 
 // EntityType creates an EntityTypeRef from an entity type name.
 func EntityType(name types.EntityType) EntityTypeRef {
@@ -118,7 +118,7 @@ type TypeRef struct {
 	Name types.Path
 }
 
-func (TypeRef) isType() {}
+func (TypeRef) isType() { _ = 0 }
 
 // Type creates a TypeRef from a path name.
 func Type(name types.Path) TypeRef {

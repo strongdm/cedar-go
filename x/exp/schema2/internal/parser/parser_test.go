@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/cedar-policy/cedar-go/internal/testutil"
@@ -426,16 +427,274 @@ func TestParserErrors(t *testing.T) {
 		_, err := ParseSchema([]byte(`type Foo String;`))
 		testutil.Equals(t, err != nil, true)
 	})
+
+	t.Run("missing annotation identifier", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`@123 entity User;`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("invalid annotation string", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`@doc(123) entity User;`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("missing namespace identifier", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`namespace 123 { entity User; }`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("missing namespace open brace", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`namespace Foo entity User; }`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("missing enum closing bracket", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`entity Status enum ["a", "b";`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("invalid enum value", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`entity Status enum [123];`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("missing entity memberOf identifier", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`entity User in 123;`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("missing entity memberOf list closing bracket", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`entity User in [Group, Team;`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("missing shape open brace pair", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`entity User { name String };`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("invalid tags type", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`entity Document tags 123;`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("missing action name", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`action 123;`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("missing action memberOf ref", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`action view in 123;`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("missing action memberOf list closing bracket", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`action view in ["read", "write";`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("missing appliesTo open brace", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`action view appliesTo principal: User };`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("missing principal colon", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`action view appliesTo { principal User };`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("missing resource colon", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`action view appliesTo { resource User };`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("missing context colon", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`action view appliesTo { context { ip: String } };`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("invalid principal type", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`action view appliesTo { principal: 123 };`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("invalid resource type", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`action view appliesTo { resource: 123 };`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("invalid context type", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`action view appliesTo { context: 123 };`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("missing appliesTo closing brace", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`action view appliesTo { principal: User;`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("missing common type name", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`type = String;`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("invalid common type value", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`type Foo = ;`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("missing set closing angle bracket", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`type Tags = Set<String;`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("invalid set element type", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`type Tags = Set<123>;`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("missing extension double colon", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`type IP = __cedar ipaddr;`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("missing extension name", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`type IP = __cedar::123;`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("missing record closing brace", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`type Data = { name: String;`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("missing record pair colon", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`type Data = { name String };`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("invalid record pair type", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`type Data = { name: 123 };`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("missing path after double colon", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`type Ref = MyApp::123;`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("missing entity ref path component", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`action view in MyApp::123;`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("namespace annotation error in declaration", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`namespace MyApp { @123 entity User; }`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("action with full entity ref in memberOf", func(t *testing.T) {
+		t.Parallel()
+		schema, err := ParseSchema([]byte(`action view in MyApp::Action::"allActions";`))
+		testutil.OK(t, err)
+		action, ok := schema.Nodes[0].(*ast.ActionNode)
+		testutil.Equals(t, ok, true)
+		testutil.Equals(t, action.MemberOfVal[0].Type.Name, types.EntityType("MyApp::Action"))
+	})
+
+	t.Run("namespace type declaration error", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`namespace MyApp { type = String; }`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("namespace action error", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`namespace MyApp { action 123; }`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("entity memberOf list parse error", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`entity User in [123];`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("entity shape parse error", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`entity User { 123: String };`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("action entity refs list error", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`action view in [123];`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("common type semicolon error", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`type Foo = String`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("record pair in shape error", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`entity User { ?: String };`))
+		testutil.Equals(t, err != nil, true)
+	})
 }
 
 func TestParseFromReader(t *testing.T) {
 	t.Parallel()
 
-	t.Run("NewFromReader", func(t *testing.T) {
+	t.Run("NewFromReader nil", func(t *testing.T) {
 		t.Parallel()
 		_, err := NewFromReader(nil)
 		// Should error with nil reader
 		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("NewFromReader valid", func(t *testing.T) {
+		t.Parallel()
+		p, err := NewFromReader(strings.NewReader("entity User;"))
+		testutil.OK(t, err)
+		schema, err := p.Parse()
+		testutil.OK(t, err)
+		testutil.Equals(t, len(schema.Nodes), 1)
 	})
 }
 
