@@ -501,6 +501,24 @@ func TestCommaSeparatedDeclarations(t *testing.T) {
 		testutil.OK(t, err)
 		testutil.Equals(t, len(schema.Nodes), 1)
 	})
+
+	t.Run("trailing comma in memberOf list", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`entity Group; entity User in [Group,];`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("trailing comma in action memberOf list", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`action parent; action view in ["parent",];`))
+		testutil.Equals(t, err != nil, true)
+	})
+
+	t.Run("reserved identifier 'in' as entity name", func(t *testing.T) {
+		t.Parallel()
+		_, err := ParseSchema([]byte(`entity in;`))
+		testutil.Equals(t, err != nil, true)
+	})
 }
 
 func TestDirectMethodCalls(t *testing.T) {

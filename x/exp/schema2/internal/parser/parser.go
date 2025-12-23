@@ -57,10 +57,18 @@ func (p *Parser) expect(text string) (Token, error) {
 	return tok, nil
 }
 
+// reservedIdents are identifiers that cannot be used as names
+var reservedIdents = map[string]bool{
+	"in": true, // reserved in Cedar schema
+}
+
 func (p *Parser) expectIdent() (string, error) {
 	tok := p.advance()
 	if tok.Type != TokenIdent {
 		return "", fmt.Errorf("expected identifier, got %q at %d:%d", tok.Text, tok.Pos.Line, tok.Pos.Column)
+	}
+	if reservedIdents[tok.Text] {
+		return "", fmt.Errorf("%q is a reserved identifier at %d:%d", tok.Text, tok.Pos.Line, tok.Pos.Column)
 	}
 	return tok.Text, nil
 }
@@ -365,6 +373,10 @@ func (p *Parser) parseEntityTypeRefs() ([]ast.EntityTypeRef, error) {
 
 			if p.peek().Text == "," {
 				p.advance()
+				// Reject trailing commas
+				if p.peek().Text == "]" {
+					return nil, fmt.Errorf("unexpected trailing comma at %d:%d", p.peek().Pos.Line, p.peek().Pos.Column)
+				}
 			} else {
 				break
 			}
@@ -523,6 +535,10 @@ func (p *Parser) parseEntityRefs() ([]ast.EntityRef, error) {
 
 			if p.peek().Text == "," {
 				p.advance()
+				// Reject trailing commas
+				if p.peek().Text == "]" {
+					return nil, fmt.Errorf("unexpected trailing comma at %d:%d", p.peek().Pos.Line, p.peek().Pos.Column)
+				}
 			} else {
 				break
 			}
