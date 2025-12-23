@@ -330,4 +330,109 @@ func TestResolvedSchemaMarshalCedar(t *testing.T) {
 		result := string(rs.MarshalCedar())
 		testutil.Equals(t, result, "entity User;\n")
 	})
+
+	t.Run("resolved schema with multiple nodes", func(t *testing.T) {
+		t.Parallel()
+		rs := &ast.ResolvedSchema{
+			Nodes: []ast.IsNode{
+				ast.Entity("User"),
+				ast.Entity("Document"),
+			},
+		}
+		result := string(rs.MarshalCedar())
+		expected := `entity User;
+
+entity Document;
+`
+		testutil.Equals(t, result, expected)
+	})
+}
+
+func TestSchemaMultipleTopLevelNodes(t *testing.T) {
+	t.Parallel()
+
+	t.Run("multiple top-level entities", func(t *testing.T) {
+		t.Parallel()
+		s := ast.NewSchema(
+			ast.Entity("User"),
+			ast.Entity("Document"),
+		)
+		result := string(s.MarshalCedar())
+		expected := `entity User;
+
+entity Document;
+`
+		testutil.Equals(t, result, expected)
+	})
+
+	t.Run("multiple top-level mixed nodes", func(t *testing.T) {
+		t.Parallel()
+		s := ast.NewSchema(
+			ast.Entity("User"),
+			ast.Action("view"),
+			ast.CommonType("Name", ast.String()),
+		)
+		result := string(s.MarshalCedar())
+		expected := `entity User;
+
+action view;
+
+type Name = String;
+`
+		testutil.Equals(t, result, expected)
+	})
+}
+
+func TestNeedsQuotingEdgeCases(t *testing.T) {
+	t.Parallel()
+
+	t.Run("action with empty name", func(t *testing.T) {
+		t.Parallel()
+		s := ast.NewSchema(
+			ast.Action(""),
+		)
+		result := string(s.MarshalCedar())
+		testutil.Equals(t, result, `action "";
+`)
+	})
+
+	t.Run("action name starting with digit", func(t *testing.T) {
+		t.Parallel()
+		s := ast.NewSchema(
+			ast.Action("123action"),
+		)
+		result := string(s.MarshalCedar())
+		testutil.Equals(t, result, `action "123action";
+`)
+	})
+
+	t.Run("record key starting with digit", func(t *testing.T) {
+		t.Parallel()
+		s := ast.NewSchema(
+			ast.CommonType("Data", ast.Record(
+				ast.Attribute("123key", ast.String()),
+			)),
+		)
+		result := string(s.MarshalCedar())
+		expected := `type Data = {
+	"123key": String,
+};
+`
+		testutil.Equals(t, result, expected)
+	})
+
+	t.Run("record key with empty name", func(t *testing.T) {
+		t.Parallel()
+		s := ast.NewSchema(
+			ast.CommonType("Data", ast.Record(
+				ast.Attribute("", ast.String()),
+			)),
+		)
+		result := string(s.MarshalCedar())
+		expected := `type Data = {
+	"": String,
+};
+`
+		testutil.Equals(t, result, expected)
+	})
 }
