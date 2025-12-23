@@ -1,0 +1,22 @@
+// Action declarations
+entity User;
+entity Document;
+
+action "view document";
+action "edit document" in ["view document"];
+
+action read appliesTo {
+    principal: User,
+    resource: Document,
+};
+
+action write appliesTo {
+    principal: [User],
+    resource: [Document],
+    context: {
+        ip: __cedar::ipaddr,
+        timestamp: __cedar::datetime,
+    },
+};
+
+action admin in ["read", "write"];

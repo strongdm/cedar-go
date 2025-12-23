@@ -1,0 +1,2 @@
+entity User {
+    name: String

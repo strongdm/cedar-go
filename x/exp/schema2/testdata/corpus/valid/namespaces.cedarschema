@@ -1,0 +1,15 @@
+// Namespace declarations
+namespace Empty {}
+
+namespace App {
+    entity User;
+    entity Document;
+    type Name = String;
+    action view;
+}
+
+@doc("Annotated namespace")
+namespace Annotated {
+    @doc("User entity")
+    entity User;
+}
