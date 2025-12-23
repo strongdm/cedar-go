@@ -335,10 +335,10 @@ namespace PhotoFlash {
 			actionCount++
 		}
 	}
-	testutil.Equals(t, typeCount, 4)    // EmailAddress, UserName, IPAddress, RequestContext
-	testutil.Equals(t, entityCount, 6)  // User, UserGroup, Team, Album, Account, Photo
-	testutil.Equals(t, enumCount, 1)    // PhotoFormat
-	testutil.Equals(t, actionCount, 6)  // uploadPhoto, viewPhoto, deletePhoto, read, write, admin
+	testutil.Equals(t, typeCount, 4)   // EmailAddress, UserName, IPAddress, RequestContext
+	testutil.Equals(t, entityCount, 6) // User, UserGroup, Team, Album, Account, Photo
+	testutil.Equals(t, enumCount, 1)   // PhotoFormat
+	testutil.Equals(t, actionCount, 6) // uploadPhoto, viewPhoto, deletePhoto, read, write, admin
 
 	// Round-trip test
 	cedarBytes := schema.MarshalCedar()
