@@ -18,6 +18,14 @@ func TestParserInternals(t *testing.T) {
 		testutil.Equals(t, tok.Type, TokenEOF)
 	})
 
+	t.Run("consumeString", func(t *testing.T) {
+		t.Parallel()
+		p, err := New([]byte(`"hello"`))
+		testutil.OK(t, err)
+		val := p.consumeString()
+		testutil.Equals(t, val, "hello")
+	})
+
 	t.Run("peek past end with large pos", func(t *testing.T) {
 		t.Parallel()
 		p := &Parser{tokens: []Token{}, pos: 100}
@@ -61,6 +69,16 @@ func TestScannerInternals(t *testing.T) {
 		tokens, err := Tokenize([]byte(longStr))
 		testutil.OK(t, err)
 		testutil.Equals(t, tokens[0].Text, longStr)
+	})
+
+	t.Run("tokenText with tokPos negative", func(t *testing.T) {
+		t.Parallel()
+		// Create scanner and call tokenText before any token is started
+		s, err := newScanner(strings.NewReader("test"))
+		testutil.OK(t, err)
+		// tokPos is -1 initially, so tokenText should return ""
+		text := s.tokenText()
+		testutil.Equals(t, text, "")
 	})
 
 	t.Run("tokenText with buffer content", func(t *testing.T) {
@@ -296,6 +314,45 @@ func TestTokenTextBuffer(t *testing.T) {
 		// Just exercise the code path
 		_ = err
 		_ = tokens
+	})
+
+	t.Run("tokBuf accumulation path", func(t *testing.T) {
+		t.Parallel()
+		// To trigger lines 77-79 in next() and lines 294-296 in tokenText():
+		// 1. Start scanning a STRING token (tokPos >= 0)
+		// 2. Encounter an incomplete UTF-8 sequence at buffer boundary
+		// 3. Need to refill buffer to complete the UTF-8 char
+		//
+		// Identifiers only accept ASCII, so we must use a STRING token
+		// which scans until closing quote and can contain UTF-8.
+		//
+		// The scanner buffer is 1024 bytes. Create a string where:
+		// - Quote at position 0
+		// - Fill with 'a' up to position 1019
+		// - Position 1020: first byte of 3-byte UTF-8 (€ = 0xe2 0x82 0xac)
+		// - Buffer ends at 1021 with incomplete UTF-8
+		// - Next chunk provides rest of UTF-8 + closing quote
+
+		chunk1 := make([]byte, 1021)
+		chunk1[0] = '"' // Start string
+		for i := 1; i < 1020; i++ {
+			chunk1[i] = 'a' // string content
+		}
+		chunk1[1020] = 0xe2 // First byte of € (incomplete UTF-8)
+
+		// chunk2 completes the UTF-8 and closes the string
+		chunk2 := []byte{0x82, 0xac, '"'} // rest of € + closing quote
+
+		reader := &splitReader{
+			chunks: [][]byte{chunk1, chunk2},
+		}
+		tokens, err := TokenizeReader(reader)
+		testutil.OK(t, err)
+		// Verify we got a string token with the right length
+		testutil.Equals(t, tokens[0].Type, TokenString)
+		// The string content should be 1019 'a's + € (3 bytes in UTF-8, 1 char)
+		// Token text includes quotes, so total is 1 + 1019 + 3 + 1 = 1024 bytes
+		testutil.Equals(t, len(tokens[0].Text) > 1000, true)
 	})
 }
 

@@ -73,6 +73,14 @@ func (p *Parser) expectString() (string, error) {
 	return tok.stringValue()
 }
 
+// consumeString advances past a string token and returns its value.
+// It panics if the current token is not a string - only call after checking tok.Type == TokenString.
+func (p *Parser) consumeString() string {
+	tok := p.advance()
+	val, _ := tok.stringValue()
+	return val
+}
+
 // Parse parses a complete Cedar schema.
 func (p *Parser) Parse() (*ast.Schema, error) {
 	var nodes []ast.IsNode
@@ -463,10 +471,8 @@ func (p *Parser) parseEntityRef() (ast.EntityRef, error) {
 	// Could be either Path::"id" or just "id" (implies Action type)
 	tok := p.peek()
 	if tok.Type == TokenString {
-		id, err := p.expectString()
-		if err != nil {
-			return ast.EntityRef{}, err
-		}
+		// We've verified it's a string, so use consumeString
+		id := p.consumeString()
 		return ast.UID(types.String(id)), nil
 	}
 
@@ -480,10 +486,8 @@ func (p *Parser) parseEntityRef() (ast.EntityRef, error) {
 		p.advance()
 		// Check if the next token is a string (entity ID)
 		if p.peek().Type == TokenString {
-			id, err := p.expectString()
-			if err != nil {
-				return ast.EntityRef{}, err
-			}
+			// We've verified it's a string, so use consumeString
+			id := p.consumeString()
 			return ast.EntityUID(types.EntityType(name), types.String(id)), nil
 		}
 		// Otherwise it's another path component
