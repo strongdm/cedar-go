@@ -1,0 +1,40 @@
+{
+    "": {
+        "commonTypes": {
+            "Name": {
+                "type": "String"
+            },
+            "Address": {
+                "type": "Record",
+                "attributes": {
+                    "city": {
+                        "type": "String"
+                    },
+                    "zip": {
+                        "type": "String",
+                        "required": false
+                    }
+                }
+            },
+            "Tags": {
+                "type": "Set",
+                "element": {
+                    "type": "String"
+                }
+            }
+        },
+        "entityTypes": {
+            "User": {
+                "shape": {
+                    "type": "Record",
+                    "attributes": {
+                        "name": {
+                            "type": "Name"
+                        }
+                    }
+                }
+            }
+        },
+        "actions": {}
+    }
+}

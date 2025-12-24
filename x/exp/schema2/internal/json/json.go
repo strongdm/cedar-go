@@ -157,6 +157,25 @@ type Type struct {
 	Attributes map[string]*Attr `json:"attributes,omitempty"`
 }
 
+// MarshalJSON ensures Record types always output the attributes field.
+func (t Type) MarshalJSON() ([]byte, error) {
+	if t.TypeName == "Record" {
+		// Record types must always have an attributes field
+		type recordType struct {
+			TypeName   string           `json:"type"`
+			Attributes map[string]*Attr `json:"attributes"`
+		}
+		attrs := t.Attributes
+		if attrs == nil {
+			attrs = make(map[string]*Attr)
+		}
+		return json.Marshal(recordType{TypeName: t.TypeName, Attributes: attrs})
+	}
+	// Use an alias to avoid infinite recursion for non-Record types
+	type TypeAlias Type
+	return json.Marshal(TypeAlias(t))
+}
+
 // Attr represents a record attribute in JSON format.
 type Attr struct {
 	TypeName   string           `json:"type,omitempty"`
@@ -164,6 +183,26 @@ type Attr struct {
 	Element    *Type            `json:"element,omitempty"`
 	Attributes map[string]*Attr `json:"attributes,omitempty"`
 	Required   *bool            `json:"required,omitempty"`
+}
+
+// MarshalJSON ensures Record types always output the attributes field.
+func (a Attr) MarshalJSON() ([]byte, error) {
+	if a.TypeName == "Record" {
+		// Record types must always have an attributes field
+		type recordAttr struct {
+			TypeName   string           `json:"type"`
+			Attributes map[string]*Attr `json:"attributes"`
+			Required   *bool            `json:"required,omitempty"`
+		}
+		attrs := a.Attributes
+		if attrs == nil {
+			attrs = make(map[string]*Attr)
+		}
+		return json.Marshal(recordAttr{TypeName: a.TypeName, Attributes: attrs, Required: a.Required})
+	}
+	// Use an alias to avoid infinite recursion for non-Record types
+	type AttrAlias Attr
+	return json.Marshal(AttrAlias(a))
 }
 
 // Helper functions for marshalling
@@ -231,29 +270,41 @@ func addActionToNamespace(ns *Namespace, a *ast.ActionNode, entityNames map[stri
 	if len(a.MemberOfVal) > 0 {
 		ja.MemberOf = make([]EntityUID, len(a.MemberOfVal))
 		for i, ref := range a.MemberOfVal {
+			// Action memberOf always refers to actions, use "Action" as type
+			refType := string(ref.Type.Name)
+			if refType == "" {
+				refType = "Action"
+			}
 			ja.MemberOf[i] = EntityUID{
-				Type: string(ref.Type.Name),
+				Type: refType,
 				ID:   string(ref.ID),
 			}
 		}
 	}
 
 	if a.AppliesToVal != nil {
-		ja.AppliesTo = &AppliesTo{}
-		if len(a.AppliesToVal.PrincipalTypes) > 0 {
-			ja.AppliesTo.PrincipalTypes = make([]string, len(a.AppliesToVal.PrincipalTypes))
-			for i, ref := range a.AppliesToVal.PrincipalTypes {
-				ja.AppliesTo.PrincipalTypes[i] = string(ref.Name)
+		// Only emit appliesTo if there's meaningful content
+		hasPrincipals := len(a.AppliesToVal.PrincipalTypes) > 0
+		hasResources := len(a.AppliesToVal.ResourceTypes) > 0
+		hasContext := a.AppliesToVal.Context != nil
+
+		if hasPrincipals || hasResources || hasContext {
+			ja.AppliesTo = &AppliesTo{}
+			if hasPrincipals {
+				ja.AppliesTo.PrincipalTypes = make([]string, len(a.AppliesToVal.PrincipalTypes))
+				for i, ref := range a.AppliesToVal.PrincipalTypes {
+					ja.AppliesTo.PrincipalTypes[i] = string(ref.Name)
+				}
 			}
-		}
-		if len(a.AppliesToVal.ResourceTypes) > 0 {
-			ja.AppliesTo.ResourceTypes = make([]string, len(a.AppliesToVal.ResourceTypes))
-			for i, ref := range a.AppliesToVal.ResourceTypes {
-				ja.AppliesTo.ResourceTypes[i] = string(ref.Name)
+			if hasResources {
+				ja.AppliesTo.ResourceTypes = make([]string, len(a.AppliesToVal.ResourceTypes))
+				for i, ref := range a.AppliesToVal.ResourceTypes {
+					ja.AppliesTo.ResourceTypes[i] = string(ref.Name)
+				}
 			}
-		}
-		if a.AppliesToVal.Context != nil {
-			ja.AppliesTo.Context = typeToJSON(a.AppliesToVal.Context, entityNames)
+			if hasContext {
+				ja.AppliesTo.Context = typeToJSON(a.AppliesToVal.Context, entityNames)
+			}
 		}
 	}
 
@@ -453,33 +504,45 @@ func parseAction(name string, ja *Action) (ast.IsDeclaration, error) {
 	if len(ja.MemberOf) > 0 {
 		a.MemberOfVal = make([]ast.EntityRef, len(ja.MemberOf))
 		for i, ref := range ja.MemberOf {
+			// Action memberOf always refers to actions, default to "Action" if type is empty
+			refType := ref.Type
+			if refType == "" {
+				refType = "Action"
+			}
 			a.MemberOfVal[i] = ast.EntityRef{
-				Type: ast.EntityTypeRef{Name: types.EntityType(ref.Type)},
+				Type: ast.EntityTypeRef{Name: types.EntityType(refType)},
 				ID:   types.String(ref.ID),
 			}
 		}
 	}
 
 	if ja.AppliesTo != nil {
-		a.AppliesToVal = &ast.AppliesTo{}
-		if len(ja.AppliesTo.PrincipalTypes) > 0 {
-			a.AppliesToVal.PrincipalTypes = make([]ast.EntityTypeRef, len(ja.AppliesTo.PrincipalTypes))
-			for i, ref := range ja.AppliesTo.PrincipalTypes {
-				a.AppliesToVal.PrincipalTypes[i] = ast.EntityTypeRef{Name: types.EntityType(ref)}
+		// Only create AppliesToVal if there's meaningful content
+		hasPrincipals := len(ja.AppliesTo.PrincipalTypes) > 0
+		hasResources := len(ja.AppliesTo.ResourceTypes) > 0
+		hasContext := ja.AppliesTo.Context != nil
+
+		if hasPrincipals || hasResources || hasContext {
+			a.AppliesToVal = &ast.AppliesTo{}
+			if hasPrincipals {
+				a.AppliesToVal.PrincipalTypes = make([]ast.EntityTypeRef, len(ja.AppliesTo.PrincipalTypes))
+				for i, ref := range ja.AppliesTo.PrincipalTypes {
+					a.AppliesToVal.PrincipalTypes[i] = ast.EntityTypeRef{Name: types.EntityType(ref)}
+				}
 			}
-		}
-		if len(ja.AppliesTo.ResourceTypes) > 0 {
-			a.AppliesToVal.ResourceTypes = make([]ast.EntityTypeRef, len(ja.AppliesTo.ResourceTypes))
-			for i, ref := range ja.AppliesTo.ResourceTypes {
-				a.AppliesToVal.ResourceTypes[i] = ast.EntityTypeRef{Name: types.EntityType(ref)}
+			if hasResources {
+				a.AppliesToVal.ResourceTypes = make([]ast.EntityTypeRef, len(ja.AppliesTo.ResourceTypes))
+				for i, ref := range ja.AppliesTo.ResourceTypes {
+					a.AppliesToVal.ResourceTypes[i] = ast.EntityTypeRef{Name: types.EntityType(ref)}
+				}
 			}
-		}
-		if ja.AppliesTo.Context != nil {
-			t, err := jsonToType(ja.AppliesTo.Context)
-			if err != nil {
-				return nil, err
+			if hasContext {
+				t, err := jsonToType(ja.AppliesTo.Context)
+				if err != nil {
+					return nil, err
+				}
+				a.AppliesToVal.Context = t
 			}
-			a.AppliesToVal.Context = t
 		}
 	}
 
@@ -529,12 +592,51 @@ func jsonToType(jt *Type) (ast.IsType, error) {
 		return ast.RecordType{Pairs: pairs}, nil
 	case "Entity":
 		return ast.EntityTypeRef{Name: types.EntityType(jt.Name)}, nil
+	case "EntityOrCommon":
+		// EntityOrCommon is used by Rust CLI v4.8+ for all type references
+		// The actual type is in the "name" field
+		return resolveEntityOrCommon(jt.Name)
 	default:
 		// Assume it's a type reference
 		if jt.TypeName != "" {
 			return ast.TypeRef{Name: types.Path(jt.TypeName)}, nil
 		}
 		return nil, fmt.Errorf("unknown type: %v", jt)
+	}
+}
+
+// resolveEntityOrCommon converts an EntityOrCommon name to the appropriate type.
+// Rust CLI v4.8+ uses EntityOrCommon for all types including primitives.
+// Rust may output primitives as "__cedar::String" etc.
+func resolveEntityOrCommon(name string) (ast.IsType, error) {
+	// Handle __cedar:: prefix for all types
+	if len(name) > 9 && name[:9] == "__cedar::" {
+		extName := name[9:]
+		// Check if it's a primitive type with __cedar:: prefix
+		switch extName {
+		case "String":
+			return ast.StringType{}, nil
+		case "Long":
+			return ast.LongType{}, nil
+		case "Bool", "Boolean":
+			return ast.BoolType{}, nil
+		default:
+			// It's a real extension type (ipaddr, datetime, decimal, duration)
+			return ast.ExtensionType{Name: types.Ident(extName)}, nil
+		}
+	}
+
+	// Handle unprefixed primitive types
+	switch name {
+	case "String":
+		return ast.StringType{}, nil
+	case "Long":
+		return ast.LongType{}, nil
+	case "Bool", "Boolean":
+		return ast.BoolType{}, nil
+	default:
+		// Otherwise it's a type reference (could be entity or common type)
+		return ast.TypeRef{Name: types.Path(name)}, nil
 	}
 }
 
@@ -581,6 +683,9 @@ func jsonAttrToType(ja *Attr) (ast.IsType, error) {
 		return ast.RecordType{Pairs: pairs}, nil
 	case "Entity":
 		return ast.EntityTypeRef{Name: types.EntityType(ja.Name)}, nil
+	case "EntityOrCommon":
+		// EntityOrCommon is used by Rust CLI v4.8+ for all type references
+		return resolveEntityOrCommon(ja.Name)
 	default:
 		// Assume it's a type reference
 		if ja.TypeName != "" {

@@ -1,0 +1,33 @@
+{
+    "": {
+        "commonTypes": {
+            "Matrix": {
+                "type": "Set",
+                "element": {
+                    "type": "Set",
+                    "element": {
+                        "type": "Long"
+                    }
+                }
+            }
+        },
+        "entityTypes": {
+            "Config": {
+                "shape": {
+                    "type": "Record",
+                    "attributes": {
+                        "nested": {
+                            "type": "Record",
+                            "attributes": {
+                                "value": {
+                                    "type": "String"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "actions": {}
+    }
+}

@@ -1,0 +1,5 @@
+// Entity hierarchy chain
+entity A in [B];
+entity B in [C];
+entity C in [D];
+entity D;

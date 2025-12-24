@@ -3,6 +3,7 @@ package schema2_test
 import (
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -36,7 +37,7 @@ func TestCorpus(t *testing.T) {
 					t.Fatalf("failed to parse valid schema %s: %v", name, err)
 				}
 
-				// Round-trip
+				// Round-trip Cedar -> Cedar
 				marshaled := schema.MarshalCedar()
 				_, err = schema2.UnmarshalCedar(marshaled)
 				if err != nil {
@@ -68,46 +69,6 @@ func TestCorpus(t *testing.T) {
 	})
 }
 
-// TestRoundTripStability ensures parse->marshal->parse->marshal is stable.
-func TestRoundTripStability(t *testing.T) {
-	t.Parallel()
-
-	inputs := []string{
-		`entity User;`,
-		`entity User in [Group]; entity Group;`,
-		`entity User { name: String, email?: String };`,
-		`entity Status enum ["active", "inactive"];`,
-		`type Name = String;`,
-		`action view appliesTo { principal: [User], resource: [Doc] }; entity User; entity Doc;`,
-		`namespace App { entity User; action view; }`,
-		`@doc("test") entity User;`,
-		`entity User, Admin, Guest;`,
-	}
-
-	for _, input := range inputs {
-		input := input
-		name := input
-		if len(name) > 40 {
-			name = name[:40] + "..."
-		}
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-
-			schema1, err := schema2.UnmarshalCedar([]byte(input))
-			testutil.OK(t, err)
-
-			out1 := schema1.MarshalCedar()
-			schema2Parsed, err := schema2.UnmarshalCedar(out1)
-			testutil.OK(t, err)
-
-			out2 := schema2Parsed.MarshalCedar()
-			if string(out1) != string(out2) {
-				t.Errorf("round trip unstable:\nfirst:\n%s\nsecond:\n%s", out1, out2)
-			}
-		})
-	}
-}
-
 // TestParserDoesNotPanic ensures malformed inputs don't cause panics.
 func TestParserDoesNotPanic(t *testing.T) {
 	t.Parallel()
@@ -134,9 +95,7 @@ func TestParserDoesNotPanic(t *testing.T) {
 }
 
 // TestJSONCorpus tests JSON marshalling/unmarshalling with corpus files.
-// For each valid Cedar schema, we test:
-// 1. Cedar -> JSON -> Cedar round-trip
-// 2. JSON -> Cedar -> JSON round-trip (if .json file exists)
+// For each valid Cedar schema, we test Cedar -> JSON -> Cedar round-trip.
 func TestJSONCorpus(t *testing.T) {
 	t.Parallel()
 
@@ -179,61 +138,10 @@ func TestJSONCorpus(t *testing.T) {
 				t.Fatalf("failed to re-marshal to JSON: %v", err)
 			}
 
-			// Parse the re-marshaled JSON to verify it's valid
-			_, err = schema2.UnmarshalJSON(jsonData2)
-			if err != nil {
-				t.Fatalf("failed to parse re-marshaled JSON: %v\nJSON:\n%s", err, string(jsonData2))
+			// Verify JSON stability
+			if normalizeJSON(t, string(jsonData)) != normalizeJSON(t, string(jsonData2)) {
+				t.Fatalf("JSON round-trip unstable:\nfirst:\n%s\nsecond:\n%s", jsonData, jsonData2)
 			}
-		})
-	}
-}
-
-// TestJSONRoundTripStability tests JSON round-trip stability.
-func TestJSONRoundTripStability(t *testing.T) {
-	t.Parallel()
-
-	inputs := []string{
-		`entity User;`,
-		`entity User in [Group]; entity Group;`,
-		`entity User { name: String, email?: String };`,
-		`type Name = String;`,
-		`action view appliesTo { principal: [User], resource: [Doc] }; entity User; entity Doc;`,
-		`namespace App { entity User; action view; }`,
-		`entity User, Admin, Guest;`,
-	}
-
-	for _, input := range inputs {
-		input := input
-		name := input
-		if len(name) > 40 {
-			name = name[:40] + "..."
-		}
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-
-			// Parse Cedar
-			schema1, err := schema2.UnmarshalCedar([]byte(input))
-			testutil.OK(t, err)
-
-			// Cedar -> JSON
-			json1, err := schema2.MarshalJSON(schema1)
-			testutil.OK(t, err)
-
-			// JSON -> Schema
-			schema2Parsed, err := schema2.UnmarshalJSON(json1)
-			testutil.OK(t, err)
-
-			// Schema -> JSON again
-			json2, err := schema2.MarshalJSON(schema2Parsed)
-			testutil.OK(t, err)
-
-			// Verify JSON round-trip stability
-			if string(json1) != string(json2) {
-				t.Errorf("JSON round trip unstable:\nfirst:\n%s\nsecond:\n%s", json1, json2)
-			}
-
-			// Verify with reference
-			verifyJSONWithCedarCLI(t, string(json1))
 		})
 	}
 }
@@ -311,9 +219,9 @@ func TestJSONSchemaFormatCompliance(t *testing.T) {
 			expectedFields: []string{`"required": false`},
 		},
 		{
-			name:           "required attribute has no required field",
-			cedar:          `entity User { name: String };`,
-			mustNotHave:    []string{`"required"`},
+			name:        "required attribute has no required field",
+			cedar:       `entity User { name: String };`,
+			mustNotHave: []string{`"required"`},
 		},
 		{
 			name:           "entity reference uses Entity type with name",
@@ -361,6 +269,16 @@ func TestJSONSchemaFormatCompliance(t *testing.T) {
 			cedar:          `type Name = String;`,
 			expectedFields: []string{`"commonTypes"`, `"Name"`, `"type": "String"`},
 		},
+		{
+			name:           "empty Record has attributes field",
+			cedar:          `entity User; entity Doc; action view appliesTo { principal: User, resource: Doc, context: {} };`,
+			expectedFields: []string{`"context"`, `"type": "Record"`, `"attributes": {}`},
+		},
+		{
+			name:        "action without appliesTo has no appliesTo field",
+			cedar:       `action read;`,
+			mustNotHave: []string{`"appliesTo"`},
+		},
 	}
 
 	for _, tt := range tests {
@@ -389,218 +307,6 @@ func TestJSONSchemaFormatCompliance(t *testing.T) {
 
 			// Verify with reference implementation
 			verifyJSONWithCedarCLI(t, jsonStr)
-		})
-	}
-}
-
-// TestJSONReferenceSchemasParsing tests that we can parse JSON schemas from the Rust implementation.
-func TestJSONReferenceSchemasParsing(t *testing.T) {
-	t.Parallel()
-
-	// These are JSON schemas that match what the Rust implementation produces
-	tests := []struct {
-		name string
-		json string
-	}{
-		{
-			name: "minimal entity",
-			json: `{"": {"entityTypes": {"User": {}}, "actions": {}}}`,
-		},
-		{
-			name: "entity with memberOfTypes",
-			json: `{"": {"entityTypes": {"User": {"memberOfTypes": ["Group"]}, "Group": {}}, "actions": {}}}`,
-		},
-		{
-			name: "entity with shape",
-			json: `{"": {"entityTypes": {"User": {"shape": {"type": "Record", "attributes": {"name": {"type": "String"}}}}}, "actions": {}}}`,
-		},
-		{
-			name: "entity with optional attribute",
-			json: `{"": {"entityTypes": {"User": {"shape": {"type": "Record", "attributes": {"email": {"type": "String", "required": false}}}}}, "actions": {}}}`,
-		},
-		{
-			name: "entity with Set attribute",
-			json: `{"": {"entityTypes": {"User": {"shape": {"type": "Record", "attributes": {"tags": {"type": "Set", "element": {"type": "String"}}}}}}, "actions": {}}}`,
-		},
-		{
-			name: "entity with Entity reference",
-			json: `{"": {"entityTypes": {"User": {}, "Doc": {"shape": {"type": "Record", "attributes": {"owner": {"type": "Entity", "name": "User"}}}}}, "actions": {}}}`,
-		},
-		{
-			name: "entity with Extension type",
-			json: `{"": {"entityTypes": {"User": {"shape": {"type": "Record", "attributes": {"ip": {"type": "Extension", "name": "ipaddr"}}}}}, "actions": {}}}`,
-		},
-		{
-			name: "action with appliesTo",
-			json: `{"": {"entityTypes": {"User": {}, "Doc": {}}, "actions": {"view": {"appliesTo": {"principalTypes": ["User"], "resourceTypes": ["Doc"]}}}}}`,
-		},
-		{
-			name: "action with context",
-			json: `{"": {"entityTypes": {"User": {}, "Doc": {}}, "actions": {"view": {"appliesTo": {"principalTypes": ["User"], "resourceTypes": ["Doc"], "context": {"type": "Record", "attributes": {"ip": {"type": "Extension", "name": "ipaddr"}}}}}}}}`,
-		},
-		{
-			name: "action with memberOf",
-			json: `{"": {"entityTypes": {}, "actions": {"read": {}, "write": {"memberOf": [{"type": "Action", "id": "read"}]}}}}`,
-		},
-		{
-			name: "common type primitive",
-			json: `{"": {"commonTypes": {"Name": {"type": "String"}}, "entityTypes": {}, "actions": {}}}`,
-		},
-		{
-			name: "common type Record",
-			json: `{"": {"commonTypes": {"Address": {"type": "Record", "attributes": {"city": {"type": "String"}, "zip": {"type": "String", "required": false}}}}, "entityTypes": {}, "actions": {}}}`,
-		},
-		{
-			name: "common type Set",
-			json: `{"": {"commonTypes": {"Tags": {"type": "Set", "element": {"type": "String"}}}, "entityTypes": {}, "actions": {}}}`,
-		},
-		{
-			name: "named namespace",
-			json: `{"App": {"entityTypes": {"User": {}}, "actions": {"view": {}}}}`,
-		},
-		{
-			name: "multiple namespaces",
-			json: `{"Core": {"entityTypes": {"Base": {}}, "actions": {}}, "App": {"entityTypes": {"User": {}}, "actions": {}}}`,
-		},
-		{
-			name: "nested Record",
-			json: `{"": {"entityTypes": {"Config": {"shape": {"type": "Record", "attributes": {"nested": {"type": "Record", "attributes": {"value": {"type": "String"}}}}}}}, "actions": {}}}`,
-		},
-		{
-			name: "Set of Set",
-			json: `{"": {"commonTypes": {"Matrix": {"type": "Set", "element": {"type": "Set", "element": {"type": "Long"}}}}, "entityTypes": {}, "actions": {}}}`,
-		},
-		{
-			name: "type reference to common type",
-			json: `{"": {"commonTypes": {"Name": {"type": "String"}}, "entityTypes": {"User": {"shape": {"type": "Record", "attributes": {"name": {"type": "Name"}}}}}, "actions": {}}}`,
-		},
-	}
-
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			// Parse JSON
-			schema, err := schema2.UnmarshalJSON([]byte(tt.json))
-			if err != nil {
-				t.Fatalf("failed to parse JSON: %v\nJSON: %s", err, tt.json)
-			}
-
-			// Round-trip: JSON -> Schema -> JSON
-			jsonData, err := schema2.MarshalJSON(schema)
-			testutil.OK(t, err)
-
-			// Parse again to verify
-			_, err = schema2.UnmarshalJSON(jsonData)
-			testutil.OK(t, err)
-
-			// Verify with reference implementation
-			verifyJSONWithCedarCLI(t, string(jsonData))
-		})
-	}
-}
-
-// TestJSONEdgeCases tests edge cases in JSON marshalling/unmarshalling.
-func TestJSONEdgeCases(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name  string
-		cedar string
-	}{
-		{
-			name:  "deeply nested Record",
-			cedar: `type Deep = { l1: { l2: { l3: { l4: { value: String } } } } };`,
-		},
-		{
-			name:  "Record with many attributes",
-			cedar: `entity User { a: String, b: Long, c: Bool, d: String, e: Long, f: Bool };`,
-		},
-		{
-			name:  "multiple entities with hierarchy",
-			cedar: `entity A in [B]; entity B in [C]; entity C in [D]; entity D;`,
-		},
-		{
-			name:  "action with multiple principals and resources",
-			cedar: `entity User; entity Admin; entity Doc; entity File; action view appliesTo { principal: [User, Admin], resource: [Doc, File] };`,
-		},
-		{
-			name:  "complex context type",
-			cedar: `entity User; entity Doc; action view appliesTo { principal: User, resource: Doc, context: { ip: __cedar::ipaddr, time: __cedar::datetime, count: Long, flag: Bool, tags: Set<String> } };`,
-		},
-		{
-			name:  "Set of Entity",
-			cedar: `entity User; entity Group { members: Set<User> };`,
-		},
-		{
-			name:  "all extension types",
-			cedar: `type Extensions = { ip: __cedar::ipaddr, time: __cedar::datetime, money: __cedar::decimal, dur: __cedar::duration };`,
-		},
-		{
-			name:  "action group hierarchy",
-			cedar: `action "base"; action "read" in ["base"]; action "write" in ["base"]; action "admin" in ["read", "write"];`,
-		},
-		{
-			name:  "quoted action names with spaces",
-			cedar: `action "view document"; action "edit document" in ["view document"];`,
-		},
-		{
-			name:  "empty namespace",
-			cedar: `namespace Empty { }`,
-		},
-		{
-			name:  "namespace with all declaration types",
-			cedar: `namespace Full { type Name = String; entity User { name: Name }; action view appliesTo { principal: User, resource: User }; }`,
-		},
-		{
-			name:  "entity with tags",
-			cedar: `entity User tags String;`,
-		},
-		{
-			name:  "entity with enum",
-			cedar: `entity Status enum ["active", "pending", "closed"];`,
-		},
-		{
-			name:  "multiple entities on one line",
-			cedar: `entity User, Admin, Guest;`,
-		},
-		{
-			name:  "multiple actions on one line",
-			cedar: `entity User; entity Doc; action view, edit, delete appliesTo { principal: User, resource: Doc };`,
-		},
-	}
-
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			// Parse Cedar
-			schema, err := schema2.UnmarshalCedar([]byte(tt.cedar))
-			testutil.OK(t, err)
-
-			// Marshal to JSON
-			jsonData, err := schema2.MarshalJSON(schema)
-			testutil.OK(t, err)
-
-			// Parse JSON back
-			schema2Parsed, err := schema2.UnmarshalJSON(jsonData)
-			if err != nil {
-				t.Fatalf("failed to parse JSON: %v\nJSON: %s", err, string(jsonData))
-			}
-
-			// Re-marshal to JSON
-			jsonData2, err := schema2.MarshalJSON(schema2Parsed)
-			testutil.OK(t, err)
-
-			// Verify JSON stability
-			if string(jsonData) != string(jsonData2) {
-				t.Errorf("JSON round-trip unstable:\nfirst:\n%s\nsecond:\n%s", jsonData, jsonData2)
-			}
-
-			// Verify with reference
-			verifyJSONWithCedarCLI(t, string(jsonData))
 		})
 	}
 }
@@ -659,4 +365,118 @@ func TestJSONCorpusExactMatch(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestCorpusFilesRustSemanticParity tests all corpus files for semantic equivalence with Rust.
+func TestCorpusFilesRustSemanticParity(t *testing.T) {
+	t.Parallel()
+
+	files, err := filepath.Glob("testdata/corpus/valid/*.cedarschema")
+	testutil.OK(t, err)
+
+	for _, file := range files {
+		file := file
+		name := filepath.Base(file)
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			cedarData, err := os.ReadFile(file)
+			testutil.OK(t, err)
+
+			// Parse with our implementation and convert to JSON
+			schema, err := schema2.UnmarshalCedar(cedarData)
+			testutil.OK(t, err)
+
+			goJSON, err := schema2.MarshalJSON(schema)
+			testutil.OK(t, err)
+
+			// Verify Rust accepts our JSON
+			verifyJSONWithCedarCLI(t, string(goJSON))
+
+			// Verify Rust can convert our JSON to Cedar
+			rustCedar := translateJSONToCedarWithRust(t, string(goJSON))
+			verifyWithCedarCLI(t, rustCedar)
+
+			// Verify we can parse Rust's JSON output (which uses EntityOrCommon format)
+			rustJSON := translateCedarToJSONWithRust(t, string(cedarData))
+			schema2Parsed, err := schema2.UnmarshalJSON([]byte(rustJSON))
+			if err != nil {
+				t.Errorf("Failed to parse Rust's JSON for %s: %v", name, err)
+				return
+			}
+
+			// And marshal it back
+			goJSON2, err := schema2.MarshalJSON(schema2Parsed)
+			testutil.OK(t, err)
+
+			// And Rust accepts that
+			verifyJSONWithCedarCLI(t, string(goJSON2))
+		})
+	}
+}
+
+// Helper functions for JSON/Rust parity tests
+
+// translateCedarToJSONWithRust uses the Rust CLI to convert Cedar schema to JSON.
+func translateCedarToJSONWithRust(t *testing.T, cedarContent string) string {
+	t.Helper()
+	cli := cedarCLI()
+	if cli == "" {
+		t.Skip("cedar CLI not available")
+	}
+
+	tmpDir := t.TempDir()
+	cedarFile := filepath.Join(tmpDir, "schema.cedarschema")
+	if err := os.WriteFile(cedarFile, []byte(cedarContent), 0o644); err != nil {
+		t.Fatalf("failed to write temp schema: %v", err)
+	}
+
+	cmd := exec.Command(cli, "translate-schema", "--direction", "cedar-to-json", "--schema", cedarFile)
+	output, err := cmd.Output()
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			t.Fatalf("cedar translate-schema failed: %v\nstderr: %s", err, exitErr.Stderr)
+		}
+		t.Fatalf("cedar translate-schema failed: %v", err)
+	}
+	return string(output)
+}
+
+// translateJSONToCedarWithRust uses the Rust CLI to convert JSON schema to Cedar.
+func translateJSONToCedarWithRust(t *testing.T, jsonContent string) string {
+	t.Helper()
+	cli := cedarCLI()
+	if cli == "" {
+		t.Skip("cedar CLI not available")
+	}
+
+	tmpDir := t.TempDir()
+	jsonFile := filepath.Join(tmpDir, "schema.cedarschema.json")
+	if err := os.WriteFile(jsonFile, []byte(jsonContent), 0o644); err != nil {
+		t.Fatalf("failed to write temp schema: %v", err)
+	}
+
+	cmd := exec.Command(cli, "translate-schema", "--direction", "json-to-cedar", "--schema", jsonFile)
+	output, err := cmd.Output()
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			t.Fatalf("cedar translate-schema failed: %v\nstderr: %s", err, exitErr.Stderr)
+		}
+		t.Fatalf("cedar translate-schema failed: %v", err)
+	}
+	return string(output)
+}
+
+// normalizeJSON parses and re-marshals JSON for consistent comparison.
+func normalizeJSON(t *testing.T, jsonStr string) string {
+	t.Helper()
+	var m map[string]interface{}
+	if err := json.Unmarshal([]byte(jsonStr), &m); err != nil {
+		t.Fatalf("failed to parse JSON: %v\nJSON: %s", err, jsonStr)
+	}
+	normalized, err := json.MarshalIndent(m, "", "    ")
+	if err != nil {
+		t.Fatalf("failed to marshal JSON: %v", err)
+	}
+	return string(normalized)
 }
