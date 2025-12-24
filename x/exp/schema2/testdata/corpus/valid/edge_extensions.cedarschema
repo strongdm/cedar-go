@@ -1,0 +1,6 @@
+// All extension types
+type Extensions = { ip: __cedar::ipaddr, time: __cedar::datetime, money: __cedar::decimal, dur: __cedar::duration };
+entity Request {
+    ip: __cedar::ipaddr,
+    time: __cedar::datetime
+};

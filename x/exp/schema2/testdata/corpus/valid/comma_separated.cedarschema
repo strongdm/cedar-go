@@ -1,0 +1,6 @@
+// Comma-separated declarations
+entity User, Admin, Guest;
+entity Group;
+entity Member, Owner in [Group];
+action read, write, delete;
+action view, edit appliesTo { principal: User, resource: Group };

@@ -1,0 +1,67 @@
+{
+    "": {
+        "entityTypes": {
+            "Config": {
+                "shape": {
+                    "type": "Record",
+                    "attributes": {
+                        "nested": {
+                            "type": "Record",
+                            "attributes": {
+                                "deep": {
+                                    "type": "Record",
+                                    "attributes": {
+                                        "value": {
+                                            "type": "String"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "Document": {
+                "shape": {
+                    "type": "Record",
+                    "attributes": {
+                        "owner": {
+                            "type": "Entity",
+                            "name": "User"
+                        },
+                        "tags": {
+                            "type": "Set",
+                            "element": {
+                                "type": "String"
+                            }
+                        },
+                        "title": {
+                            "type": "String"
+                        }
+                    }
+                }
+            },
+            "User": {
+                "shape": {
+                    "type": "Record",
+                    "attributes": {
+                        "active": {
+                            "type": "Boolean"
+                        },
+                        "age": {
+                            "type": "Long"
+                        },
+                        "email": {
+                            "type": "String",
+                            "required": false
+                        },
+                        "name": {
+                            "type": "String"
+                        }
+                    }
+                }
+            }
+        },
+        "actions": {}
+    }
+}
