@@ -1096,3 +1096,246 @@ func TestMarshalNilTypeInRecordAttr(t *testing.T) {
 	// Should produce JSON with the entity
 	testutil.Equals(t, strings.Contains(string(jsonData), "badAttr"), true)
 }
+
+// TestEntityOrCommonFormat tests parsing Rust CLI v4.8+ EntityOrCommon JSON format
+func TestEntityOrCommonFormat(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		json string
+	}{
+		{
+			name: "EntityOrCommon with __cedar::String",
+			json: `{"": {"entityTypes": {"User": {"shape": {"type": "Record", "attributes": {"name": {"type": "EntityOrCommon", "name": "__cedar::String"}}}}}, "actions": {}}}`,
+		},
+		{
+			name: "EntityOrCommon with __cedar::Long",
+			json: `{"": {"entityTypes": {"User": {"shape": {"type": "Record", "attributes": {"age": {"type": "EntityOrCommon", "name": "__cedar::Long"}}}}}, "actions": {}}}`,
+		},
+		{
+			name: "EntityOrCommon with __cedar::Bool",
+			json: `{"": {"entityTypes": {"User": {"shape": {"type": "Record", "attributes": {"active": {"type": "EntityOrCommon", "name": "__cedar::Bool"}}}}}, "actions": {}}}`,
+		},
+		{
+			name: "EntityOrCommon with __cedar::Boolean",
+			json: `{"": {"entityTypes": {"User": {"shape": {"type": "Record", "attributes": {"active": {"type": "EntityOrCommon", "name": "__cedar::Boolean"}}}}}, "actions": {}}}`,
+		},
+		{
+			name: "EntityOrCommon with __cedar::ipaddr extension",
+			json: `{"": {"entityTypes": {"User": {"shape": {"type": "Record", "attributes": {"ip": {"type": "EntityOrCommon", "name": "__cedar::ipaddr"}}}}}, "actions": {}}}`,
+		},
+		{
+			name: "EntityOrCommon with __cedar::datetime extension",
+			json: `{"": {"entityTypes": {"User": {"shape": {"type": "Record", "attributes": {"time": {"type": "EntityOrCommon", "name": "__cedar::datetime"}}}}}, "actions": {}}}`,
+		},
+		{
+			name: "EntityOrCommon with unprefixed String",
+			json: `{"": {"entityTypes": {"User": {"shape": {"type": "Record", "attributes": {"name": {"type": "EntityOrCommon", "name": "String"}}}}}, "actions": {}}}`,
+		},
+		{
+			name: "EntityOrCommon with unprefixed Long",
+			json: `{"": {"entityTypes": {"User": {"shape": {"type": "Record", "attributes": {"age": {"type": "EntityOrCommon", "name": "Long"}}}}}, "actions": {}}}`,
+		},
+		{
+			name: "EntityOrCommon with unprefixed Bool",
+			json: `{"": {"entityTypes": {"User": {"shape": {"type": "Record", "attributes": {"flag": {"type": "EntityOrCommon", "name": "Bool"}}}}}, "actions": {}}}`,
+		},
+		{
+			name: "EntityOrCommon with unprefixed Boolean",
+			json: `{"": {"entityTypes": {"User": {"shape": {"type": "Record", "attributes": {"flag": {"type": "EntityOrCommon", "name": "Boolean"}}}}}, "actions": {}}}`,
+		},
+		{
+			name: "EntityOrCommon with type reference",
+			json: `{"": {"entityTypes": {"User": {"shape": {"type": "Record", "attributes": {"data": {"type": "EntityOrCommon", "name": "MyType"}}}}}, "actions": {}}}`,
+		},
+		{
+			name: "EntityOrCommon in commonTypes",
+			json: `{"": {"commonTypes": {"X": {"type": "EntityOrCommon", "name": "__cedar::String"}}, "entityTypes": {}, "actions": {}}}`,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			schema, err := Unmarshal([]byte(tt.json))
+			testutil.OK(t, err)
+
+			// Re-marshal and verify round-trip
+			jsonData, err := Marshal(schema)
+			testutil.OK(t, err)
+
+			schema2, err := Unmarshal(jsonData)
+			testutil.OK(t, err)
+
+			jsonData2, err := Marshal(schema2)
+			testutil.OK(t, err)
+
+			testutil.Equals(t, string(jsonData), string(jsonData2))
+		})
+	}
+}
+
+// TestRecordMarshalJSONWithNilAttributes tests Record type MarshalJSON with nil attributes
+func TestRecordMarshalJSONWithNilAttributes(t *testing.T) {
+	t.Parallel()
+
+	// Create a Type directly with nil Attributes to test MarshalJSON
+	recordType := Type{
+		TypeName:   "Record",
+		Attributes: nil, // nil, not empty map
+	}
+
+	jsonData, err := json.Marshal(recordType)
+	testutil.OK(t, err)
+
+	// Should output attributes: {}
+	testutil.Equals(t, strings.Contains(string(jsonData), `"attributes":{}`), true)
+}
+
+// TestAttrRecordMarshalJSONWithNilAttributes tests Attr Record type MarshalJSON with nil attributes
+func TestAttrRecordMarshalJSONWithNilAttributes(t *testing.T) {
+	t.Parallel()
+
+	// Create an Attr directly with nil Attributes to test MarshalJSON
+	recordAttr := Attr{
+		TypeName:   "Record",
+		Attributes: nil, // nil, not empty map
+	}
+
+	jsonData, err := json.Marshal(recordAttr)
+	testutil.OK(t, err)
+
+	// Should output attributes: {}
+	testutil.Equals(t, strings.Contains(string(jsonData), `"attributes":{}`), true)
+}
+
+// TestActionMemberOfWithEmptyType tests action memberOf with empty type defaults to Action
+func TestActionMemberOfWithEmptyType(t *testing.T) {
+	t.Parallel()
+
+	// JSON with action memberOf where type is empty (Rust CLI v4.8+ format)
+	jsonData := `{"": {"entityTypes": {}, "actions": {"read": {}, "write": {"memberOf": [{"id": "read"}]}}}}`
+
+	schema, err := Unmarshal([]byte(jsonData))
+	testutil.OK(t, err)
+
+	// Marshal back
+	jsonOut, err := Marshal(schema)
+	testutil.OK(t, err)
+
+	// Should have type: Action in output (check both possible formats)
+	hasType := strings.Contains(string(jsonOut), `"type":"Action"`) ||
+		strings.Contains(string(jsonOut), `"type": "Action"`)
+	testutil.Equals(t, hasType, true)
+}
+
+// TestActionMemberOfEmptyTypeInSchema tests marshalling action with empty memberOf type
+func TestActionMemberOfEmptyTypeInSchema(t *testing.T) {
+	t.Parallel()
+
+	schema := &ast.Schema{
+		Nodes: []ast.IsNode{
+			&ast.ActionNode{
+				Name: "write",
+				MemberOfVal: []ast.EntityRef{
+					{
+						Type: ast.EntityTypeRef{Name: ""}, // empty type
+						ID:   "read",
+					},
+				},
+			},
+		},
+	}
+
+	jsonData, err := Marshal(schema)
+	testutil.OK(t, err)
+
+	// Should have type: Action (default for empty type) - check both formats
+	hasType := strings.Contains(string(jsonData), `"type":"Action"`) ||
+		strings.Contains(string(jsonData), `"type": "Action"`)
+	if !hasType {
+		t.Errorf("expected type:Action in JSON, got: %s", string(jsonData))
+	}
+}
+
+// TestEmptyAppliesToNotEmitted tests that empty appliesTo is not emitted
+func TestEmptyAppliesToNotEmitted(t *testing.T) {
+	t.Parallel()
+
+	// JSON with action having empty appliesTo (Rust CLI format)
+	jsonData := `{"": {"entityTypes": {}, "actions": {"view": {"appliesTo": {"principalTypes": [], "resourceTypes": []}}}}}`
+
+	schema, err := Unmarshal([]byte(jsonData))
+	testutil.OK(t, err)
+
+	// Marshal back
+	jsonOut, err := Marshal(schema)
+	testutil.OK(t, err)
+
+	// Should NOT have appliesTo in output (since it's empty)
+	testutil.Equals(t, !strings.Contains(string(jsonOut), "appliesTo"), true)
+}
+
+// TestResolveEntityOrCommonDirectly tests resolveEntityOrCommon function directly
+func TestResolveEntityOrCommonDirectly(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		input    string
+		wantType string
+	}{
+		// __cedar:: prefixed primitives
+		{"__cedar::String", "__cedar::String", "StringType"},
+		{"__cedar::Long", "__cedar::Long", "LongType"},
+		{"__cedar::Bool", "__cedar::Bool", "BoolType"},
+		{"__cedar::Boolean", "__cedar::Boolean", "BoolType"},
+		// __cedar:: prefixed extension types
+		{"__cedar::ipaddr", "__cedar::ipaddr", "ExtensionType"},
+		{"__cedar::datetime", "__cedar::datetime", "ExtensionType"},
+		{"__cedar::decimal", "__cedar::decimal", "ExtensionType"},
+		{"__cedar::duration", "__cedar::duration", "ExtensionType"},
+		// Unprefixed primitives
+		{"String", "String", "StringType"},
+		{"Long", "Long", "LongType"},
+		{"Bool", "Bool", "BoolType"},
+		{"Boolean", "Boolean", "BoolType"},
+		// Type references
+		{"MyType", "MyType", "TypeRef"},
+		{"User", "User", "TypeRef"},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result, err := resolveEntityOrCommon(tt.input)
+			testutil.OK(t, err)
+
+			typeName := getTypeName(result)
+			testutil.Equals(t, tt.wantType, typeName)
+		})
+	}
+}
+
+// getTypeName returns the type name of an ast.IsType for testing
+func getTypeName(t ast.IsType) string {
+	switch t.(type) {
+	case ast.StringType:
+		return "StringType"
+	case ast.LongType:
+		return "LongType"
+	case ast.BoolType:
+		return "BoolType"
+	case ast.ExtensionType:
+		return "ExtensionType"
+	case ast.TypeRef:
+		return "TypeRef"
+	default:
+		return "Unknown"
+	}
+}
