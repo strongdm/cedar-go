@@ -1,6 +1,7 @@
 package schema2_test
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -278,6 +279,384 @@ func TestJSONCorpusFiles(t *testing.T) {
 
 			// Verify JSON output with reference implementation
 			verifyJSONWithCedarCLI(t, string(jsonData2))
+		})
+	}
+}
+
+// TestJSONSchemaFormatCompliance tests that our JSON output matches the Cedar JSON schema spec.
+// This ensures compatibility with the Rust reference implementation.
+func TestJSONSchemaFormatCompliance(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name           string
+		cedar          string
+		expectedFields []string // Fields that must be present in JSON
+		mustNotHave    []string // Fields that must NOT be present
+	}{
+		{
+			name:           "entity type without shape has empty object",
+			cedar:          `entity User;`,
+			expectedFields: []string{`"entityTypes"`, `"User": {}`},
+			mustNotHave:    []string{`"shape"`},
+		},
+		{
+			name:           "entity with shape has Record type",
+			cedar:          `entity User { name: String };`,
+			expectedFields: []string{`"shape"`, `"type": "Record"`, `"attributes"`},
+		},
+		{
+			name:           "optional attribute has required false",
+			cedar:          `entity User { email?: String };`,
+			expectedFields: []string{`"required": false`},
+		},
+		{
+			name:           "required attribute has no required field",
+			cedar:          `entity User { name: String };`,
+			mustNotHave:    []string{`"required"`},
+		},
+		{
+			name:           "entity reference uses Entity type with name",
+			cedar:          `entity User; entity Doc { owner: User };`,
+			expectedFields: []string{`"type": "Entity"`, `"name": "User"`},
+		},
+		{
+			name:           "Set type uses element field",
+			cedar:          `entity User { tags: Set<String> };`,
+			expectedFields: []string{`"type": "Set"`, `"element"`},
+		},
+		{
+			name:           "Extension type uses name field",
+			cedar:          `entity User { ip: __cedar::ipaddr };`,
+			expectedFields: []string{`"type": "Extension"`, `"name": "ipaddr"`},
+		},
+		{
+			name:           "memberOf uses array of entity UIDs",
+			cedar:          `entity Group; entity User in [Group];`,
+			expectedFields: []string{`"memberOfTypes"`, `"Group"`},
+		},
+		{
+			name:           "action appliesTo has principalTypes and resourceTypes",
+			cedar:          `entity User; entity Doc; action view appliesTo { principal: User, resource: Doc };`,
+			expectedFields: []string{`"appliesTo"`, `"principalTypes"`, `"resourceTypes"`},
+		},
+		{
+			name:           "action context has Record type",
+			cedar:          `entity User; entity Doc; action view appliesTo { principal: User, resource: Doc, context: { ip: __cedar::ipaddr } };`,
+			expectedFields: []string{`"context"`, `"type": "Record"`},
+		},
+		{
+			name:           "action memberOf uses type and id",
+			cedar:          `action read; action write in [read];`,
+			expectedFields: []string{`"memberOf"`, `"type": "Action"`, `"id": "read"`},
+		},
+		{
+			name:           "namespace creates nested JSON object",
+			cedar:          `namespace App { entity User; }`,
+			expectedFields: []string{`"App"`, `"entityTypes"`, `"User"`},
+			mustNotHave:    []string{`"": {`}, // Should not have empty namespace
+		},
+		{
+			name:           "common type defined in commonTypes",
+			cedar:          `type Name = String;`,
+			expectedFields: []string{`"commonTypes"`, `"Name"`, `"type": "String"`},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			schema, err := schema2.UnmarshalCedar([]byte(tt.cedar))
+			testutil.OK(t, err)
+
+			jsonData, err := schema2.MarshalJSON(schema)
+			testutil.OK(t, err)
+			jsonStr := string(jsonData)
+
+			for _, field := range tt.expectedFields {
+				if !strings.Contains(jsonStr, field) {
+					t.Errorf("JSON missing expected field %q:\n%s", field, jsonStr)
+				}
+			}
+
+			for _, field := range tt.mustNotHave {
+				if strings.Contains(jsonStr, field) {
+					t.Errorf("JSON should not contain %q:\n%s", field, jsonStr)
+				}
+			}
+
+			// Verify with reference implementation
+			verifyJSONWithCedarCLI(t, jsonStr)
+		})
+	}
+}
+
+// TestJSONReferenceSchemasParsing tests that we can parse JSON schemas from the Rust implementation.
+func TestJSONReferenceSchemasParsing(t *testing.T) {
+	t.Parallel()
+
+	// These are JSON schemas that match what the Rust implementation produces
+	tests := []struct {
+		name string
+		json string
+	}{
+		{
+			name: "minimal entity",
+			json: `{"": {"entityTypes": {"User": {}}, "actions": {}}}`,
+		},
+		{
+			name: "entity with memberOfTypes",
+			json: `{"": {"entityTypes": {"User": {"memberOfTypes": ["Group"]}, "Group": {}}, "actions": {}}}`,
+		},
+		{
+			name: "entity with shape",
+			json: `{"": {"entityTypes": {"User": {"shape": {"type": "Record", "attributes": {"name": {"type": "String"}}}}}, "actions": {}}}`,
+		},
+		{
+			name: "entity with optional attribute",
+			json: `{"": {"entityTypes": {"User": {"shape": {"type": "Record", "attributes": {"email": {"type": "String", "required": false}}}}}, "actions": {}}}`,
+		},
+		{
+			name: "entity with Set attribute",
+			json: `{"": {"entityTypes": {"User": {"shape": {"type": "Record", "attributes": {"tags": {"type": "Set", "element": {"type": "String"}}}}}}, "actions": {}}}`,
+		},
+		{
+			name: "entity with Entity reference",
+			json: `{"": {"entityTypes": {"User": {}, "Doc": {"shape": {"type": "Record", "attributes": {"owner": {"type": "Entity", "name": "User"}}}}}, "actions": {}}}`,
+		},
+		{
+			name: "entity with Extension type",
+			json: `{"": {"entityTypes": {"User": {"shape": {"type": "Record", "attributes": {"ip": {"type": "Extension", "name": "ipaddr"}}}}}, "actions": {}}}`,
+		},
+		{
+			name: "action with appliesTo",
+			json: `{"": {"entityTypes": {"User": {}, "Doc": {}}, "actions": {"view": {"appliesTo": {"principalTypes": ["User"], "resourceTypes": ["Doc"]}}}}}`,
+		},
+		{
+			name: "action with context",
+			json: `{"": {"entityTypes": {"User": {}, "Doc": {}}, "actions": {"view": {"appliesTo": {"principalTypes": ["User"], "resourceTypes": ["Doc"], "context": {"type": "Record", "attributes": {"ip": {"type": "Extension", "name": "ipaddr"}}}}}}}}`,
+		},
+		{
+			name: "action with memberOf",
+			json: `{"": {"entityTypes": {}, "actions": {"read": {}, "write": {"memberOf": [{"type": "Action", "id": "read"}]}}}}`,
+		},
+		{
+			name: "common type primitive",
+			json: `{"": {"commonTypes": {"Name": {"type": "String"}}, "entityTypes": {}, "actions": {}}}`,
+		},
+		{
+			name: "common type Record",
+			json: `{"": {"commonTypes": {"Address": {"type": "Record", "attributes": {"city": {"type": "String"}, "zip": {"type": "String", "required": false}}}}, "entityTypes": {}, "actions": {}}}`,
+		},
+		{
+			name: "common type Set",
+			json: `{"": {"commonTypes": {"Tags": {"type": "Set", "element": {"type": "String"}}}, "entityTypes": {}, "actions": {}}}`,
+		},
+		{
+			name: "named namespace",
+			json: `{"App": {"entityTypes": {"User": {}}, "actions": {"view": {}}}}`,
+		},
+		{
+			name: "multiple namespaces",
+			json: `{"Core": {"entityTypes": {"Base": {}}, "actions": {}}, "App": {"entityTypes": {"User": {}}, "actions": {}}}`,
+		},
+		{
+			name: "nested Record",
+			json: `{"": {"entityTypes": {"Config": {"shape": {"type": "Record", "attributes": {"nested": {"type": "Record", "attributes": {"value": {"type": "String"}}}}}}}, "actions": {}}}`,
+		},
+		{
+			name: "Set of Set",
+			json: `{"": {"commonTypes": {"Matrix": {"type": "Set", "element": {"type": "Set", "element": {"type": "Long"}}}}, "entityTypes": {}, "actions": {}}}`,
+		},
+		{
+			name: "type reference to common type",
+			json: `{"": {"commonTypes": {"Name": {"type": "String"}}, "entityTypes": {"User": {"shape": {"type": "Record", "attributes": {"name": {"type": "Name"}}}}}, "actions": {}}}`,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			// Parse JSON
+			schema, err := schema2.UnmarshalJSON([]byte(tt.json))
+			if err != nil {
+				t.Fatalf("failed to parse JSON: %v\nJSON: %s", err, tt.json)
+			}
+
+			// Round-trip: JSON -> Schema -> JSON
+			jsonData, err := schema2.MarshalJSON(schema)
+			testutil.OK(t, err)
+
+			// Parse again to verify
+			_, err = schema2.UnmarshalJSON(jsonData)
+			testutil.OK(t, err)
+
+			// Verify with reference implementation
+			verifyJSONWithCedarCLI(t, string(jsonData))
+		})
+	}
+}
+
+// TestJSONEdgeCases tests edge cases in JSON marshalling/unmarshalling.
+func TestJSONEdgeCases(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		cedar string
+	}{
+		{
+			name:  "deeply nested Record",
+			cedar: `type Deep = { l1: { l2: { l3: { l4: { value: String } } } } };`,
+		},
+		{
+			name:  "Record with many attributes",
+			cedar: `entity User { a: String, b: Long, c: Bool, d: String, e: Long, f: Bool };`,
+		},
+		{
+			name:  "multiple entities with hierarchy",
+			cedar: `entity A in [B]; entity B in [C]; entity C in [D]; entity D;`,
+		},
+		{
+			name:  "action with multiple principals and resources",
+			cedar: `entity User; entity Admin; entity Doc; entity File; action view appliesTo { principal: [User, Admin], resource: [Doc, File] };`,
+		},
+		{
+			name:  "complex context type",
+			cedar: `entity User; entity Doc; action view appliesTo { principal: User, resource: Doc, context: { ip: __cedar::ipaddr, time: __cedar::datetime, count: Long, flag: Bool, tags: Set<String> } };`,
+		},
+		{
+			name:  "Set of Entity",
+			cedar: `entity User; entity Group { members: Set<User> };`,
+		},
+		{
+			name:  "all extension types",
+			cedar: `type Extensions = { ip: __cedar::ipaddr, time: __cedar::datetime, money: __cedar::decimal, dur: __cedar::duration };`,
+		},
+		{
+			name:  "action group hierarchy",
+			cedar: `action "base"; action "read" in ["base"]; action "write" in ["base"]; action "admin" in ["read", "write"];`,
+		},
+		{
+			name:  "quoted action names with spaces",
+			cedar: `action "view document"; action "edit document" in ["view document"];`,
+		},
+		{
+			name:  "empty namespace",
+			cedar: `namespace Empty { }`,
+		},
+		{
+			name:  "namespace with all declaration types",
+			cedar: `namespace Full { type Name = String; entity User { name: Name }; action view appliesTo { principal: User, resource: User }; }`,
+		},
+		{
+			name:  "entity with tags",
+			cedar: `entity User tags String;`,
+		},
+		{
+			name:  "entity with enum",
+			cedar: `entity Status enum ["active", "pending", "closed"];`,
+		},
+		{
+			name:  "multiple entities on one line",
+			cedar: `entity User, Admin, Guest;`,
+		},
+		{
+			name:  "multiple actions on one line",
+			cedar: `entity User; entity Doc; action view, edit, delete appliesTo { principal: User, resource: Doc };`,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			// Parse Cedar
+			schema, err := schema2.UnmarshalCedar([]byte(tt.cedar))
+			testutil.OK(t, err)
+
+			// Marshal to JSON
+			jsonData, err := schema2.MarshalJSON(schema)
+			testutil.OK(t, err)
+
+			// Parse JSON back
+			schema2Parsed, err := schema2.UnmarshalJSON(jsonData)
+			if err != nil {
+				t.Fatalf("failed to parse JSON: %v\nJSON: %s", err, string(jsonData))
+			}
+
+			// Re-marshal to JSON
+			jsonData2, err := schema2.MarshalJSON(schema2Parsed)
+			testutil.OK(t, err)
+
+			// Verify JSON stability
+			if string(jsonData) != string(jsonData2) {
+				t.Errorf("JSON round-trip unstable:\nfirst:\n%s\nsecond:\n%s", jsonData, jsonData2)
+			}
+
+			// Verify with reference
+			verifyJSONWithCedarCLI(t, string(jsonData))
+		})
+	}
+}
+
+// TestJSONCorpusExactMatch compares our JSON output with the expected JSON files.
+func TestJSONCorpusExactMatch(t *testing.T) {
+	t.Parallel()
+
+	files, err := filepath.Glob("testdata/corpus/valid/*.cedarschema")
+	testutil.OK(t, err)
+
+	for _, cedarFile := range files {
+		cedarFile := cedarFile
+		baseName := strings.TrimSuffix(filepath.Base(cedarFile), ".cedarschema")
+		jsonFile := filepath.Join(filepath.Dir(cedarFile), baseName+".json")
+
+		// Skip if no corresponding JSON file exists
+		if _, err := os.Stat(jsonFile); os.IsNotExist(err) {
+			continue
+		}
+
+		t.Run(baseName, func(t *testing.T) {
+			t.Parallel()
+
+			// Read Cedar schema
+			cedarData, err := os.ReadFile(cedarFile)
+			testutil.OK(t, err)
+
+			// Read expected JSON
+			expectedJSON, err := os.ReadFile(jsonFile)
+			testutil.OK(t, err)
+
+			// Parse Cedar and marshal to JSON
+			schema, err := schema2.UnmarshalCedar(cedarData)
+			testutil.OK(t, err)
+
+			actualJSON, err := schema2.MarshalJSON(schema)
+			testutil.OK(t, err)
+
+			// Parse both JSONs and re-marshal to normalize formatting
+			var expectedMap, actualMap map[string]interface{}
+			if err := json.Unmarshal(expectedJSON, &expectedMap); err != nil {
+				t.Fatalf("failed to parse expected JSON: %v", err)
+			}
+			if err := json.Unmarshal(actualJSON, &actualMap); err != nil {
+				t.Fatalf("failed to parse actual JSON: %v", err)
+			}
+
+			// Re-marshal with consistent formatting
+			expectedNorm, _ := json.MarshalIndent(expectedMap, "", "    ")
+			actualNorm, _ := json.MarshalIndent(actualMap, "", "    ")
+
+			if string(expectedNorm) != string(actualNorm) {
+				t.Errorf("JSON mismatch for %s:\nexpected:\n%s\n\nactual:\n%s",
+					baseName, string(expectedNorm), string(actualNorm))
+			}
 		})
 	}
 }
