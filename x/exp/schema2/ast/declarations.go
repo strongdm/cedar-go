@@ -1,6 +1,10 @@
 package ast
 
-import "github.com/cedar-policy/cedar-go/types"
+import (
+	"iter"
+
+	"github.com/cedar-policy/cedar-go/types"
+)
 
 // NamespaceNode represents a Cedar namespace declaration.
 type NamespaceNode struct {
@@ -23,6 +27,66 @@ func Namespace(path types.Path, decls ...IsDeclaration) *NamespaceNode {
 func (n *NamespaceNode) Annotate(key types.Ident, value types.String) *NamespaceNode {
 	n.Annotations = append(n.Annotations, Annotation{Key: key, Value: value})
 	return n
+}
+
+// CommonTypes returns an iterator over all CommonTypeNode declarations in the namespace.
+// This allows you to iterate through only the common type (type alias) declarations
+// within this specific namespace.
+func (n *NamespaceNode) CommonTypes() iter.Seq[*CommonTypeNode] {
+	return func(yield func(*CommonTypeNode) bool) {
+		for _, decl := range n.Declarations {
+			if ct, ok := decl.(*CommonTypeNode); ok {
+				if !yield(ct) {
+					return
+				}
+			}
+		}
+	}
+}
+
+// Entities returns an iterator over all EntityNode declarations in the namespace.
+// This allows you to iterate through only the entity type declarations
+// within this specific namespace.
+func (n *NamespaceNode) Entities() iter.Seq[*EntityNode] {
+	return func(yield func(*EntityNode) bool) {
+		for _, decl := range n.Declarations {
+			if e, ok := decl.(*EntityNode); ok {
+				if !yield(e) {
+					return
+				}
+			}
+		}
+	}
+}
+
+// Enums returns an iterator over all EnumNode declarations in the namespace.
+// This allows you to iterate through only the enum entity type declarations
+// within this specific namespace.
+func (n *NamespaceNode) Enums() iter.Seq[*EnumNode] {
+	return func(yield func(*EnumNode) bool) {
+		for _, decl := range n.Declarations {
+			if e, ok := decl.(*EnumNode); ok {
+				if !yield(e) {
+					return
+				}
+			}
+		}
+	}
+}
+
+// Actions returns an iterator over all ActionNode declarations in the namespace.
+// This allows you to iterate through only the action declarations
+// within this specific namespace.
+func (n *NamespaceNode) Actions() iter.Seq[*ActionNode] {
+	return func(yield func(*ActionNode) bool) {
+		for _, decl := range n.Declarations {
+			if a, ok := decl.(*ActionNode); ok {
+				if !yield(a) {
+					return
+				}
+			}
+		}
+	}
 }
 
 // CommonTypeNode represents a Cedar common type declaration (type alias).
