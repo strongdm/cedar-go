@@ -33,15 +33,15 @@ func (s *ResolvedSchema) MarshalCedar() []byte {
 
 func marshalNode(buf *bytes.Buffer, node IsNode, indent string) {
 	switch n := node.(type) {
-	case *NamespaceNode:
+	case NamespaceNode:
 		marshalNamespace(buf, n, indent)
-	case *CommonTypeNode:
+	case CommonTypeNode:
 		marshalCommonType(buf, n, indent)
-	case *EntityNode:
+	case EntityNode:
 		marshalEntity(buf, n, indent)
-	case *EnumNode:
+	case EnumNode:
 		marshalEnum(buf, n, indent)
-	case *ActionNode:
+	case ActionNode:
 		marshalAction(buf, n, indent)
 	}
 }
@@ -60,7 +60,7 @@ func marshalAnnotations(buf *bytes.Buffer, annotations []Annotation, indent stri
 	}
 }
 
-func marshalNamespace(buf *bytes.Buffer, ns *NamespaceNode, indent string) {
+func marshalNamespace(buf *bytes.Buffer, ns NamespaceNode, indent string) {
 	marshalAnnotations(buf, ns.Annotations, indent)
 	buf.WriteString(indent)
 	buf.WriteString("namespace ")
@@ -79,7 +79,7 @@ func marshalNamespace(buf *bytes.Buffer, ns *NamespaceNode, indent string) {
 	buf.WriteString("}\n")
 }
 
-func marshalCommonType(buf *bytes.Buffer, ct *CommonTypeNode, indent string) {
+func marshalCommonType(buf *bytes.Buffer, ct CommonTypeNode, indent string) {
 	marshalAnnotations(buf, ct.Annotations, indent)
 	buf.WriteString(indent)
 	buf.WriteString("type ")
@@ -89,7 +89,7 @@ func marshalCommonType(buf *bytes.Buffer, ct *CommonTypeNode, indent string) {
 	buf.WriteString(";\n")
 }
 
-func marshalEntity(buf *bytes.Buffer, e *EntityNode, indent string) {
+func marshalEntity(buf *bytes.Buffer, e EntityNode, indent string) {
 	marshalAnnotations(buf, e.Annotations, indent)
 	buf.WriteString(indent)
 	buf.WriteString("entity ")
@@ -113,7 +113,7 @@ func marshalEntity(buf *bytes.Buffer, e *EntityNode, indent string) {
 	buf.WriteString(";\n")
 }
 
-func marshalEnum(buf *bytes.Buffer, e *EnumNode, indent string) {
+func marshalEnum(buf *bytes.Buffer, e EnumNode, indent string) {
 	marshalAnnotations(buf, e.Annotations, indent)
 	buf.WriteString(indent)
 	buf.WriteString("entity ")
@@ -130,7 +130,7 @@ func marshalEnum(buf *bytes.Buffer, e *EnumNode, indent string) {
 	buf.WriteString("];\n")
 }
 
-func marshalAction(buf *bytes.Buffer, a *ActionNode, indent string) {
+func marshalAction(buf *bytes.Buffer, a ActionNode, indent string) {
 	marshalAnnotations(buf, a.Annotations, indent)
 	buf.WriteString(indent)
 	buf.WriteString("action ")

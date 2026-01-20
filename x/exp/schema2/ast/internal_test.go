@@ -26,11 +26,11 @@ func TestIsNodeMarkerMethods(t *testing.T) {
 	t.Parallel()
 
 	// Call all isNode() marker methods for coverage
-	(&NamespaceNode{}).isNode()
-	(&CommonTypeNode{}).isNode()
-	(&EntityNode{}).isNode()
-	(&EnumNode{}).isNode()
-	(&ActionNode{}).isNode()
+	(NamespaceNode{}).isNode()
+	(CommonTypeNode{}).isNode()
+	(EntityNode{}).isNode()
+	(EnumNode{}).isNode()
+	(ActionNode{}).isNode()
 }
 
 // TestIsDeclarationMarkerMethods tests that all IsDeclaration marker methods are callable for coverage
@@ -38,10 +38,10 @@ func TestIsDeclarationMarkerMethods(t *testing.T) {
 	t.Parallel()
 
 	// Call all isDeclaration() marker methods for coverage
-	(&CommonTypeNode{}).isDeclaration()
-	(&EntityNode{}).isDeclaration()
-	(&EnumNode{}).isDeclaration()
-	(&ActionNode{}).isDeclaration()
+	(CommonTypeNode{}).isDeclaration()
+	(EntityNode{}).isDeclaration()
+	(EnumNode{}).isDeclaration()
+	(ActionNode{}).isDeclaration()
 }
 
 // TestNamespaceIterators tests the iterator methods on NamespaceNode
@@ -66,68 +66,68 @@ func TestNamespaceIterators(t *testing.T) {
 
 	// Test CommonTypes iterator
 	t.Run("CommonTypes", func(t *testing.T) {
-		var commonTypes []*CommonTypeNode
+		var commonTypes []CommonTypeNode
 		for ct := range ns.CommonTypes() {
 			commonTypes = append(commonTypes, ct)
 		}
 		if len(commonTypes) != 2 {
 			t.Errorf("expected 2 common types, got %d", len(commonTypes))
 		}
-		if commonTypes[0] != ct1 {
+		if commonTypes[0].Name != ct1.Name {
 			t.Errorf("expected first common type to be ct1")
 		}
-		if commonTypes[1] != ct2 {
+		if commonTypes[1].Name != ct2.Name {
 			t.Errorf("expected second common type to be ct2")
 		}
 	})
 
 	// Test Entities iterator
 	t.Run("Entities", func(t *testing.T) {
-		var entities []*EntityNode
+		var entities []EntityNode
 		for e := range ns.Entities() {
 			entities = append(entities, e)
 		}
 		if len(entities) != 2 {
 			t.Errorf("expected 2 entities, got %d", len(entities))
 		}
-		if entities[0] != e1 {
+		if entities[0].Name != e1.Name {
 			t.Errorf("expected first entity to be e1")
 		}
-		if entities[1] != e2 {
+		if entities[1].Name != e2.Name {
 			t.Errorf("expected second entity to be e2")
 		}
 	})
 
 	// Test Enums iterator
 	t.Run("Enums", func(t *testing.T) {
-		var enums []*EnumNode
+		var enums []EnumNode
 		for e := range ns.Enums() {
 			enums = append(enums, e)
 		}
 		if len(enums) != 2 {
 			t.Errorf("expected 2 enums, got %d", len(enums))
 		}
-		if enums[0] != enum1 {
+		if enums[0].Name != enum1.Name {
 			t.Errorf("expected first enum to be enum1")
 		}
-		if enums[1] != enum2 {
+		if enums[1].Name != enum2.Name {
 			t.Errorf("expected second enum to be enum2")
 		}
 	})
 
 	// Test Actions iterator
 	t.Run("Actions", func(t *testing.T) {
-		var actions []*ActionNode
+		var actions []ActionNode
 		for a := range ns.Actions() {
 			actions = append(actions, a)
 		}
 		if len(actions) != 2 {
 			t.Errorf("expected 2 actions, got %d", len(actions))
 		}
-		if actions[0] != a1 {
+		if actions[0].Name != a1.Name {
 			t.Errorf("expected first action to be a1")
 		}
-		if actions[1] != a2 {
+		if actions[1].Name != a2.Name {
 			t.Errorf("expected second action to be a2")
 		}
 	})
@@ -195,7 +195,7 @@ func TestNamespaceIteratorsEarlyBreak(t *testing.T) {
 		count := 0
 		for ct := range ns.CommonTypes() {
 			count++
-			if ct == ct1 {
+			if ct.Name == ct1.Name {
 				break // Early termination after first item
 			}
 		}
@@ -213,7 +213,7 @@ func TestNamespaceIteratorsEarlyBreak(t *testing.T) {
 		count := 0
 		for e := range ns2.Entities() {
 			count++
-			if e == e1 {
+			if e.Name == e1.Name {
 				break
 			}
 		}
@@ -231,7 +231,7 @@ func TestNamespaceIteratorsEarlyBreak(t *testing.T) {
 		count := 0
 		for e := range ns3.Enums() {
 			count++
-			if e == enum1 {
+			if e.Name == enum1.Name {
 				break
 			}
 		}
@@ -249,7 +249,7 @@ func TestNamespaceIteratorsEarlyBreak(t *testing.T) {
 		count := 0
 		for a := range ns4.Actions() {
 			count++
-			if a == a1 {
+			if a.Name == a1.Name {
 				break
 			}
 		}

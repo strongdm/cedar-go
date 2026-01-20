@@ -13,18 +13,18 @@ type NamespaceNode struct {
 	Declarations []IsDeclaration
 }
 
-func (*NamespaceNode) isNode() { _ = 0 }
+func (NamespaceNode) isNode() { _ = 0 }
 
 // Namespace creates a new NamespaceNode with the given path and declarations.
-func Namespace(path types.Path, decls ...IsDeclaration) *NamespaceNode {
-	return &NamespaceNode{
+func Namespace(path types.Path, decls ...IsDeclaration) NamespaceNode {
+	return NamespaceNode{
 		Name:         path,
 		Declarations: decls,
 	}
 }
 
 // Annotate adds an annotation to the namespace and returns the node for chaining.
-func (n *NamespaceNode) Annotate(key types.Ident, value types.String) *NamespaceNode {
+func (n NamespaceNode) Annotate(key types.Ident, value types.String) NamespaceNode {
 	n.Annotations = append(n.Annotations, Annotation{Key: key, Value: value})
 	return n
 }
@@ -32,10 +32,10 @@ func (n *NamespaceNode) Annotate(key types.Ident, value types.String) *Namespace
 // CommonTypes returns an iterator over all CommonTypeNode declarations in the namespace.
 // This allows you to iterate through only the common type (type alias) declarations
 // within this specific namespace.
-func (n *NamespaceNode) CommonTypes() iter.Seq[*CommonTypeNode] {
-	return func(yield func(*CommonTypeNode) bool) {
+func (n NamespaceNode) CommonTypes() iter.Seq[CommonTypeNode] {
+	return func(yield func(CommonTypeNode) bool) {
 		for _, decl := range n.Declarations {
-			if ct, ok := decl.(*CommonTypeNode); ok {
+			if ct, ok := decl.(CommonTypeNode); ok {
 				if !yield(ct) {
 					return
 				}
@@ -47,10 +47,10 @@ func (n *NamespaceNode) CommonTypes() iter.Seq[*CommonTypeNode] {
 // Entities returns an iterator over all EntityNode declarations in the namespace.
 // This allows you to iterate through only the entity type declarations
 // within this specific namespace.
-func (n *NamespaceNode) Entities() iter.Seq[*EntityNode] {
-	return func(yield func(*EntityNode) bool) {
+func (n NamespaceNode) Entities() iter.Seq[EntityNode] {
+	return func(yield func(EntityNode) bool) {
 		for _, decl := range n.Declarations {
-			if e, ok := decl.(*EntityNode); ok {
+			if e, ok := decl.(EntityNode); ok {
 				if !yield(e) {
 					return
 				}
@@ -62,10 +62,10 @@ func (n *NamespaceNode) Entities() iter.Seq[*EntityNode] {
 // Enums returns an iterator over all EnumNode declarations in the namespace.
 // This allows you to iterate through only the enum entity type declarations
 // within this specific namespace.
-func (n *NamespaceNode) Enums() iter.Seq[*EnumNode] {
-	return func(yield func(*EnumNode) bool) {
+func (n NamespaceNode) Enums() iter.Seq[EnumNode] {
+	return func(yield func(EnumNode) bool) {
 		for _, decl := range n.Declarations {
-			if e, ok := decl.(*EnumNode); ok {
+			if e, ok := decl.(EnumNode); ok {
 				if !yield(e) {
 					return
 				}
@@ -77,10 +77,10 @@ func (n *NamespaceNode) Enums() iter.Seq[*EnumNode] {
 // Actions returns an iterator over all ActionNode declarations in the namespace.
 // This allows you to iterate through only the action declarations
 // within this specific namespace.
-func (n *NamespaceNode) Actions() iter.Seq[*ActionNode] {
-	return func(yield func(*ActionNode) bool) {
+func (n NamespaceNode) Actions() iter.Seq[ActionNode] {
+	return func(yield func(ActionNode) bool) {
 		for _, decl := range n.Declarations {
-			if a, ok := decl.(*ActionNode); ok {
+			if a, ok := decl.(ActionNode); ok {
 				if !yield(a) {
 					return
 				}
@@ -96,19 +96,19 @@ type CommonTypeNode struct {
 	Type        IsType
 }
 
-func (*CommonTypeNode) isNode()        { _ = 0 }
-func (*CommonTypeNode) isDeclaration() { _ = 0 }
+func (CommonTypeNode) isNode()        { _ = 0 }
+func (CommonTypeNode) isDeclaration() { _ = 0 }
 
 // CommonType creates a new CommonTypeNode with the given name and type.
-func CommonType(name types.Ident, t IsType) *CommonTypeNode {
-	return &CommonTypeNode{
+func CommonType(name types.Ident, t IsType) CommonTypeNode {
+	return CommonTypeNode{
 		Name: name,
 		Type: t,
 	}
 }
 
 // Annotate adds an annotation to the common type and returns the node for chaining.
-func (c *CommonTypeNode) Annotate(key types.Ident, value types.String) *CommonTypeNode {
+func (c CommonTypeNode) Annotate(key types.Ident, value types.String) CommonTypeNode {
 	c.Annotations = append(c.Annotations, Annotation{Key: key, Value: value})
 	return c
 }
@@ -116,7 +116,7 @@ func (c *CommonTypeNode) Annotate(key types.Ident, value types.String) *CommonTy
 // FullName returns the fully qualified name for this common type.
 // If namespace is empty, the type name is used as-is.
 // If namespace is provided (e.g., "MyApp"), the name is "MyApp::TypeName".
-func (c *CommonTypeNode) FullName(namespace types.Path) types.Path {
+func (c CommonTypeNode) FullName(namespace types.Path) types.Path {
 	if namespace == "" {
 		return types.Path(c.Name)
 	}
@@ -132,35 +132,35 @@ type EntityNode struct {
 	TagsVal     IsType
 }
 
-func (*EntityNode) isNode()        { _ = 0 }
-func (*EntityNode) isDeclaration() { _ = 0 }
+func (EntityNode) isNode()        { _ = 0 }
+func (EntityNode) isDeclaration() { _ = 0 }
 
 // Entity creates a new EntityNode with the given name.
-func Entity(name types.EntityType) *EntityNode {
-	return &EntityNode{Name: name}
+func Entity(name types.EntityType) EntityNode {
+	return EntityNode{Name: name}
 }
 
 // MemberOf sets the entity types this entity can be a member of.
-func (e *EntityNode) MemberOf(parents ...EntityTypeRef) *EntityNode {
+func (e EntityNode) MemberOf(parents ...EntityTypeRef) EntityNode {
 	e.MemberOfVal = parents
 	return e
 }
 
 // Shape sets the shape (attributes) of the entity.
-func (e *EntityNode) Shape(pairs ...Pair) *EntityNode {
+func (e EntityNode) Shape(pairs ...Pair) EntityNode {
 	r := Record(pairs...)
 	e.ShapeVal = &r
 	return e
 }
 
 // Tags sets the tags type for the entity.
-func (e *EntityNode) Tags(t IsType) *EntityNode {
+func (e EntityNode) Tags(t IsType) EntityNode {
 	e.TagsVal = t
 	return e
 }
 
 // Annotate adds an annotation to the entity and returns the node for chaining.
-func (e *EntityNode) Annotate(key types.Ident, value types.String) *EntityNode {
+func (e EntityNode) Annotate(key types.Ident, value types.String) EntityNode {
 	e.Annotations = append(e.Annotations, Annotation{Key: key, Value: value})
 	return e
 }
@@ -168,7 +168,7 @@ func (e *EntityNode) Annotate(key types.Ident, value types.String) *EntityNode {
 // EntityType returns the fully qualified entity type name for this entity.
 // If namespace is empty, the entity name is used as-is.
 // If namespace is provided (e.g., "MyApp"), the type is "MyApp::EntityName".
-func (e *EntityNode) EntityType(namespace types.Path) types.EntityType {
+func (e EntityNode) EntityType(namespace types.Path) types.EntityType {
 	if namespace == "" {
 		return e.Name
 	}
@@ -182,19 +182,19 @@ type EnumNode struct {
 	Values      []types.String
 }
 
-func (*EnumNode) isNode()        { _ = 0 }
-func (*EnumNode) isDeclaration() { _ = 0 }
+func (EnumNode) isNode()        { _ = 0 }
+func (EnumNode) isDeclaration() { _ = 0 }
 
 // Enum creates a new EnumNode with the given name and values.
-func Enum(name types.EntityType, values ...types.String) *EnumNode {
-	return &EnumNode{
+func Enum(name types.EntityType, values ...types.String) EnumNode {
+	return EnumNode{
 		Name:   name,
 		Values: values,
 	}
 }
 
 // Annotate adds an annotation to the enum and returns the node for chaining.
-func (e *EnumNode) Annotate(key types.Ident, value types.String) *EnumNode {
+func (e EnumNode) Annotate(key types.Ident, value types.String) EnumNode {
 	e.Annotations = append(e.Annotations, Annotation{Key: key, Value: value})
 	return e
 }
@@ -202,7 +202,7 @@ func (e *EnumNode) Annotate(key types.Ident, value types.String) *EnumNode {
 // EntityUIDs returns an iterator over EntityUID values for each enum value.
 // If namespace is empty, the entity type is used as-is.
 // If namespace is provided (e.g., "MyApp"), the type is "MyApp::EnumName".
-func (e *EnumNode) EntityUIDs(namespace types.Path) iter.Seq[types.EntityUID] {
+func (e EnumNode) EntityUIDs(namespace types.Path) iter.Seq[types.EntityUID] {
 	return func(yield func(types.EntityUID) bool) {
 		var entityType types.EntityType
 		if namespace == "" {
@@ -226,8 +226,8 @@ type ActionNode struct {
 	AppliesToVal *AppliesTo
 }
 
-func (*ActionNode) isNode()        { _ = 0 }
-func (*ActionNode) isDeclaration() { _ = 0 }
+func (ActionNode) isNode()        { _ = 0 }
+func (ActionNode) isDeclaration() { _ = 0 }
 
 // AppliesTo represents the principal, resource, and context types for an action.
 type AppliesTo struct {
@@ -259,18 +259,18 @@ func EntityUID(typ types.EntityType, id types.String) EntityRef {
 }
 
 // Action creates a new ActionNode with the given name.
-func Action(name types.String) *ActionNode {
-	return &ActionNode{Name: name}
+func Action(name types.String) ActionNode {
+	return ActionNode{Name: name}
 }
 
 // MemberOf sets the action groups this action is a member of.
-func (a *ActionNode) MemberOf(refs ...EntityRef) *ActionNode {
+func (a ActionNode) MemberOf(refs ...EntityRef) ActionNode {
 	a.MemberOfVal = refs
 	return a
 }
 
 // Principal sets the principal types for the action.
-func (a *ActionNode) Principal(principals ...EntityTypeRef) *ActionNode {
+func (a ActionNode) Principal(principals ...EntityTypeRef) ActionNode {
 	if a.AppliesToVal == nil {
 		a.AppliesToVal = &AppliesTo{}
 	}
@@ -279,7 +279,7 @@ func (a *ActionNode) Principal(principals ...EntityTypeRef) *ActionNode {
 }
 
 // Resource sets the resource types for the action.
-func (a *ActionNode) Resource(resources ...EntityTypeRef) *ActionNode {
+func (a ActionNode) Resource(resources ...EntityTypeRef) ActionNode {
 	if a.AppliesToVal == nil {
 		a.AppliesToVal = &AppliesTo{}
 	}
@@ -288,7 +288,7 @@ func (a *ActionNode) Resource(resources ...EntityTypeRef) *ActionNode {
 }
 
 // Context sets the context type for the action.
-func (a *ActionNode) Context(t IsType) *ActionNode {
+func (a ActionNode) Context(t IsType) ActionNode {
 	if a.AppliesToVal == nil {
 		a.AppliesToVal = &AppliesTo{}
 	}
@@ -297,7 +297,7 @@ func (a *ActionNode) Context(t IsType) *ActionNode {
 }
 
 // Annotate adds an annotation to the action and returns the node for chaining.
-func (a *ActionNode) Annotate(key types.Ident, value types.String) *ActionNode {
+func (a ActionNode) Annotate(key types.Ident, value types.String) ActionNode {
 	a.Annotations = append(a.Annotations, Annotation{Key: key, Value: value})
 	return a
 }
@@ -305,7 +305,7 @@ func (a *ActionNode) Annotate(key types.Ident, value types.String) *ActionNode {
 // EntityUID returns the fully qualified EntityUID for this action.
 // If namespace is empty, the type is "Action".
 // If namespace is provided (e.g., "Bananas"), the type is "Bananas::Action".
-func (a *ActionNode) EntityUID(namespace types.Path) types.EntityUID {
+func (a ActionNode) EntityUID(namespace types.Path) types.EntityUID {
 	var entityType types.EntityType
 	if namespace == "" {
 		entityType = "Action"

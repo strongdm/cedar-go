@@ -42,10 +42,10 @@ func NewSchema(nodes ...IsNode) *Schema {
 
 // Namespaces returns an iterator over all NamespaceNode declarations in the schema.
 // This allows you to iterate through all namespace declarations defined at the schema level.
-func (s *Schema) Namespaces() iter.Seq[*NamespaceNode] {
-	return func(yield func(*NamespaceNode) bool) {
+func (s *Schema) Namespaces() iter.Seq[NamespaceNode] {
+	return func(yield func(NamespaceNode) bool) {
 		for _, node := range s.Nodes {
-			if ns, ok := node.(*NamespaceNode); ok {
+			if ns, ok := node.(NamespaceNode); ok {
 				if !yield(ns) {
 					return
 				}
@@ -58,14 +58,14 @@ func (s *Schema) Namespaces() iter.Seq[*NamespaceNode] {
 // This includes both top-level declarations and declarations within namespaces.
 // Items are yielded in the order they appear in the schema.
 // The iterator yields both the namespace path and the node.
-func (s *Schema) CommonTypes() iter.Seq2[types.Path, *CommonTypeNode] {
-	return func(yield func(types.Path, *CommonTypeNode) bool) {
+func (s *Schema) CommonTypes() iter.Seq2[types.Path, CommonTypeNode] {
+	return func(yield func(types.Path, CommonTypeNode) bool) {
 		for _, node := range s.Nodes {
-			if ct, ok := node.(*CommonTypeNode); ok {
+			if ct, ok := node.(CommonTypeNode); ok {
 				if !yield("", ct) {
 					return
 				}
-			} else if ns, ok := node.(*NamespaceNode); ok {
+			} else if ns, ok := node.(NamespaceNode); ok {
 				for ct := range ns.CommonTypes() {
 					if !yield(ns.Name, ct) {
 						return
@@ -80,14 +80,14 @@ func (s *Schema) CommonTypes() iter.Seq2[types.Path, *CommonTypeNode] {
 // This includes both top-level declarations and declarations within namespaces.
 // Items are yielded in the order they appear in the schema.
 // The iterator yields both the namespace path and the node.
-func (s *Schema) Entities() iter.Seq2[types.Path, *EntityNode] {
-	return func(yield func(types.Path, *EntityNode) bool) {
+func (s *Schema) Entities() iter.Seq2[types.Path, EntityNode] {
+	return func(yield func(types.Path, EntityNode) bool) {
 		for _, node := range s.Nodes {
-			if e, ok := node.(*EntityNode); ok {
+			if e, ok := node.(EntityNode); ok {
 				if !yield("", e) {
 					return
 				}
-			} else if ns, ok := node.(*NamespaceNode); ok {
+			} else if ns, ok := node.(NamespaceNode); ok {
 				for e := range ns.Entities() {
 					if !yield(ns.Name, e) {
 						return
@@ -102,14 +102,14 @@ func (s *Schema) Entities() iter.Seq2[types.Path, *EntityNode] {
 // This includes both top-level declarations and declarations within namespaces.
 // Items are yielded in the order they appear in the schema.
 // The iterator yields both the namespace path and the node.
-func (s *Schema) Enums() iter.Seq2[types.Path, *EnumNode] {
-	return func(yield func(types.Path, *EnumNode) bool) {
+func (s *Schema) Enums() iter.Seq2[types.Path, EnumNode] {
+	return func(yield func(types.Path, EnumNode) bool) {
 		for _, node := range s.Nodes {
-			if e, ok := node.(*EnumNode); ok {
+			if e, ok := node.(EnumNode); ok {
 				if !yield("", e) {
 					return
 				}
-			} else if ns, ok := node.(*NamespaceNode); ok {
+			} else if ns, ok := node.(NamespaceNode); ok {
 				for e := range ns.Enums() {
 					if !yield(ns.Name, e) {
 						return
@@ -124,14 +124,14 @@ func (s *Schema) Enums() iter.Seq2[types.Path, *EnumNode] {
 // This includes both top-level declarations and declarations within namespaces.
 // Items are yielded in the order they appear in the schema.
 // The iterator yields both the namespace path and the node.
-func (s *Schema) Actions() iter.Seq2[types.Path, *ActionNode] {
-	return func(yield func(types.Path, *ActionNode) bool) {
+func (s *Schema) Actions() iter.Seq2[types.Path, ActionNode] {
+	return func(yield func(types.Path, ActionNode) bool) {
 		for _, node := range s.Nodes {
-			if a, ok := node.(*ActionNode); ok {
+			if a, ok := node.(ActionNode); ok {
 				if !yield("", a) {
 					return
 				}
-			} else if ns, ok := node.(*NamespaceNode); ok {
+			} else if ns, ok := node.(NamespaceNode); ok {
 				for a := range ns.Actions() {
 					if !yield(ns.Name, a) {
 						return

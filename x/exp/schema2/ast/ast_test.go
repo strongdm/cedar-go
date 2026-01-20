@@ -53,7 +53,7 @@ func TestSchemaIterators(t *testing.T) {
 	schema := ast.NewSchema(ns1, ns2, ns3)
 
 	t.Run("Namespaces", func(t *testing.T) {
-		var namespaces []*ast.NamespaceNode
+		var namespaces []ast.NamespaceNode
 		for ns := range schema.Namespaces() {
 			namespaces = append(namespaces, ns)
 		}
@@ -64,7 +64,7 @@ func TestSchemaIterators(t *testing.T) {
 	})
 
 	t.Run("CommonTypes", func(t *testing.T) {
-		var commonTypes []*ast.CommonTypeNode
+		var commonTypes []ast.CommonTypeNode
 		var namespaces []types.Path
 		for ns, ct := range schema.CommonTypes() {
 			namespaces = append(namespaces, ns)
@@ -80,7 +80,7 @@ func TestSchemaIterators(t *testing.T) {
 	})
 
 	t.Run("Entities", func(t *testing.T) {
-		var entities []*ast.EntityNode
+		var entities []ast.EntityNode
 		var namespaces []types.Path
 		for ns, e := range schema.Entities() {
 			namespaces = append(namespaces, ns)
@@ -96,7 +96,7 @@ func TestSchemaIterators(t *testing.T) {
 	})
 
 	t.Run("Enums", func(t *testing.T) {
-		var enums []*ast.EnumNode
+		var enums []ast.EnumNode
 		var namespaces []types.Path
 		for ns, e := range schema.Enums() {
 			namespaces = append(namespaces, ns)
@@ -112,7 +112,7 @@ func TestSchemaIterators(t *testing.T) {
 	})
 
 	t.Run("Actions", func(t *testing.T) {
-		var actions []*ast.ActionNode
+		var actions []ast.ActionNode
 		var namespaces []types.Path
 		for ns, a := range schema.Actions() {
 			namespaces = append(namespaces, ns)
@@ -215,7 +215,7 @@ func TestSchemaIteratorsEarlyBreak(t *testing.T) {
 		count := 0
 		for ns := range schema.Namespaces() {
 			count++
-			if ns == ns1 {
+			if ns.Name == ns1.Name {
 				break
 			}
 		}
@@ -427,7 +427,7 @@ func TestSchemaIteratorsTopLevel(t *testing.T) {
 	schema := ast.NewSchema(ct1, e1, enum1, a1, ns)
 
 	t.Run("CommonTypes includes top-level", func(t *testing.T) {
-		var commonTypes []*ast.CommonTypeNode
+		var commonTypes []ast.CommonTypeNode
 		var namespaces []types.Path
 		for ns, ct := range schema.CommonTypes() {
 			namespaces = append(namespaces, ns)
@@ -440,7 +440,7 @@ func TestSchemaIteratorsTopLevel(t *testing.T) {
 	})
 
 	t.Run("Entities includes top-level", func(t *testing.T) {
-		var entities []*ast.EntityNode
+		var entities []ast.EntityNode
 		var namespaces []types.Path
 		for ns, e := range schema.Entities() {
 			namespaces = append(namespaces, ns)
@@ -453,7 +453,7 @@ func TestSchemaIteratorsTopLevel(t *testing.T) {
 	})
 
 	t.Run("Enums includes top-level", func(t *testing.T) {
-		var enums []*ast.EnumNode
+		var enums []ast.EnumNode
 		var namespaces []types.Path
 		for ns, e := range schema.Enums() {
 			namespaces = append(namespaces, ns)
@@ -466,7 +466,7 @@ func TestSchemaIteratorsTopLevel(t *testing.T) {
 	})
 
 	t.Run("Actions includes top-level", func(t *testing.T) {
-		var actions []*ast.ActionNode
+		var actions []ast.ActionNode
 		var namespaces []types.Path
 		for ns, a := range schema.Actions() {
 			namespaces = append(namespaces, ns)
