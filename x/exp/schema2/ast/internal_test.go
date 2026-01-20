@@ -258,3 +258,167 @@ func TestNamespaceIteratorsEarlyBreak(t *testing.T) {
 		}
 	})
 }
+
+// TestCommonTypeFullName tests the FullName method on CommonTypeNode
+func TestCommonTypeFullName(t *testing.T) {
+	t.Parallel()
+
+	ct := CommonType("MyType", StringType{})
+
+	t.Run("FullName with empty namespace", func(t *testing.T) {
+		fullName := ct.FullName("")
+		if fullName != "MyType" {
+			t.Errorf("expected 'MyType', got '%s'", fullName)
+		}
+	})
+
+	t.Run("FullName with namespace", func(t *testing.T) {
+		fullName := ct.FullName("MyApp")
+		if fullName != "MyApp::MyType" {
+			t.Errorf("expected 'MyApp::MyType', got '%s'", fullName)
+		}
+	})
+
+	t.Run("FullName with nested namespace", func(t *testing.T) {
+		fullName := ct.FullName("MyApp::Types")
+		if fullName != "MyApp::Types::MyType" {
+			t.Errorf("expected 'MyApp::Types::MyType', got '%s'", fullName)
+		}
+	})
+}
+
+// TestEntityEntityType tests the EntityType method on EntityNode
+func TestEntityEntityType(t *testing.T) {
+	t.Parallel()
+
+	entity := Entity("User")
+
+	t.Run("EntityType with empty namespace", func(t *testing.T) {
+		entityType := entity.EntityType("")
+		if entityType != "User" {
+			t.Errorf("expected 'User', got '%s'", entityType)
+		}
+	})
+
+	t.Run("EntityType with namespace", func(t *testing.T) {
+		entityType := entity.EntityType("MyApp")
+		if entityType != "MyApp::User" {
+			t.Errorf("expected 'MyApp::User', got '%s'", entityType)
+		}
+	})
+
+	t.Run("EntityType with nested namespace", func(t *testing.T) {
+		entityType := entity.EntityType("MyApp::Models")
+		if entityType != "MyApp::Models::User" {
+			t.Errorf("expected 'MyApp::Models::User', got '%s'", entityType)
+		}
+	})
+}
+
+// TestEnumEntityUIDs tests the EntityUIDs iterator on EnumNode
+func TestEnumEntityUIDs(t *testing.T) {
+	t.Parallel()
+
+	enum := Enum("Status", "active", "inactive", "pending")
+
+	t.Run("EntityUIDs with empty namespace", func(t *testing.T) {
+		var uids []types.EntityUID
+		for uid := range enum.EntityUIDs("") {
+			uids = append(uids, uid)
+		}
+		if len(uids) != 3 {
+			t.Errorf("expected 3 UIDs, got %d", len(uids))
+		}
+		if uids[0].Type != "Status" {
+			t.Errorf("expected type 'Status', got '%s'", uids[0].Type)
+		}
+		if uids[0].ID != "active" {
+			t.Errorf("expected id 'active', got '%s'", uids[0].ID)
+		}
+		if uids[1].ID != "inactive" {
+			t.Errorf("expected id 'inactive', got '%s'", uids[1].ID)
+		}
+		if uids[2].ID != "pending" {
+			t.Errorf("expected id 'pending', got '%s'", uids[2].ID)
+		}
+	})
+
+	t.Run("EntityUIDs with namespace", func(t *testing.T) {
+		var uids []types.EntityUID
+		for uid := range enum.EntityUIDs("MyApp") {
+			uids = append(uids, uid)
+		}
+		if len(uids) != 3 {
+			t.Errorf("expected 3 UIDs, got %d", len(uids))
+		}
+		if uids[0].Type != "MyApp::Status" {
+			t.Errorf("expected type 'MyApp::Status', got '%s'", uids[0].Type)
+		}
+		if uids[0].ID != "active" {
+			t.Errorf("expected id 'active', got '%s'", uids[0].ID)
+		}
+	})
+
+	t.Run("EntityUIDs with nested namespace", func(t *testing.T) {
+		var uids []types.EntityUID
+		for uid := range enum.EntityUIDs("MyApp::Models") {
+			uids = append(uids, uid)
+		}
+		if len(uids) != 3 {
+			t.Errorf("expected 3 UIDs, got %d", len(uids))
+		}
+		if uids[0].Type != "MyApp::Models::Status" {
+			t.Errorf("expected type 'MyApp::Models::Status', got '%s'", uids[0].Type)
+		}
+	})
+
+	t.Run("EntityUIDs early break", func(t *testing.T) {
+		count := 0
+		for range enum.EntityUIDs("") {
+			count++
+			if count == 1 {
+				break
+			}
+		}
+		if count != 1 {
+			t.Errorf("expected to iterate 1 time before break, got %d", count)
+		}
+	})
+}
+
+// TestActionEntityUID tests the EntityUID method on ActionNode
+func TestActionEntityUID(t *testing.T) {
+	t.Parallel()
+
+	a := Action("view")
+
+	t.Run("EntityUID with empty namespace", func(t *testing.T) {
+		uid := a.EntityUID("")
+		if uid.Type != "Action" {
+			t.Errorf("expected type 'Action', got '%s'", uid.Type)
+		}
+		if uid.ID != "view" {
+			t.Errorf("expected id 'view', got '%s'", uid.ID)
+		}
+	})
+
+	t.Run("EntityUID with namespace", func(t *testing.T) {
+		uid := a.EntityUID("Bananas")
+		if uid.Type != "Bananas::Action" {
+			t.Errorf("expected type 'Bananas::Action', got '%s'", uid.Type)
+		}
+		if uid.ID != "view" {
+			t.Errorf("expected id 'view', got '%s'", uid.ID)
+		}
+	})
+
+	t.Run("EntityUID with nested namespace", func(t *testing.T) {
+		uid := a.EntityUID("MyApp::Resources")
+		if uid.Type != "MyApp::Resources::Action" {
+			t.Errorf("expected type 'MyApp::Resources::Action', got '%s'", uid.Type)
+		}
+		if uid.ID != "view" {
+			t.Errorf("expected id 'view', got '%s'", uid.ID)
+		}
+	})
+}

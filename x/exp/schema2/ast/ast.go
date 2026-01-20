@@ -57,16 +57,17 @@ func (s *Schema) Namespaces() iter.Seq[*NamespaceNode] {
 // CommonTypes returns an iterator over all CommonTypeNode declarations in the schema.
 // This includes both top-level declarations and declarations within namespaces.
 // Items are yielded in the order they appear in the schema.
-func (s *Schema) CommonTypes() iter.Seq[*CommonTypeNode] {
-	return func(yield func(*CommonTypeNode) bool) {
+// The iterator yields both the namespace path and the node.
+func (s *Schema) CommonTypes() iter.Seq2[types.Path, *CommonTypeNode] {
+	return func(yield func(types.Path, *CommonTypeNode) bool) {
 		for _, node := range s.Nodes {
 			if ct, ok := node.(*CommonTypeNode); ok {
-				if !yield(ct) {
+				if !yield("", ct) {
 					return
 				}
 			} else if ns, ok := node.(*NamespaceNode); ok {
 				for ct := range ns.CommonTypes() {
-					if !yield(ct) {
+					if !yield(ns.Name, ct) {
 						return
 					}
 				}
@@ -78,16 +79,17 @@ func (s *Schema) CommonTypes() iter.Seq[*CommonTypeNode] {
 // Entities returns an iterator over all EntityNode declarations in the schema.
 // This includes both top-level declarations and declarations within namespaces.
 // Items are yielded in the order they appear in the schema.
-func (s *Schema) Entities() iter.Seq[*EntityNode] {
-	return func(yield func(*EntityNode) bool) {
+// The iterator yields both the namespace path and the node.
+func (s *Schema) Entities() iter.Seq2[types.Path, *EntityNode] {
+	return func(yield func(types.Path, *EntityNode) bool) {
 		for _, node := range s.Nodes {
 			if e, ok := node.(*EntityNode); ok {
-				if !yield(e) {
+				if !yield("", e) {
 					return
 				}
 			} else if ns, ok := node.(*NamespaceNode); ok {
 				for e := range ns.Entities() {
-					if !yield(e) {
+					if !yield(ns.Name, e) {
 						return
 					}
 				}
@@ -99,16 +101,17 @@ func (s *Schema) Entities() iter.Seq[*EntityNode] {
 // Enums returns an iterator over all EnumNode declarations in the schema.
 // This includes both top-level declarations and declarations within namespaces.
 // Items are yielded in the order they appear in the schema.
-func (s *Schema) Enums() iter.Seq[*EnumNode] {
-	return func(yield func(*EnumNode) bool) {
+// The iterator yields both the namespace path and the node.
+func (s *Schema) Enums() iter.Seq2[types.Path, *EnumNode] {
+	return func(yield func(types.Path, *EnumNode) bool) {
 		for _, node := range s.Nodes {
 			if e, ok := node.(*EnumNode); ok {
-				if !yield(e) {
+				if !yield("", e) {
 					return
 				}
 			} else if ns, ok := node.(*NamespaceNode); ok {
 				for e := range ns.Enums() {
-					if !yield(e) {
+					if !yield(ns.Name, e) {
 						return
 					}
 				}
@@ -120,16 +123,17 @@ func (s *Schema) Enums() iter.Seq[*EnumNode] {
 // Actions returns an iterator over all ActionNode declarations in the schema.
 // This includes both top-level declarations and declarations within namespaces.
 // Items are yielded in the order they appear in the schema.
-func (s *Schema) Actions() iter.Seq[*ActionNode] {
-	return func(yield func(*ActionNode) bool) {
+// The iterator yields both the namespace path and the node.
+func (s *Schema) Actions() iter.Seq2[types.Path, *ActionNode] {
+	return func(yield func(types.Path, *ActionNode) bool) {
 		for _, node := range s.Nodes {
 			if a, ok := node.(*ActionNode); ok {
-				if !yield(a) {
+				if !yield("", a) {
 					return
 				}
 			} else if ns, ok := node.(*NamespaceNode); ok {
 				for a := range ns.Actions() {
-					if !yield(a) {
+					if !yield(ns.Name, a) {
 						return
 					}
 				}

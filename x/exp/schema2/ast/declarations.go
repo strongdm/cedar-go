@@ -113,6 +113,16 @@ func (c *CommonTypeNode) Annotate(key types.Ident, value types.String) *CommonTy
 	return c
 }
 
+// FullName returns the fully qualified name for this common type.
+// If namespace is empty, the type name is used as-is.
+// If namespace is provided (e.g., "MyApp"), the name is "MyApp::TypeName".
+func (c *CommonTypeNode) FullName(namespace types.Path) types.Path {
+	if namespace == "" {
+		return types.Path(c.Name)
+	}
+	return types.Path(string(namespace) + "::" + string(c.Name))
+}
+
 // EntityNode represents a Cedar entity type declaration.
 type EntityNode struct {
 	Name        types.EntityType
@@ -155,6 +165,16 @@ func (e *EntityNode) Annotate(key types.Ident, value types.String) *EntityNode {
 	return e
 }
 
+// EntityType returns the fully qualified entity type name for this entity.
+// If namespace is empty, the entity name is used as-is.
+// If namespace is provided (e.g., "MyApp"), the type is "MyApp::EntityName".
+func (e *EntityNode) EntityType(namespace types.Path) types.EntityType {
+	if namespace == "" {
+		return e.Name
+	}
+	return types.EntityType(string(namespace) + "::" + string(e.Name))
+}
+
 // EnumNode represents a Cedar enum entity type declaration.
 type EnumNode struct {
 	Name        types.EntityType
@@ -179,13 +199,23 @@ func (e *EnumNode) Annotate(key types.Ident, value types.String) *EnumNode {
 	return e
 }
 
-// EntityUIDs returns a slice of EntityUID values for each enum value.
-func (e *EnumNode) EntityUIDs() []types.EntityUID {
-	result := make([]types.EntityUID, len(e.Values))
-	for i, v := range e.Values {
-		result[i] = types.NewEntityUID(e.Name, v)
+// EntityUIDs returns an iterator over EntityUID values for each enum value.
+// If namespace is empty, the entity type is used as-is.
+// If namespace is provided (e.g., "MyApp"), the type is "MyApp::EnumName".
+func (e *EnumNode) EntityUIDs(namespace types.Path) iter.Seq[types.EntityUID] {
+	return func(yield func(types.EntityUID) bool) {
+		var entityType types.EntityType
+		if namespace == "" {
+			entityType = e.Name
+		} else {
+			entityType = types.EntityType(string(namespace) + "::" + string(e.Name))
+		}
+		for _, v := range e.Values {
+			if !yield(types.NewEntityUID(entityType, v)) {
+				return
+			}
+		}
 	}
-	return result
 }
 
 // ActionNode represents a Cedar action declaration.
@@ -270,4 +300,17 @@ func (a *ActionNode) Context(t IsType) *ActionNode {
 func (a *ActionNode) Annotate(key types.Ident, value types.String) *ActionNode {
 	a.Annotations = append(a.Annotations, Annotation{Key: key, Value: value})
 	return a
+}
+
+// EntityUID returns the fully qualified EntityUID for this action.
+// If namespace is empty, the type is "Action".
+// If namespace is provided (e.g., "Bananas"), the type is "Bananas::Action".
+func (a *ActionNode) EntityUID(namespace types.Path) types.EntityUID {
+	var entityType types.EntityType
+	if namespace == "" {
+		entityType = "Action"
+	} else {
+		entityType = types.EntityType(string(namespace) + "::Action")
+	}
+	return types.NewEntityUID(entityType, a.Name)
 }
