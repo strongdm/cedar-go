@@ -30,7 +30,6 @@ type IsType interface {
 // commonTypeEntry represents a common type that may or may not be resolved yet.
 type commonTypeEntry struct {
 	resolved bool
-	typ      IsType
 	node     CommonTypeNode
 }
 
@@ -119,8 +118,8 @@ func (rd *resolveData) withNamespace(namespace *NamespaceNode) *resolveData {
 	return &resolveData{
 		schema:               rd.schema,
 		namespace:            namespace,
-		schemaCommonTypes:    rd.schemaCommonTypes,    // Reuse schema-wide cache
-		namespaceCommonTypes: namespaceCommonTypes,     // New namespace-specific cache
+		schemaCommonTypes:    rd.schemaCommonTypes, // Reuse schema-wide cache
+		namespaceCommonTypes: namespaceCommonTypes, // New namespace-specific cache
 	}
 }
 

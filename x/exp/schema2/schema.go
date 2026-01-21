@@ -15,7 +15,6 @@ type Schema struct {
 	schema   ast.Schema
 }
 
-
 // SetFilename sets the filename for this schema.
 func (s *Schema) SetFilename(filename string) {
 	s.filename = filename

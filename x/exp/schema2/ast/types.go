@@ -203,17 +203,17 @@ func (t TypeRef) resolve(rd *resolveData) (IsType, error) {
 		if entry, found := rd.namespaceCommonTypes[name]; found {
 			// If already resolved, return cached type
 			if entry.resolved {
-				return entry.typ, nil
+				return entry.node.Type, nil
 			}
 			// Resolve lazily
-			resolved, err := entry.node.Type.resolve(rd)
+			resolvedNode, err := entry.node.resolve(rd)
 			if err != nil {
 				return nil, err
 			}
-			// Cache the resolved type
-			entry.typ = resolved
+			// Cache the resolved node
+			entry.node = resolvedNode
 			entry.resolved = true
-			return resolved, nil
+			return resolvedNode.Type, nil
 		}
 
 		// Not found in namespace, qualify the name for schema search
@@ -224,7 +224,7 @@ func (t TypeRef) resolve(rd *resolveData) (IsType, error) {
 	if entry, found := rd.schemaCommonTypes[name]; found {
 		// If already resolved, return cached type
 		if entry.resolved {
-			return entry.typ, nil
+			return entry.node.Type, nil
 		}
 		// Resolve lazily with the common type's namespace context
 		// Find the namespace for this common type by checking where it's declared
@@ -243,14 +243,14 @@ func (t TypeRef) resolve(rd *resolveData) (IsType, error) {
 		}
 		ctRd := rd.withNamespace(ns)
 
-		resolved, err := entry.node.Type.resolve(ctRd)
+		resolvedNode, err := entry.node.resolve(ctRd)
 		if err != nil {
 			return nil, err
 		}
-		// Cache the resolved type
-		entry.typ = resolved
+		// Cache the resolved node
+		entry.node = resolvedNode
 		entry.resolved = true
-		return resolved, nil
+		return resolvedNode.Type, nil
 	}
 
 	// Not found, return an error
