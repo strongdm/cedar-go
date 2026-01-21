@@ -17,8 +17,8 @@ type Parser struct {
 }
 
 // New creates a new parser for the given source.
-func New(src []byte) (*Parser, error) {
-	tokens, err := Tokenize(src)
+func New(src []byte, filename string) (*Parser, error) {
+	tokens, err := Tokenize(src, filename)
 	if err != nil {
 		return nil, err
 	}
@@ -26,8 +26,8 @@ func New(src []byte) (*Parser, error) {
 }
 
 // NewFromReader creates a new parser from an io.Reader.
-func NewFromReader(r io.Reader) (*Parser, error) {
-	tokens, err := TokenizeReader(r)
+func NewFromReader(r io.Reader, filename string) (*Parser, error) {
+	tokens, err := TokenizeReader(r, filename)
 	if err != nil {
 		return nil, err
 	}
@@ -49,10 +49,18 @@ func (p *Parser) advance() Token {
 	return tok
 }
 
+// fmtPos formats a position for error messages.
+func fmtPos(pos Position) string {
+	if pos.Filename != "" {
+		return fmt.Sprintf("%s:%d:%d", pos.Filename, pos.Line, pos.Column)
+	}
+	return fmt.Sprintf("%d:%d", pos.Line, pos.Column)
+}
+
 func (p *Parser) expect(text string) (Token, error) {
 	tok := p.advance()
 	if tok.Text != text {
-		return tok, fmt.Errorf("expected %q, got %q at %d:%d", text, tok.Text, tok.Pos.Line, tok.Pos.Column)
+		return tok, fmt.Errorf("expected %q, got %q at %s", text, tok.Text, fmtPos(tok.Pos))
 	}
 	return tok, nil
 }
@@ -65,10 +73,10 @@ var reservedIdents = map[string]bool{
 func (p *Parser) expectIdent() (string, error) {
 	tok := p.advance()
 	if tok.Type != TokenIdent {
-		return "", fmt.Errorf("expected identifier, got %q at %d:%d", tok.Text, tok.Pos.Line, tok.Pos.Column)
+		return "", fmt.Errorf("expected identifier, got %q at %s", tok.Text, fmtPos(tok.Pos))
 	}
 	if reservedIdents[tok.Text] {
-		return "", fmt.Errorf("%q is a reserved identifier at %d:%d", tok.Text, tok.Pos.Line, tok.Pos.Column)
+		return "", fmt.Errorf("%q is a reserved identifier at %s", tok.Text, fmtPos(tok.Pos))
 	}
 	return tok.Text, nil
 }
@@ -76,7 +84,7 @@ func (p *Parser) expectIdent() (string, error) {
 func (p *Parser) expectString() (string, error) {
 	tok := p.advance()
 	if tok.Type != TokenString {
-		return "", fmt.Errorf("expected string, got %q at %d:%d", tok.Text, tok.Pos.Line, tok.Pos.Column)
+		return "", fmt.Errorf("expected string, got %q at %s", tok.Text, fmtPos(tok.Pos))
 	}
 	return tok.stringValue()
 }
@@ -137,7 +145,7 @@ func (p *Parser) Parse() (*ast.Schema, error) {
 			}
 			nodes = append(nodes, ct)
 		default:
-			return nil, fmt.Errorf("unexpected token %q at %d:%d", tok.Text, tok.Pos.Line, tok.Pos.Column)
+			return nil, fmt.Errorf("unexpected token %q at %s", tok.Text, fmtPos(tok.Pos))
 		}
 	}
 
@@ -219,7 +227,7 @@ func (p *Parser) parseNamespace(annotations []ast.Annotation) (ast.NamespaceNode
 			}
 			decls = append(decls, ct)
 		default:
-			return ast.NamespaceNode{}, fmt.Errorf("unexpected token %q in namespace at %d:%d", tok.Text, tok.Pos.Line, tok.Pos.Column)
+			return ast.NamespaceNode{}, fmt.Errorf("unexpected token %q in namespace at %s", tok.Text, fmtPos(tok.Pos))
 		}
 	}
 
@@ -375,7 +383,7 @@ func (p *Parser) parseEntityTypeRefs() ([]ast.EntityTypeRef, error) {
 				p.advance()
 				// Reject trailing commas
 				if p.peek().Text == "]" {
-					return nil, fmt.Errorf("unexpected trailing comma at %d:%d", p.peek().Pos.Line, p.peek().Pos.Column)
+					return nil, fmt.Errorf("unexpected trailing comma at %s", fmtPos(p.peek().Pos))
 				}
 			} else {
 				break
@@ -472,7 +480,7 @@ func (p *Parser) parseAction(annotations []ast.Annotation) ([]ast.ActionNode, er
 					return nil, err
 				}
 			default:
-				return nil, fmt.Errorf("unexpected %q in appliesTo at %d:%d", tok.Text, tok.Pos.Line, tok.Pos.Column)
+				return nil, fmt.Errorf("unexpected %q in appliesTo at %s", tok.Text, fmtPos(tok.Pos))
 			}
 
 			if p.peek().Text == "," {
@@ -537,7 +545,7 @@ func (p *Parser) parseEntityRefs() ([]ast.EntityRef, error) {
 				p.advance()
 				// Reject trailing commas
 				if p.peek().Text == "]" {
-					return nil, fmt.Errorf("unexpected trailing comma at %d:%d", p.peek().Pos.Line, p.peek().Pos.Column)
+					return nil, fmt.Errorf("unexpected trailing comma at %s", fmtPos(p.peek().Pos))
 				}
 			} else {
 				break
@@ -675,7 +683,7 @@ func (p *Parser) parseType() (ast.IsType, error) {
 			}
 			return ast.Type(types.Path(path)), nil
 		}
-		return nil, fmt.Errorf("expected type, got %q at %d:%d", tok.Text, tok.Pos.Line, tok.Pos.Column)
+		return nil, fmt.Errorf("expected type, got %q at %s", tok.Text, fmtPos(tok.Pos))
 	}
 }
 
@@ -758,8 +766,8 @@ func (p *Parser) parsePath() (string, error) {
 }
 
 // ParseSchema parses Cedar schema from the given source bytes.
-func ParseSchema(src []byte) (*ast.Schema, error) {
-	p, err := New(src)
+func ParseSchema(src []byte, filename string) (*ast.Schema, error) {
+	p, err := New(src, filename)
 	if err != nil {
 		return nil, err
 	}

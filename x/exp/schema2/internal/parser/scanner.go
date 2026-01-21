@@ -16,7 +16,8 @@ const (
 
 // scanner implements reading of Unicode characters and tokens from an io.Reader.
 type scanner struct {
-	src io.Reader
+	src      io.Reader
+	filename string
 
 	// Source buffer
 	srcBuf [bufLen + 1]byte
@@ -45,11 +46,11 @@ type scanner struct {
 	position Position
 }
 
-func newScanner(src io.Reader) (*scanner, error) {
+func newScanner(src io.Reader, filename string) (*scanner, error) {
 	if src == nil {
 		return nil, fmt.Errorf("nil reader")
 	}
-	s := &scanner{}
+	s := &scanner{filename: filename}
 	s.init(src)
 	return s, nil
 }
@@ -240,6 +241,7 @@ redo:
 	s.tokBuf.Reset()
 	s.tokPos = s.srcPos - s.lastCharLen
 
+	s.position.Filename = s.filename
 	s.position.Offset = s.srcBufOffset + s.tokPos
 	if s.column > 0 {
 		s.position.Line = s.line
@@ -297,13 +299,13 @@ func (s *scanner) tokenText() string {
 }
 
 // Tokenize tokenizes the given source bytes.
-func Tokenize(src []byte) ([]Token, error) {
-	return TokenizeReader(bytes.NewBuffer(src))
+func Tokenize(src []byte, filename string) ([]Token, error) {
+	return TokenizeReader(bytes.NewBuffer(src), filename)
 }
 
 // TokenizeReader tokenizes from an io.Reader.
-func TokenizeReader(r io.Reader) ([]Token, error) {
-	s, err := newScanner(r)
+func TokenizeReader(r io.Reader, filename string) ([]Token, error) {
+	s, err := newScanner(r, filename)
 	if err != nil {
 		return nil, err
 	}
