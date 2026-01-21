@@ -265,22 +265,24 @@ func TestCommonTypeFullName(t *testing.T) {
 
 	ct := CommonType("MyType", StringType{})
 
-	t.Run("FullName with empty namespace", func(t *testing.T) {
-		fullName := ct.FullName("")
+	t.Run("FullName with nil namespace", func(t *testing.T) {
+		fullName := ct.FullName(nil)
 		if fullName != "MyType" {
 			t.Errorf("expected 'MyType', got '%s'", fullName)
 		}
 	})
 
 	t.Run("FullName with namespace", func(t *testing.T) {
-		fullName := ct.FullName("MyApp")
+		ns := Namespace("MyApp")
+		fullName := ct.FullName(&ns)
 		if fullName != "MyApp::MyType" {
 			t.Errorf("expected 'MyApp::MyType', got '%s'", fullName)
 		}
 	})
 
 	t.Run("FullName with nested namespace", func(t *testing.T) {
-		fullName := ct.FullName("MyApp::Types")
+		ns := Namespace("MyApp::Types")
+		fullName := ct.FullName(&ns)
 		if fullName != "MyApp::Types::MyType" {
 			t.Errorf("expected 'MyApp::Types::MyType', got '%s'", fullName)
 		}
@@ -293,22 +295,24 @@ func TestEntityEntityType(t *testing.T) {
 
 	entity := Entity("User")
 
-	t.Run("EntityType with empty namespace", func(t *testing.T) {
-		entityType := entity.EntityType("")
+	t.Run("EntityType with nil namespace", func(t *testing.T) {
+		entityType := entity.EntityType(nil)
 		if entityType != "User" {
 			t.Errorf("expected 'User', got '%s'", entityType)
 		}
 	})
 
 	t.Run("EntityType with namespace", func(t *testing.T) {
-		entityType := entity.EntityType("MyApp")
+		ns := Namespace("MyApp")
+		entityType := entity.EntityType(&ns)
 		if entityType != "MyApp::User" {
 			t.Errorf("expected 'MyApp::User', got '%s'", entityType)
 		}
 	})
 
 	t.Run("EntityType with nested namespace", func(t *testing.T) {
-		entityType := entity.EntityType("MyApp::Models")
+		ns := Namespace("MyApp::Models")
+		entityType := entity.EntityType(&ns)
 		if entityType != "MyApp::Models::User" {
 			t.Errorf("expected 'MyApp::Models::User', got '%s'", entityType)
 		}
@@ -321,9 +325,9 @@ func TestEnumEntityUIDs(t *testing.T) {
 
 	enum := Enum("Status", "active", "inactive", "pending")
 
-	t.Run("EntityUIDs with empty namespace", func(t *testing.T) {
+	t.Run("EntityUIDs with nil namespace", func(t *testing.T) {
 		var uids []types.EntityUID
-		for uid := range enum.EntityUIDs("") {
+		for uid := range enum.EntityUIDs(nil) {
 			uids = append(uids, uid)
 		}
 		if len(uids) != 3 {
@@ -344,8 +348,9 @@ func TestEnumEntityUIDs(t *testing.T) {
 	})
 
 	t.Run("EntityUIDs with namespace", func(t *testing.T) {
+		ns := Namespace("MyApp")
 		var uids []types.EntityUID
-		for uid := range enum.EntityUIDs("MyApp") {
+		for uid := range enum.EntityUIDs(&ns) {
 			uids = append(uids, uid)
 		}
 		if len(uids) != 3 {
@@ -360,8 +365,9 @@ func TestEnumEntityUIDs(t *testing.T) {
 	})
 
 	t.Run("EntityUIDs with nested namespace", func(t *testing.T) {
+		ns := Namespace("MyApp::Models")
 		var uids []types.EntityUID
-		for uid := range enum.EntityUIDs("MyApp::Models") {
+		for uid := range enum.EntityUIDs(&ns) {
 			uids = append(uids, uid)
 		}
 		if len(uids) != 3 {
@@ -374,7 +380,7 @@ func TestEnumEntityUIDs(t *testing.T) {
 
 	t.Run("EntityUIDs early break", func(t *testing.T) {
 		count := 0
-		for range enum.EntityUIDs("") {
+		for range enum.EntityUIDs(nil) {
 			count++
 			if count == 1 {
 				break
@@ -392,8 +398,8 @@ func TestActionEntityUID(t *testing.T) {
 
 	a := Action("view")
 
-	t.Run("EntityUID with empty namespace", func(t *testing.T) {
-		uid := a.EntityUID("")
+	t.Run("EntityUID with nil namespace", func(t *testing.T) {
+		uid := a.EntityUID(nil)
 		if uid.Type != "Action" {
 			t.Errorf("expected type 'Action', got '%s'", uid.Type)
 		}
@@ -403,7 +409,8 @@ func TestActionEntityUID(t *testing.T) {
 	})
 
 	t.Run("EntityUID with namespace", func(t *testing.T) {
-		uid := a.EntityUID("Bananas")
+		ns := Namespace("Bananas")
+		uid := a.EntityUID(&ns)
 		if uid.Type != "Bananas::Action" {
 			t.Errorf("expected type 'Bananas::Action', got '%s'", uid.Type)
 		}
@@ -413,7 +420,8 @@ func TestActionEntityUID(t *testing.T) {
 	})
 
 	t.Run("EntityUID with nested namespace", func(t *testing.T) {
-		uid := a.EntityUID("MyApp::Resources")
+		ns := Namespace("MyApp::Resources")
+		uid := a.EntityUID(&ns)
 		if uid.Type != "MyApp::Resources::Action" {
 			t.Errorf("expected type 'MyApp::Resources::Action', got '%s'", uid.Type)
 		}

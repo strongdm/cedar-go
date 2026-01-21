@@ -10,31 +10,35 @@ import (
 	"github.com/cedar-policy/cedar-go/x/exp/schema2/ast"
 )
 
-// Marshal serializes an AST schema to Cedar JSON schema format.
-func Marshal(s *ast.Schema) ([]byte, error) {
+// Schema is a type alias to ast.Schema that provides JSON marshaling methods.
+type Schema ast.Schema
+
+// MarshalJSON serializes the schema to Cedar JSON schema format.
+func (s *Schema) MarshalJSON() ([]byte, error) {
 	// First pass: collect all entity names for type resolution
-	entityNames := collectEntityNames(s)
+	astSchema := (*ast.Schema)(s)
+	entityNames := collectEntityNames(astSchema)
 
 	namespaces := make(map[string]*Namespace)
 
 	// Second pass: group nodes by namespace
-	for _, node := range s.Nodes {
+	for _, node := range astSchema.Nodes {
 		switch n := node.(type) {
-		case *ast.NamespaceNode:
+		case ast.NamespaceNode:
 			ns := getOrCreateNamespace(namespaces, string(n.Name))
 			for _, decl := range n.Declarations {
 				addDeclToNamespace(ns, decl, entityNames)
 			}
-		case *ast.EntityNode:
+		case ast.EntityNode:
 			ns := getOrCreateNamespace(namespaces, "")
 			addEntityToNamespace(ns, n, entityNames)
-		case *ast.EnumNode:
+		case ast.EnumNode:
 			ns := getOrCreateNamespace(namespaces, "")
 			addEnumToNamespace(ns, n)
-		case *ast.ActionNode:
+		case ast.ActionNode:
 			ns := getOrCreateNamespace(namespaces, "")
 			addActionToNamespace(ns, n, entityNames)
-		case *ast.CommonTypeNode:
+		case ast.CommonTypeNode:
 			ns := getOrCreateNamespace(namespaces, "")
 			addCommonTypeToNamespace(ns, n, entityNames)
 		}
@@ -43,14 +47,14 @@ func Marshal(s *ast.Schema) ([]byte, error) {
 	return json.MarshalIndent(namespaces, "", "    ")
 }
 
-// Unmarshal deserializes Cedar JSON schema format into an AST.
-func Unmarshal(data []byte) (*ast.Schema, error) {
+// UnmarshalJSON deserializes Cedar JSON schema format into the schema.
+func (s *Schema) UnmarshalJSON(data []byte) error {
 	namespaces := make(map[string]*Namespace)
 	if err := json.Unmarshal(data, &namespaces); err != nil {
-		return nil, err
+		return err
 	}
 
-	s := &ast.Schema{}
+	astSchema := &ast.Schema{}
 
 	// Sort namespace names for deterministic output
 	nsNames := make([]string, 0, len(namespaces))
@@ -65,14 +69,14 @@ func Unmarshal(data []byte) (*ast.Schema, error) {
 			// Default namespace - add declarations at top level
 			nodes, err := parseNamespaceContents(ns)
 			if err != nil {
-				return nil, err
+				return err
 			}
-			s.Nodes = append(s.Nodes, nodes...)
+			astSchema.Nodes = append(astSchema.Nodes, nodes...)
 		} else {
 			// Named namespace
 			decls, err := parseNamespaceContents(ns)
 			if err != nil {
-				return nil, err
+				return err
 			}
 			declarations := make([]ast.IsDeclaration, 0, len(decls))
 			for _, d := range decls {
@@ -80,14 +84,15 @@ func Unmarshal(data []byte) (*ast.Schema, error) {
 					declarations = append(declarations, decl)
 				}
 			}
-			s.Nodes = append(s.Nodes, &ast.NamespaceNode{
+			astSchema.Nodes = append(astSchema.Nodes, ast.NamespaceNode{
 				Name:         types.Path(nsName),
 				Declarations: declarations,
 			})
 		}
 	}
 
-	return s, nil
+	*s = Schema(*astSchema)
+	return nil
 }
 
 // collectEntityNames collects all entity names from the schema.
@@ -95,18 +100,18 @@ func collectEntityNames(s *ast.Schema) map[string]bool {
 	names := make(map[string]bool)
 	for _, node := range s.Nodes {
 		switch n := node.(type) {
-		case *ast.NamespaceNode:
+		case ast.NamespaceNode:
 			for _, decl := range n.Declarations {
 				switch d := decl.(type) {
-				case *ast.EntityNode:
+				case ast.EntityNode:
 					names[string(d.Name)] = true
-				case *ast.EnumNode:
+				case ast.EnumNode:
 					names[string(d.Name)] = true
 				}
 			}
-		case *ast.EntityNode:
+		case ast.EntityNode:
 			names[string(n.Name)] = true
-		case *ast.EnumNode:
+		case ast.EnumNode:
 			names[string(n.Name)] = true
 		}
 	}
@@ -222,18 +227,18 @@ func getOrCreateNamespace(namespaces map[string]*Namespace, name string) *Namesp
 
 func addDeclToNamespace(ns *Namespace, decl ast.IsDeclaration, entityNames map[string]bool) {
 	switch d := decl.(type) {
-	case *ast.EntityNode:
+	case ast.EntityNode:
 		addEntityToNamespace(ns, d, entityNames)
-	case *ast.EnumNode:
+	case ast.EnumNode:
 		addEnumToNamespace(ns, d)
-	case *ast.ActionNode:
+	case ast.ActionNode:
 		addActionToNamespace(ns, d, entityNames)
-	case *ast.CommonTypeNode:
+	case ast.CommonTypeNode:
 		addCommonTypeToNamespace(ns, d, entityNames)
 	}
 }
 
-func addEntityToNamespace(ns *Namespace, e *ast.EntityNode, entityNames map[string]bool) {
+func addEntityToNamespace(ns *Namespace, e ast.EntityNode, entityNames map[string]bool) {
 	je := &Entity{}
 
 	if len(e.MemberOfVal) > 0 {
@@ -254,7 +259,7 @@ func addEntityToNamespace(ns *Namespace, e *ast.EntityNode, entityNames map[stri
 	ns.EntityTypes[string(e.Name)] = je
 }
 
-func addEnumToNamespace(ns *Namespace, e *ast.EnumNode) {
+func addEnumToNamespace(ns *Namespace, e ast.EnumNode) {
 	je := &Entity{
 		Enum: make([]string, len(e.Values)),
 	}
@@ -264,7 +269,7 @@ func addEnumToNamespace(ns *Namespace, e *ast.EnumNode) {
 	ns.EntityTypes[string(e.Name)] = je
 }
 
-func addActionToNamespace(ns *Namespace, a *ast.ActionNode, entityNames map[string]bool) {
+func addActionToNamespace(ns *Namespace, a ast.ActionNode, entityNames map[string]bool) {
 	ja := &Action{}
 
 	if len(a.MemberOfVal) > 0 {
@@ -311,7 +316,7 @@ func addActionToNamespace(ns *Namespace, a *ast.ActionNode, entityNames map[stri
 	ns.Actions[string(a.Name)] = ja
 }
 
-func addCommonTypeToNamespace(ns *Namespace, ct *ast.CommonTypeNode, entityNames map[string]bool) {
+func addCommonTypeToNamespace(ns *Namespace, ct ast.CommonTypeNode, entityNames map[string]bool) {
 	ns.CommonTypes[string(ct.Name)] = typeToJSON(ct.Type, entityNames)
 }
 
@@ -412,7 +417,7 @@ func parseNamespaceContents(ns *Namespace) ([]ast.IsNode, error) {
 		if err != nil {
 			return nil, fmt.Errorf("parsing common type %s: %w", name, err)
 		}
-		nodes = append(nodes, &ast.CommonTypeNode{
+		nodes = append(nodes, ast.CommonTypeNode{
 			Name: types.Ident(name),
 			Type: t,
 		})
@@ -458,13 +463,13 @@ func parseEntity(name string, je *Entity) (ast.IsDeclaration, error) {
 		for i, v := range je.Enum {
 			values[i] = types.String(v)
 		}
-		return &ast.EnumNode{
+		return ast.EnumNode{
 			Name:   types.EntityType(name),
 			Values: values,
 		}, nil
 	}
 
-	e := &ast.EntityNode{
+	e := ast.EntityNode{
 		Name: types.EntityType(name),
 	}
 
@@ -497,7 +502,7 @@ func parseEntity(name string, je *Entity) (ast.IsDeclaration, error) {
 }
 
 func parseAction(name string, ja *Action) (ast.IsDeclaration, error) {
-	a := &ast.ActionNode{
+	a := ast.ActionNode{
 		Name: types.String(name),
 	}
 

@@ -32,14 +32,17 @@ func TestCorpus(t *testing.T) {
 				testutil.OK(t, err)
 
 				// Parse
-				schema, err := schema2.UnmarshalCedar(data)
+				var schema schema2.Schema
+				err = schema.UnmarshalCedar(data)
 				if err != nil {
 					t.Fatalf("failed to parse valid schema %s: %v", name, err)
 				}
 
 				// Round-trip Cedar -> Cedar
-				marshaled := schema.MarshalCedar()
-				_, err = schema2.UnmarshalCedar(marshaled)
+				marshaled, err := schema.MarshalCedar()
+				testutil.OK(t, err)
+				var schema2Parsed schema2.Schema
+				err = schema2Parsed.UnmarshalCedar(marshaled)
 				if err != nil {
 					t.Fatalf("round-trip failed for %s: %v\nmarshaled:\n%s", name, err, string(marshaled))
 				}
@@ -60,7 +63,8 @@ func TestCorpus(t *testing.T) {
 				data, err := os.ReadFile(file)
 				testutil.OK(t, err)
 
-				_, err = schema2.UnmarshalCedar(data)
+				var schema schema2.Schema
+				err = schema.UnmarshalCedar(data)
 				if err == nil {
 					t.Fatalf("expected parse error for invalid schema %s", name)
 				}
@@ -89,7 +93,8 @@ func TestParserDoesNotPanic(t *testing.T) {
 					t.Errorf("panic on malformed input: %v", r)
 				}
 			}()
-			_, _ = schema2.UnmarshalCedar([]byte(input))
+			var schema schema2.Schema
+			_ = schema.UnmarshalCedar([]byte(input))
 		})
 	}
 }
@@ -112,19 +117,21 @@ func TestJSONCorpus(t *testing.T) {
 			cedarData, err := os.ReadFile(file)
 			testutil.OK(t, err)
 
-			schema, err := schema2.UnmarshalCedar(cedarData)
+			var schema schema2.Schema
+			err = schema.UnmarshalCedar(cedarData)
 			if err != nil {
 				t.Fatalf("failed to parse Cedar schema: %v", err)
 			}
 
 			// Cedar -> JSON
-			jsonData, err := schema2.MarshalJSON(schema)
+			jsonData, err := schema.MarshalJSON()
 			if err != nil {
 				t.Fatalf("failed to marshal to JSON: %v", err)
 			}
 
 			// JSON -> Cedar (parse JSON back)
-			schema2Parsed, err := schema2.UnmarshalJSON(jsonData)
+			var schema2Parsed schema2.Schema
+			err = schema2Parsed.UnmarshalJSON(jsonData)
 			if err != nil {
 				t.Fatalf("failed to parse JSON schema: %v\nJSON:\n%s", err, string(jsonData))
 			}
@@ -133,7 +140,7 @@ func TestJSONCorpus(t *testing.T) {
 			verifyJSONWithCedarCLI(t, string(jsonData))
 
 			// JSON -> Cedar -> JSON round-trip stability
-			jsonData2, err := schema2.MarshalJSON(schema2Parsed)
+			jsonData2, err := schema2Parsed.MarshalJSON()
 			if err != nil {
 				t.Fatalf("failed to re-marshal to JSON: %v", err)
 			}
@@ -165,22 +172,26 @@ func TestJSONCorpusFiles(t *testing.T) {
 			testutil.OK(t, err)
 
 			// JSON -> Schema
-			schema, err := schema2.UnmarshalJSON(jsonData)
+			var schema schema2.Schema
+			err = schema.UnmarshalJSON(jsonData)
 			if err != nil {
 				t.Fatalf("failed to parse JSON schema: %v", err)
 			}
 
 			// Schema -> Cedar (to verify we can marshal to Cedar format)
-			cedarData := schema.MarshalCedar()
+			cedarData, err := schema.MarshalCedar()
+			if err != nil {
+				t.Fatalf("failed to marshal schema to Cedar format: %v", err)
+			}
 			if len(cedarData) == 0 {
-				t.Fatalf("failed to marshal schema to Cedar format")
+				t.Fatalf("marshaled Cedar data is empty")
 			}
 
 			// Verify Cedar output with reference implementation
 			verifyWithCedarCLI(t, string(cedarData))
 
 			// Schema -> JSON
-			jsonData2, err := schema2.MarshalJSON(schema)
+			jsonData2, err := schema.MarshalJSON()
 			if err != nil {
 				t.Fatalf("failed to marshal schema to JSON: %v", err)
 			}
@@ -286,10 +297,11 @@ func TestJSONSchemaFormatCompliance(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			schema, err := schema2.UnmarshalCedar([]byte(tt.cedar))
+			var schema schema2.Schema
+			err := schema.UnmarshalCedar([]byte(tt.cedar))
 			testutil.OK(t, err)
 
-			jsonData, err := schema2.MarshalJSON(schema)
+			jsonData, err := schema.MarshalJSON()
 			testutil.OK(t, err)
 			jsonStr := string(jsonData)
 
@@ -340,10 +352,11 @@ func TestJSONCorpusExactMatch(t *testing.T) {
 			testutil.OK(t, err)
 
 			// Parse Cedar and marshal to JSON
-			schema, err := schema2.UnmarshalCedar(cedarData)
+			var schema schema2.Schema
+			err = schema.UnmarshalCedar(cedarData)
 			testutil.OK(t, err)
 
-			actualJSON, err := schema2.MarshalJSON(schema)
+			actualJSON, err := schema.MarshalJSON()
 			testutil.OK(t, err)
 
 			// Parse both JSONs and re-marshal to normalize formatting
@@ -384,10 +397,11 @@ func TestCorpusFilesRustSemanticParity(t *testing.T) {
 			testutil.OK(t, err)
 
 			// Parse with our implementation and convert to JSON
-			schema, err := schema2.UnmarshalCedar(cedarData)
+			var schema schema2.Schema
+			err = schema.UnmarshalCedar(cedarData)
 			testutil.OK(t, err)
 
-			goJSON, err := schema2.MarshalJSON(schema)
+			goJSON, err := schema.MarshalJSON()
 			testutil.OK(t, err)
 
 			// Verify Rust accepts our JSON
@@ -399,14 +413,15 @@ func TestCorpusFilesRustSemanticParity(t *testing.T) {
 
 			// Verify we can parse Rust's JSON output (which uses EntityOrCommon format)
 			rustJSON := translateCedarToJSONWithRust(t, string(cedarData))
-			schema2Parsed, err := schema2.UnmarshalJSON([]byte(rustJSON))
+			var schema2Parsed schema2.Schema
+			err = schema2Parsed.UnmarshalJSON([]byte(rustJSON))
 			if err != nil {
 				t.Errorf("Failed to parse Rust's JSON for %s: %v", name, err)
 				return
 			}
 
 			// And marshal it back
-			goJSON2, err := schema2.MarshalJSON(schema2Parsed)
+			goJSON2, err := schema2Parsed.MarshalJSON()
 			testutil.OK(t, err)
 
 			// And Rust accepts that

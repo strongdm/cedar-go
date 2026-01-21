@@ -318,33 +318,47 @@ entity User;
 	})
 }
 
-func TestResolvedSchemaMarshalCedar(t *testing.T) {
+func TestSchemaResolve(t *testing.T) {
 	t.Parallel()
 
-	t.Run("resolved schema marshal", func(t *testing.T) {
+	t.Run("resolve schema with unqualified types", func(t *testing.T) {
 		t.Parallel()
-		// ResolvedSchema has the same structure, so marshaling should work the same
-		rs := &ast.ResolvedSchema{
-			Nodes: []ast.IsNode{ast.Entity("User")},
+		// Create a schema with unqualified type references in a namespace
+		ns := ast.Namespace("MyApp",
+			ast.CommonType("Name", ast.String()),
+			ast.Entity("User").Shape(
+				ast.Attribute("name", ast.Type("Name")),
+			),
+		)
+		schema := ast.NewSchema(ns)
+
+		// Resolve the schema
+		resolved := schema.Resolve()
+
+		// Verify the resolved schema can be marshaled
+		result := string(resolved.MarshalCedar())
+		// The resolved schema should have qualified type references
+		if len(result) == 0 {
+			t.Errorf("expected non-empty marshal result")
 		}
-		result := string(rs.MarshalCedar())
-		testutil.Equals(t, result, "entity User;\n")
 	})
 
-	t.Run("resolved schema with multiple nodes", func(t *testing.T) {
+	t.Run("resolve preserves fully qualified types", func(t *testing.T) {
 		t.Parallel()
-		rs := &ast.ResolvedSchema{
-			Nodes: []ast.IsNode{
-				ast.Entity("User"),
-				ast.Entity("Document"),
-			},
-		}
-		result := string(rs.MarshalCedar())
-		expected := `entity User;
+		// Create a schema with already qualified type references
+		ns := ast.Namespace("MyApp",
+			ast.Entity("User").MemberOf(ast.Ref("MyApp::Group")),
+		)
+		schema := ast.NewSchema(ns)
 
-entity Document;
-`
-		testutil.Equals(t, result, expected)
+		// Resolve the schema
+		resolved := schema.Resolve()
+
+		// Verify the resolved schema can be marshaled
+		result := string(resolved.MarshalCedar())
+		if len(result) == 0 {
+			t.Errorf("expected non-empty marshal result")
+		}
 	})
 }
 

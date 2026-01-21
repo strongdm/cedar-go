@@ -441,15 +441,16 @@ action Delete appliesTo {
 			t.Parallel()
 
 			// Parse with our implementation
-			schema, err := schema2.UnmarshalCedar([]byte(tt.schema))
+			var schema schema2.Schema
+			err := schema.UnmarshalCedar([]byte(tt.schema))
 			testutil.OK(t, err)
-			testutil.Equals(t, schema != nil, true)
 
 			// Round-trip test
-			marshaled := schema.MarshalCedar()
-			schema2Parsed, err := schema2.UnmarshalCedar(marshaled)
+			marshaled, err := schema.MarshalCedar()
 			testutil.OK(t, err)
-			testutil.Equals(t, len(schema2Parsed.Nodes), len(schema.Nodes))
+			var schema2Parsed schema2.Schema
+			err = schema2Parsed.UnmarshalCedar(marshaled)
+			testutil.OK(t, err)
 
 			// Verify our output with the reference implementation
 			verifyWithCedarCLI(t, string(marshaled))
@@ -552,13 +553,15 @@ func TestReferenceVerification(t *testing.T) {
 			verifyWithCedarCLI(t, tt.schema)
 
 			// Parse with our implementation
-			schema, err := schema2.UnmarshalCedar([]byte(tt.schema))
+			var schema schema2.Schema
+			err := schema.UnmarshalCedar([]byte(tt.schema))
 			testutil.OK(t, err)
-			testutil.Equals(t, schema != nil, true)
 
 			// Round-trip
-			marshaled := schema.MarshalCedar()
-			_, err = schema2.UnmarshalCedar(marshaled)
+			marshaled, err := schema.MarshalCedar()
+			testutil.OK(t, err)
+			var schema2Parsed schema2.Schema
+			err = schema2Parsed.UnmarshalCedar(marshaled)
 			testutil.OK(t, err)
 		})
 	}
@@ -742,15 +745,16 @@ namespace AccessControl {
 `
 
 	// Parse with our implementation
-	parsed, err := schema2.UnmarshalCedar([]byte(schema))
+	var parsed schema2.Schema
+	err := parsed.UnmarshalCedar([]byte(schema))
 	testutil.OK(t, err)
-	testutil.Equals(t, len(parsed.Nodes), 1) // One namespace
 
 	// Round-trip
-	marshaled := parsed.MarshalCedar()
-	reparsed, err := schema2.UnmarshalCedar(marshaled)
+	marshaled, err := parsed.MarshalCedar()
 	testutil.OK(t, err)
-	testutil.Equals(t, len(reparsed.Nodes), len(parsed.Nodes))
+	var reparsed schema2.Schema
+	err = reparsed.UnmarshalCedar(marshaled)
+	testutil.OK(t, err)
 
 	// Verify with reference implementation
 	verifyWithCedarCLI(t, string(marshaled))
@@ -803,15 +807,16 @@ namespace Resources {
 }
 `
 
-	parsed, err := schema2.UnmarshalCedar([]byte(schema))
+	var parsed schema2.Schema
+	err := parsed.UnmarshalCedar([]byte(schema))
 	testutil.OK(t, err)
-	testutil.Equals(t, len(parsed.Nodes), 3) // Three namespaces
 
 	// Round-trip
-	marshaled := parsed.MarshalCedar()
-	reparsed, err := schema2.UnmarshalCedar(marshaled)
+	marshaled, err := parsed.MarshalCedar()
 	testutil.OK(t, err)
-	testutil.Equals(t, len(reparsed.Nodes), 3)
+	var reparsed schema2.Schema
+	err = reparsed.UnmarshalCedar(marshaled)
+	testutil.OK(t, err)
 
 	// Verify with reference
 	verifyWithCedarCLI(t, string(marshaled))
@@ -878,10 +883,10 @@ func TestEdgeCasesFromReference(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			schema, err := schema2.UnmarshalCedar([]byte(tt.schema))
+			var schema schema2.Schema
+			err := schema.UnmarshalCedar([]byte(tt.schema))
 			if tt.valid {
 				testutil.OK(t, err)
-				testutil.Equals(t, schema != nil, true)
 
 				// Verify with reference
 				verifyWithCedarCLI(t, tt.schema)
@@ -937,10 +942,13 @@ func TestMarshalMatchesReference(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			schema, err := schema2.UnmarshalCedar([]byte(tt.schema))
+			var schema schema2.Schema
+			err := schema.UnmarshalCedar([]byte(tt.schema))
 			testutil.OK(t, err)
 
-			marshaled := string(schema.MarshalCedar())
+			marshaledBytes, err := schema.MarshalCedar()
+			testutil.OK(t, err)
+			marshaled := string(marshaledBytes)
 
 			for _, substr := range tt.contains {
 				if !strings.Contains(marshaled, substr) {

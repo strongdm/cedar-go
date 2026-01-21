@@ -65,7 +65,7 @@ func TestSchemaIterators(t *testing.T) {
 
 	t.Run("CommonTypes", func(t *testing.T) {
 		var commonTypes []ast.CommonTypeNode
-		var namespaces []types.Path
+		var namespaces []*ast.NamespaceNode
 		for ns, ct := range schema.CommonTypes() {
 			namespaces = append(namespaces, ns)
 			commonTypes = append(commonTypes, ct)
@@ -74,14 +74,14 @@ func TestSchemaIterators(t *testing.T) {
 		testutil.Equals(t, commonTypes[0], ct1)
 		testutil.Equals(t, commonTypes[1], ct2)
 		testutil.Equals(t, commonTypes[2], ct3)
-		testutil.Equals(t, namespaces[0], types.Path("App1"))
-		testutil.Equals(t, namespaces[1], types.Path("App2"))
-		testutil.Equals(t, namespaces[2], types.Path("App3"))
+		testutil.Equals(t, namespaces[0].Name, types.Path("App1"))
+		testutil.Equals(t, namespaces[1].Name, types.Path("App2"))
+		testutil.Equals(t, namespaces[2].Name, types.Path("App3"))
 	})
 
 	t.Run("Entities", func(t *testing.T) {
 		var entities []ast.EntityNode
-		var namespaces []types.Path
+		var namespaces []*ast.NamespaceNode
 		for ns, e := range schema.Entities() {
 			namespaces = append(namespaces, ns)
 			entities = append(entities, e)
@@ -90,14 +90,14 @@ func TestSchemaIterators(t *testing.T) {
 		testutil.Equals(t, entities[0], e1)
 		testutil.Equals(t, entities[1], e2)
 		testutil.Equals(t, entities[2], e3)
-		testutil.Equals(t, namespaces[0], types.Path("App1"))
-		testutil.Equals(t, namespaces[1], types.Path("App2"))
-		testutil.Equals(t, namespaces[2], types.Path("App3"))
+		testutil.Equals(t, namespaces[0].Name, types.Path("App1"))
+		testutil.Equals(t, namespaces[1].Name, types.Path("App2"))
+		testutil.Equals(t, namespaces[2].Name, types.Path("App3"))
 	})
 
 	t.Run("Enums", func(t *testing.T) {
 		var enums []ast.EnumNode
-		var namespaces []types.Path
+		var namespaces []*ast.NamespaceNode
 		for ns, e := range schema.Enums() {
 			namespaces = append(namespaces, ns)
 			enums = append(enums, e)
@@ -106,14 +106,14 @@ func TestSchemaIterators(t *testing.T) {
 		testutil.Equals(t, enums[0], enum1)
 		testutil.Equals(t, enums[1], enum2)
 		testutil.Equals(t, enums[2], enum3)
-		testutil.Equals(t, namespaces[0], types.Path("App1"))
-		testutil.Equals(t, namespaces[1], types.Path("App2"))
-		testutil.Equals(t, namespaces[2], types.Path("App3"))
+		testutil.Equals(t, namespaces[0].Name, types.Path("App1"))
+		testutil.Equals(t, namespaces[1].Name, types.Path("App2"))
+		testutil.Equals(t, namespaces[2].Name, types.Path("App3"))
 	})
 
 	t.Run("Actions", func(t *testing.T) {
 		var actions []ast.ActionNode
-		var namespaces []types.Path
+		var namespaces []*ast.NamespaceNode
 		for ns, a := range schema.Actions() {
 			namespaces = append(namespaces, ns)
 			actions = append(actions, a)
@@ -122,9 +122,9 @@ func TestSchemaIterators(t *testing.T) {
 		testutil.Equals(t, actions[0], a1)
 		testutil.Equals(t, actions[1], a2)
 		testutil.Equals(t, actions[2], a3)
-		testutil.Equals(t, namespaces[0], types.Path("App1"))
-		testutil.Equals(t, namespaces[1], types.Path("App2"))
-		testutil.Equals(t, namespaces[2], types.Path("App3"))
+		testutil.Equals(t, namespaces[0].Name, types.Path("App1"))
+		testutil.Equals(t, namespaces[1].Name, types.Path("App2"))
+		testutil.Equals(t, namespaces[2].Name, types.Path("App3"))
 	})
 }
 
@@ -428,54 +428,54 @@ func TestSchemaIteratorsTopLevel(t *testing.T) {
 
 	t.Run("CommonTypes includes top-level", func(t *testing.T) {
 		var commonTypes []ast.CommonTypeNode
-		var namespaces []types.Path
+		var namespaces []*ast.NamespaceNode
 		for ns, ct := range schema.CommonTypes() {
 			namespaces = append(namespaces, ns)
 			commonTypes = append(commonTypes, ct)
 		}
 		testutil.Equals(t, len(commonTypes), 2) // TopType, NSType
 		testutil.Equals(t, commonTypes[0], ct1)
-		testutil.Equals(t, namespaces[0], types.Path("")) // top-level
-		testutil.Equals(t, namespaces[1], types.Path("NS"))
+		testutil.Equals(t, namespaces[0] == nil, true) // top-level
+		testutil.Equals(t, namespaces[1].Name, types.Path("NS"))
 	})
 
 	t.Run("Entities includes top-level", func(t *testing.T) {
 		var entities []ast.EntityNode
-		var namespaces []types.Path
+		var namespaces []*ast.NamespaceNode
 		for ns, e := range schema.Entities() {
 			namespaces = append(namespaces, ns)
 			entities = append(entities, e)
 		}
 		testutil.Equals(t, len(entities), 2) // TopEntity, NSEntity
 		testutil.Equals(t, entities[0], e1)
-		testutil.Equals(t, namespaces[0], types.Path("")) // top-level
-		testutil.Equals(t, namespaces[1], types.Path("NS"))
+		testutil.Equals(t, namespaces[0] == nil, true) // top-level
+		testutil.Equals(t, namespaces[1].Name, types.Path("NS"))
 	})
 
 	t.Run("Enums includes top-level", func(t *testing.T) {
 		var enums []ast.EnumNode
-		var namespaces []types.Path
+		var namespaces []*ast.NamespaceNode
 		for ns, e := range schema.Enums() {
 			namespaces = append(namespaces, ns)
 			enums = append(enums, e)
 		}
 		testutil.Equals(t, len(enums), 2) // TopEnum, NSEnum
 		testutil.Equals(t, enums[0], enum1)
-		testutil.Equals(t, namespaces[0], types.Path("")) // top-level
-		testutil.Equals(t, namespaces[1], types.Path("NS"))
+		testutil.Equals(t, namespaces[0] == nil, true) // top-level
+		testutil.Equals(t, namespaces[1].Name, types.Path("NS"))
 	})
 
 	t.Run("Actions includes top-level", func(t *testing.T) {
 		var actions []ast.ActionNode
-		var namespaces []types.Path
+		var namespaces []*ast.NamespaceNode
 		for ns, a := range schema.Actions() {
 			namespaces = append(namespaces, ns)
 			actions = append(actions, a)
 		}
 		testutil.Equals(t, len(actions), 2) // topAction, nsAction
 		testutil.Equals(t, actions[0], a1)
-		testutil.Equals(t, namespaces[0], types.Path("")) // top-level
-		testutil.Equals(t, namespaces[1], types.Path("NS"))
+		testutil.Equals(t, namespaces[0] == nil, true) // top-level
+		testutil.Equals(t, namespaces[1].Name, types.Path("NS"))
 	})
 }
 
@@ -673,7 +673,7 @@ func TestEnum(t *testing.T) {
 		t.Parallel()
 		e := ast.Enum("Status", "active", "inactive")
 		var uids []types.EntityUID
-		for uid := range e.EntityUIDs("") {
+		for uid := range e.EntityUIDs(nil) {
 			uids = append(uids, uid)
 		}
 		testutil.Equals(t, len(uids), 2)

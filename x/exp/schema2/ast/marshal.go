@@ -19,18 +19,6 @@ func (s *Schema) MarshalCedar() []byte {
 	return buf.Bytes()
 }
 
-// MarshalCedar converts the resolved schema to Cedar human-readable format.
-func (s *ResolvedSchema) MarshalCedar() []byte {
-	var buf bytes.Buffer
-	for i, node := range s.Nodes {
-		if i > 0 {
-			buf.WriteString("\n")
-		}
-		marshalNode(&buf, node, "")
-	}
-	return buf.Bytes()
-}
-
 func marshalNode(buf *bytes.Buffer, node IsNode, indent string) {
 	switch n := node.(type) {
 	case NamespaceNode:

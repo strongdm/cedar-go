@@ -29,6 +29,32 @@ func (n NamespaceNode) Annotate(key types.Ident, value types.String) NamespaceNo
 	return n
 }
 
+// Resolve returns a new NamespaceNode with all type references in its declarations resolved.
+func (n NamespaceNode) Resolve() NamespaceNode {
+	resolved := NamespaceNode{
+		Name:        n.Name,
+		Annotations: n.Annotations,
+	}
+
+	if len(n.Declarations) > 0 {
+		resolved.Declarations = make([]IsDeclaration, len(n.Declarations))
+		for i, decl := range n.Declarations {
+			switch d := decl.(type) {
+			case CommonTypeNode:
+				resolved.Declarations[i] = d.Resolve(&n)
+			case EntityNode:
+				resolved.Declarations[i] = d.Resolve(&n)
+			case EnumNode:
+				resolved.Declarations[i] = d.Resolve(&n)
+			case ActionNode:
+				resolved.Declarations[i] = d.Resolve(&n)
+			}
+		}
+	}
+
+	return resolved
+}
+
 // CommonTypes returns an iterator over all CommonTypeNode declarations in the namespace.
 // This allows you to iterate through only the common type (type alias) declarations
 // within this specific namespace.
@@ -114,13 +140,22 @@ func (c CommonTypeNode) Annotate(key types.Ident, value types.String) CommonType
 }
 
 // FullName returns the fully qualified name for this common type.
-// If namespace is empty, the type name is used as-is.
+// If namespace is nil, the type name is used as-is (top-level).
 // If namespace is provided (e.g., "MyApp"), the name is "MyApp::TypeName".
-func (c CommonTypeNode) FullName(namespace types.Path) types.Path {
-	if namespace == "" {
+func (c CommonTypeNode) FullName(namespace *NamespaceNode) types.Path {
+	if namespace == nil {
 		return types.Path(c.Name)
 	}
-	return types.Path(string(namespace) + "::" + string(c.Name))
+	return types.Path(string(namespace.Name) + "::" + string(c.Name))
+}
+
+// Resolve returns a new CommonTypeNode with all type references resolved.
+func (c CommonTypeNode) Resolve(namespace *NamespaceNode) CommonTypeNode {
+	return CommonTypeNode{
+		Name:        c.Name,
+		Annotations: c.Annotations,
+		Type:        c.Type.Resolve(namespace),
+	}
 }
 
 // EntityNode represents a Cedar entity type declaration.
@@ -166,13 +201,42 @@ func (e EntityNode) Annotate(key types.Ident, value types.String) EntityNode {
 }
 
 // EntityType returns the fully qualified entity type name for this entity.
-// If namespace is empty, the entity name is used as-is.
+// If namespace is nil, the entity name is used as-is (top-level).
 // If namespace is provided (e.g., "MyApp"), the type is "MyApp::EntityName".
-func (e EntityNode) EntityType(namespace types.Path) types.EntityType {
-	if namespace == "" {
+func (e EntityNode) EntityType(namespace *NamespaceNode) types.EntityType {
+	if namespace == nil {
 		return e.Name
 	}
-	return types.EntityType(string(namespace) + "::" + string(e.Name))
+	return types.EntityType(string(namespace.Name) + "::" + string(e.Name))
+}
+
+// Resolve returns a new EntityNode with all type references resolved.
+func (e EntityNode) Resolve(namespace *NamespaceNode) EntityNode {
+	resolved := EntityNode{
+		Name:        e.Name,
+		Annotations: e.Annotations,
+	}
+
+	// Resolve MemberOf references
+	if len(e.MemberOfVal) > 0 {
+		resolved.MemberOfVal = make([]EntityTypeRef, len(e.MemberOfVal))
+		for i, ref := range e.MemberOfVal {
+			resolved.MemberOfVal[i] = ref.Resolve(namespace).(EntityTypeRef)
+		}
+	}
+
+	// Resolve Shape
+	if e.ShapeVal != nil {
+		resolvedShape := e.ShapeVal.Resolve(namespace).(RecordType)
+		resolved.ShapeVal = &resolvedShape
+	}
+
+	// Resolve Tags
+	if e.TagsVal != nil {
+		resolved.TagsVal = e.TagsVal.Resolve(namespace)
+	}
+
+	return resolved
 }
 
 // EnumNode represents a Cedar enum entity type declaration.
@@ -200,15 +264,15 @@ func (e EnumNode) Annotate(key types.Ident, value types.String) EnumNode {
 }
 
 // EntityUIDs returns an iterator over EntityUID values for each enum value.
-// If namespace is empty, the entity type is used as-is.
+// If namespace is nil, the entity type is used as-is (top-level).
 // If namespace is provided (e.g., "MyApp"), the type is "MyApp::EnumName".
-func (e EnumNode) EntityUIDs(namespace types.Path) iter.Seq[types.EntityUID] {
+func (e EnumNode) EntityUIDs(namespace *NamespaceNode) iter.Seq[types.EntityUID] {
 	return func(yield func(types.EntityUID) bool) {
 		var entityType types.EntityType
-		if namespace == "" {
+		if namespace == nil {
 			entityType = e.Name
 		} else {
-			entityType = types.EntityType(string(namespace) + "::" + string(e.Name))
+			entityType = types.EntityType(string(namespace.Name) + "::" + string(e.Name))
 		}
 		for _, v := range e.Values {
 			if !yield(types.NewEntityUID(entityType, v)) {
@@ -216,6 +280,11 @@ func (e EnumNode) EntityUIDs(namespace types.Path) iter.Seq[types.EntityUID] {
 			}
 		}
 	}
+}
+
+// Resolve returns the EnumNode unchanged (enums have no type references to resolve).
+func (e EnumNode) Resolve(namespace *NamespaceNode) EnumNode {
+	return e
 }
 
 // ActionNode represents a Cedar action declaration.
@@ -303,14 +372,58 @@ func (a ActionNode) Annotate(key types.Ident, value types.String) ActionNode {
 }
 
 // EntityUID returns the fully qualified EntityUID for this action.
-// If namespace is empty, the type is "Action".
+// If namespace is nil, the type is "Action" (top-level).
 // If namespace is provided (e.g., "Bananas"), the type is "Bananas::Action".
-func (a ActionNode) EntityUID(namespace types.Path) types.EntityUID {
+func (a ActionNode) EntityUID(namespace *NamespaceNode) types.EntityUID {
 	var entityType types.EntityType
-	if namespace == "" {
+	if namespace == nil {
 		entityType = "Action"
 	} else {
-		entityType = types.EntityType(string(namespace) + "::Action")
+		entityType = types.EntityType(string(namespace.Name) + "::Action")
 	}
 	return types.NewEntityUID(entityType, a.Name)
+}
+
+// Resolve returns a new ActionNode with all type references resolved.
+func (a ActionNode) Resolve(namespace *NamespaceNode) ActionNode {
+	resolved := ActionNode{
+		Name:        a.Name,
+		Annotations: a.Annotations,
+	}
+
+	// Resolve MemberOf references
+	if len(a.MemberOfVal) > 0 {
+		resolved.MemberOfVal = make([]EntityRef, len(a.MemberOfVal))
+		for i, ref := range a.MemberOfVal {
+			resolved.MemberOfVal[i] = EntityRef{
+				Type: ref.Type.Resolve(namespace).(EntityTypeRef),
+				ID:   ref.ID,
+			}
+		}
+	}
+
+	// Resolve AppliesTo
+	if a.AppliesToVal != nil {
+		resolved.AppliesToVal = &AppliesTo{}
+
+		if len(a.AppliesToVal.PrincipalTypes) > 0 {
+			resolved.AppliesToVal.PrincipalTypes = make([]EntityTypeRef, len(a.AppliesToVal.PrincipalTypes))
+			for i, ref := range a.AppliesToVal.PrincipalTypes {
+				resolved.AppliesToVal.PrincipalTypes[i] = ref.Resolve(namespace).(EntityTypeRef)
+			}
+		}
+
+		if len(a.AppliesToVal.ResourceTypes) > 0 {
+			resolved.AppliesToVal.ResourceTypes = make([]EntityTypeRef, len(a.AppliesToVal.ResourceTypes))
+			for i, ref := range a.AppliesToVal.ResourceTypes {
+				resolved.AppliesToVal.ResourceTypes[i] = ref.Resolve(namespace).(EntityTypeRef)
+			}
+		}
+
+		if a.AppliesToVal.Context != nil {
+			resolved.AppliesToVal.Context = a.AppliesToVal.Context.Resolve(namespace)
+		}
+	}
+
+	return resolved
 }

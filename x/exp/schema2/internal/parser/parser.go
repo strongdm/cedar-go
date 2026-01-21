@@ -169,18 +169,18 @@ func (p *Parser) parseAnnotation() (ast.Annotation, error) {
 	return ast.Annotation{Key: types.Ident(key), Value: types.String(value)}, nil
 }
 
-func (p *Parser) parseNamespace(annotations []ast.Annotation) (*ast.NamespaceNode, error) {
+func (p *Parser) parseNamespace(annotations []ast.Annotation) (ast.NamespaceNode, error) {
 	if _, err := p.expect("namespace"); err != nil {
-		return nil, err
+		return ast.NamespaceNode{}, err
 	}
 
 	path, err := p.parsePath()
 	if err != nil {
-		return nil, err
+		return ast.NamespaceNode{}, err
 	}
 
 	if _, err := p.expect("{"); err != nil {
-		return nil, err
+		return ast.NamespaceNode{}, err
 	}
 
 	var decls []ast.IsDeclaration
@@ -191,7 +191,7 @@ func (p *Parser) parseNamespace(annotations []ast.Annotation) (*ast.NamespaceNod
 		for p.peek().Text == "@" {
 			ann, err := p.parseAnnotation()
 			if err != nil {
-				return nil, err
+				return ast.NamespaceNode{}, err
 			}
 			declAnnotations = append(declAnnotations, ann)
 		}
@@ -201,13 +201,13 @@ func (p *Parser) parseNamespace(annotations []ast.Annotation) (*ast.NamespaceNod
 		case "entity":
 			entities, err := p.parseEntity(declAnnotations)
 			if err != nil {
-				return nil, err
+				return ast.NamespaceNode{}, err
 			}
 			decls = append(decls, entities...)
 		case "action":
 			actions, err := p.parseAction(declAnnotations)
 			if err != nil {
-				return nil, err
+				return ast.NamespaceNode{}, err
 			}
 			for _, action := range actions {
 				decls = append(decls, action)
@@ -215,16 +215,16 @@ func (p *Parser) parseNamespace(annotations []ast.Annotation) (*ast.NamespaceNod
 		case "type":
 			ct, err := p.parseCommonType(declAnnotations)
 			if err != nil {
-				return nil, err
+				return ast.NamespaceNode{}, err
 			}
 			decls = append(decls, ct)
 		default:
-			return nil, fmt.Errorf("unexpected token %q in namespace at %d:%d", tok.Text, tok.Pos.Line, tok.Pos.Column)
+			return ast.NamespaceNode{}, fmt.Errorf("unexpected token %q in namespace at %d:%d", tok.Text, tok.Pos.Line, tok.Pos.Column)
 		}
 	}
 
 	if _, err := p.expect("}"); err != nil {
-		return nil, err
+		return ast.NamespaceNode{}, err
 	}
 
 	ns := ast.Namespace(types.Path(path), decls...)
@@ -319,13 +319,13 @@ func (p *Parser) parseEntity(annotations []ast.Annotation) ([]ast.IsDeclaration,
 		entity := ast.Entity(types.EntityType(n))
 		entity.Annotations = annotations
 		if len(parents) > 0 {
-			entity.MemberOf(parents...)
+			entity = entity.MemberOf(parents...)
 		}
 		if len(pairs) > 0 {
-			entity.Shape(pairs...)
+			entity = entity.Shape(pairs...)
 		}
 		if tagsType != nil {
-			entity.Tags(tagsType)
+			entity = entity.Tags(tagsType)
 		}
 		entities = append(entities, entity)
 	}
@@ -395,7 +395,7 @@ func (p *Parser) parseEntityTypeRefs() ([]ast.EntityTypeRef, error) {
 	return []ast.EntityTypeRef{ast.EntityType(types.EntityType(path))}, nil
 }
 
-func (p *Parser) parseAction(annotations []ast.Annotation) ([]*ast.ActionNode, error) {
+func (p *Parser) parseAction(annotations []ast.Annotation) ([]ast.ActionNode, error) {
 	if _, err := p.expect("action"); err != nil {
 		return nil, err
 	}
@@ -490,22 +490,22 @@ func (p *Parser) parseAction(annotations []ast.Annotation) ([]*ast.ActionNode, e
 	}
 
 	// Create action nodes for each name
-	var actions []*ast.ActionNode
+	var actions []ast.ActionNode
 	for _, n := range names {
 		action := ast.Action(types.String(n))
 		action.Annotations = annotations
 		if len(memberOf) > 0 {
-			action.MemberOf(memberOf...)
+			action = action.MemberOf(memberOf...)
 		}
 		if hasAppliesTo {
 			if len(principals) > 0 {
-				action.Principal(principals...)
+				action = action.Principal(principals...)
 			}
 			if len(resources) > 0 {
-				action.Resource(resources...)
+				action = action.Resource(resources...)
 			}
 			if contextType != nil {
-				action.Context(contextType)
+				action = action.Context(contextType)
 			}
 		}
 		actions = append(actions, action)
@@ -591,27 +591,27 @@ func (p *Parser) parseEntityRef() (ast.EntityRef, error) {
 	return ast.UID(types.String(name)), nil
 }
 
-func (p *Parser) parseCommonType(annotations []ast.Annotation) (*ast.CommonTypeNode, error) {
+func (p *Parser) parseCommonType(annotations []ast.Annotation) (ast.CommonTypeNode, error) {
 	if _, err := p.expect("type"); err != nil {
-		return nil, err
+		return ast.CommonTypeNode{}, err
 	}
 
 	name, err := p.expectIdent()
 	if err != nil {
-		return nil, err
+		return ast.CommonTypeNode{}, err
 	}
 
 	if _, err := p.expect("="); err != nil {
-		return nil, err
+		return ast.CommonTypeNode{}, err
 	}
 
 	t, err := p.parseType()
 	if err != nil {
-		return nil, err
+		return ast.CommonTypeNode{}, err
 	}
 
 	if _, err := p.expect(";"); err != nil {
-		return nil, err
+		return ast.CommonTypeNode{}, err
 	}
 
 	ct := ast.CommonType(types.Ident(name), t)
