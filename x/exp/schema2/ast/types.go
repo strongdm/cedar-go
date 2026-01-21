@@ -199,7 +199,7 @@ func (t TypeRef) resolve(rd *resolveData) (IsType, error) {
 		}
 
 		// Search within the current namespace
-		for ct := range rd.namespace.commonTypes() {
+		for ct := range rd.namespace.CommonTypes() {
 			if string(ct.Name) == name {
 				// Found it, resolve and cache it
 				resolved, err := ct.Type.resolve(rd)
@@ -222,7 +222,7 @@ func (t TypeRef) resolve(rd *resolveData) (IsType, error) {
 
 	// Search the entire schema for a matching CommonType
 	if rd.schema != nil {
-		for ns, ct := range rd.schema.commonTypes() {
+		for ns, ct := range rd.schema.CommonTypes() {
 			fullName := ct.FullName(ns)
 			if string(fullName) == name {
 				// Found it, resolve with the common type's namespace and cache it

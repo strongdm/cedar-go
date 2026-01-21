@@ -85,9 +85,10 @@ func (rd *resolveData) withNamespace(namespace *NamespaceNode) *resolveData {
 
 // ResolvedSchema represents a schema with all type references resolved and indexed for efficient lookup.
 type ResolvedSchema struct {
-	Entities map[types.EntityType]EntityNode // Fully qualified entity type -> EntityNode
-	Enums    map[types.EntityType]EnumNode   // Fully qualified entity type -> EnumNode
-	Actions  map[types.EntityUID]ActionNode  // Fully qualified action UID -> ActionNode
+	Entities   map[types.EntityType]EntityNode // Fully qualified entity type -> EntityNode
+	Enums      map[types.EntityType]EnumNode   // Fully qualified entity type -> EnumNode
+	Actions    map[types.EntityUID]ActionNode  // Fully qualified action UID -> ActionNode
+	Namespaces map[types.Path][]Annotation     // Namespace path -> Annotations
 }
 
 // Resolve returns a ResolvedSchema with all type references resolved and indexed.
@@ -96,9 +97,10 @@ type ResolvedSchema struct {
 // Returns an error if any type reference cannot be resolved.
 func (s *Schema) Resolve() (*ResolvedSchema, error) {
 	resolved := &ResolvedSchema{
-		Entities: make(map[types.EntityType]EntityNode),
-		Enums:    make(map[types.EntityType]EnumNode),
-		Actions:  make(map[types.EntityUID]ActionNode),
+		Entities:   make(map[types.EntityType]EntityNode),
+		Enums:      make(map[types.EntityType]EnumNode),
+		Actions:    make(map[types.EntityUID]ActionNode),
+		Namespaces: make(map[types.Path][]Annotation),
 	}
 
 	rd := newResolveData(s, nil)
@@ -106,6 +108,11 @@ func (s *Schema) Resolve() (*ResolvedSchema, error) {
 	for _, node := range s.Nodes {
 		switch n := node.(type) {
 		case NamespaceNode:
+			// Store namespace annotations
+			if n.Name != "" {
+				resolved.Namespaces[n.Name] = n.Annotations
+			}
+
 			// Resolve all declarations in the namespace
 			resolvedDecls, err := n.resolve(rd)
 			if err != nil {
@@ -173,11 +180,6 @@ func (s *Schema) Resolve() (*ResolvedSchema, error) {
 
 // Namespaces returns an iterator over all NamespaceNode declarations in the schema.
 func (s *Schema) Namespaces() iter.Seq[NamespaceNode] {
-	return s.namespaces()
-}
-
-// namespaces returns an iterator over all NamespaceNode declarations in the schema.
-func (s *Schema) namespaces() iter.Seq[NamespaceNode] {
 	return func(yield func(NamespaceNode) bool) {
 		for _, node := range s.Nodes {
 			if ns, ok := node.(NamespaceNode); ok {
@@ -191,11 +193,6 @@ func (s *Schema) namespaces() iter.Seq[NamespaceNode] {
 
 // CommonTypes returns an iterator over all CommonTypeNode declarations in the schema.
 func (s *Schema) CommonTypes() iter.Seq2[*NamespaceNode, CommonTypeNode] {
-	return s.commonTypes()
-}
-
-// commonTypes returns an iterator over all CommonTypeNode declarations in the schema.
-func (s *Schema) commonTypes() iter.Seq2[*NamespaceNode, CommonTypeNode] {
 	return func(yield func(*NamespaceNode, CommonTypeNode) bool) {
 		for _, node := range s.Nodes {
 			if ct, ok := node.(CommonTypeNode); ok {
@@ -203,7 +200,7 @@ func (s *Schema) commonTypes() iter.Seq2[*NamespaceNode, CommonTypeNode] {
 					return
 				}
 			} else if ns, ok := node.(NamespaceNode); ok {
-				for ct := range ns.commonTypes() {
+				for ct := range ns.CommonTypes() {
 					if !yield(&ns, ct) {
 						return
 					}
@@ -215,11 +212,6 @@ func (s *Schema) commonTypes() iter.Seq2[*NamespaceNode, CommonTypeNode] {
 
 // Entities returns an iterator over all EntityNode declarations in the schema.
 func (s *Schema) Entities() iter.Seq2[*NamespaceNode, EntityNode] {
-	return s.entities()
-}
-
-// entities returns an iterator over all EntityNode declarations in the schema.
-func (s *Schema) entities() iter.Seq2[*NamespaceNode, EntityNode] {
 	return func(yield func(*NamespaceNode, EntityNode) bool) {
 		for _, node := range s.Nodes {
 			if e, ok := node.(EntityNode); ok {
@@ -227,7 +219,7 @@ func (s *Schema) entities() iter.Seq2[*NamespaceNode, EntityNode] {
 					return
 				}
 			} else if ns, ok := node.(NamespaceNode); ok {
-				for e := range ns.entities() {
+				for e := range ns.Entities() {
 					if !yield(&ns, e) {
 						return
 					}
@@ -239,11 +231,6 @@ func (s *Schema) entities() iter.Seq2[*NamespaceNode, EntityNode] {
 
 // Enums returns an iterator over all EnumNode declarations in the schema.
 func (s *Schema) Enums() iter.Seq2[*NamespaceNode, EnumNode] {
-	return s.enums()
-}
-
-// enums returns an iterator over all EnumNode declarations in the schema.
-func (s *Schema) enums() iter.Seq2[*NamespaceNode, EnumNode] {
 	return func(yield func(*NamespaceNode, EnumNode) bool) {
 		for _, node := range s.Nodes {
 			if e, ok := node.(EnumNode); ok {
@@ -251,7 +238,7 @@ func (s *Schema) enums() iter.Seq2[*NamespaceNode, EnumNode] {
 					return
 				}
 			} else if ns, ok := node.(NamespaceNode); ok {
-				for e := range ns.enums() {
+				for e := range ns.Enums() {
 					if !yield(&ns, e) {
 						return
 					}
@@ -263,11 +250,6 @@ func (s *Schema) enums() iter.Seq2[*NamespaceNode, EnumNode] {
 
 // Actions returns an iterator over all ActionNode declarations in the schema.
 func (s *Schema) Actions() iter.Seq2[*NamespaceNode, ActionNode] {
-	return s.actions()
-}
-
-// actions returns an iterator over all ActionNode declarations in the schema.
-func (s *Schema) actions() iter.Seq2[*NamespaceNode, ActionNode] {
 	return func(yield func(*NamespaceNode, ActionNode) bool) {
 		for _, node := range s.Nodes {
 			if a, ok := node.(ActionNode); ok {
@@ -275,7 +257,7 @@ func (s *Schema) actions() iter.Seq2[*NamespaceNode, ActionNode] {
 					return
 				}
 			} else if ns, ok := node.(NamespaceNode); ok {
-				for a := range ns.actions() {
+				for a := range ns.Actions() {
 					if !yield(&ns, a) {
 						return
 					}

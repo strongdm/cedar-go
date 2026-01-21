@@ -2,8 +2,9 @@ package parser
 
 import (
 	"fmt"
-	"strconv"
+	"strings"
 
+	"github.com/cedar-policy/cedar-go/internal/rust"
 	"github.com/cedar-policy/cedar-go/x/exp/ast"
 )
 
@@ -45,5 +46,9 @@ func (t Token) stringValue() (string, error) {
 	if t.Type != TokenString {
 		return "", fmt.Errorf("expected string, got %v", t.Type)
 	}
-	return strconv.Unquote(t.Text)
+	// Use Cedar-specific unquoting which follows the Cedar spec
+	s := strings.TrimPrefix(t.Text, "\"")
+	s = strings.TrimSuffix(s, "\"")
+	res, _, err := rust.Unquote([]byte(s), false)
+	return res, err
 }

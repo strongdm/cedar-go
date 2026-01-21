@@ -67,7 +67,7 @@ func TestNamespaceIterators(t *testing.T) {
 	// Test CommonTypes iterator
 	t.Run("CommonTypes", func(t *testing.T) {
 		var commonTypes []CommonTypeNode
-		for ct := range ns.commonTypes() {
+		for ct := range ns.CommonTypes() {
 			commonTypes = append(commonTypes, ct)
 		}
 		if len(commonTypes) != 2 {
@@ -84,7 +84,7 @@ func TestNamespaceIterators(t *testing.T) {
 	// Test Entities iterator
 	t.Run("Entities", func(t *testing.T) {
 		var entities []EntityNode
-		for e := range ns.entities() {
+		for e := range ns.Entities() {
 			entities = append(entities, e)
 		}
 		if len(entities) != 2 {
@@ -101,7 +101,7 @@ func TestNamespaceIterators(t *testing.T) {
 	// Test Enums iterator
 	t.Run("Enums", func(t *testing.T) {
 		var enums []EnumNode
-		for e := range ns.enums() {
+		for e := range ns.Enums() {
 			enums = append(enums, e)
 		}
 		if len(enums) != 2 {
@@ -118,7 +118,7 @@ func TestNamespaceIterators(t *testing.T) {
 	// Test Actions iterator
 	t.Run("Actions", func(t *testing.T) {
 		var actions []ActionNode
-		for a := range ns.actions() {
+		for a := range ns.Actions() {
 			actions = append(actions, a)
 		}
 		if len(actions) != 2 {
@@ -142,7 +142,7 @@ func TestNamespaceIteratorsEmpty(t *testing.T) {
 	// Test that all iterators work with no declarations
 	t.Run("CommonTypes", func(t *testing.T) {
 		count := 0
-		for range ns.commonTypes() {
+		for range ns.CommonTypes() {
 			count++
 		}
 		if count != 0 {
@@ -152,7 +152,7 @@ func TestNamespaceIteratorsEmpty(t *testing.T) {
 
 	t.Run("Entities", func(t *testing.T) {
 		count := 0
-		for range ns.entities() {
+		for range ns.Entities() {
 			count++
 		}
 		if count != 0 {
@@ -162,7 +162,7 @@ func TestNamespaceIteratorsEmpty(t *testing.T) {
 
 	t.Run("Enums", func(t *testing.T) {
 		count := 0
-		for range ns.enums() {
+		for range ns.Enums() {
 			count++
 		}
 		if count != 0 {
@@ -172,7 +172,7 @@ func TestNamespaceIteratorsEmpty(t *testing.T) {
 
 	t.Run("Actions", func(t *testing.T) {
 		count := 0
-		for range ns.actions() {
+		for range ns.Actions() {
 			count++
 		}
 		if count != 0 {
@@ -193,7 +193,7 @@ func TestNamespaceIteratorsEarlyBreak(t *testing.T) {
 
 	t.Run("CommonTypes early break", func(t *testing.T) {
 		count := 0
-		for ct := range ns.commonTypes() {
+		for ct := range ns.CommonTypes() {
 			count++
 			if ct.Name == ct1.Name {
 				break // Early termination after first item
@@ -211,7 +211,7 @@ func TestNamespaceIteratorsEarlyBreak(t *testing.T) {
 
 	t.Run("Entities early break", func(t *testing.T) {
 		count := 0
-		for e := range ns2.entities() {
+		for e := range ns2.Entities() {
 			count++
 			if e.Name == e1.Name {
 				break
@@ -229,7 +229,7 @@ func TestNamespaceIteratorsEarlyBreak(t *testing.T) {
 
 	t.Run("Enums early break", func(t *testing.T) {
 		count := 0
-		for e := range ns3.enums() {
+		for e := range ns3.Enums() {
 			count++
 			if e.Name == enum1.Name {
 				break
@@ -247,7 +247,7 @@ func TestNamespaceIteratorsEarlyBreak(t *testing.T) {
 
 	t.Run("Actions early break", func(t *testing.T) {
 		count := 0
-		for a := range ns4.actions() {
+		for a := range ns4.Actions() {
 			count++
 			if a.Name == a1.Name {
 				break

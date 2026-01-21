@@ -67,8 +67,8 @@ func (n NamespaceNode) resolve(rd *resolveData) ([]IsDeclaration, error) {
 	return resolved, nil
 }
 
-// commonTypes returns an iterator over all CommonTypeNode declarations in the namespace.
-func (n NamespaceNode) commonTypes() iter.Seq[CommonTypeNode] {
+// CommonTypes returns an iterator over all CommonTypeNode declarations in the namespace.
+func (n NamespaceNode) CommonTypes() iter.Seq[CommonTypeNode] {
 	return func(yield func(CommonTypeNode) bool) {
 		for _, decl := range n.Declarations {
 			if ct, ok := decl.(CommonTypeNode); ok {
@@ -80,8 +80,8 @@ func (n NamespaceNode) commonTypes() iter.Seq[CommonTypeNode] {
 	}
 }
 
-// entities returns an iterator over all EntityNode declarations in the namespace.
-func (n NamespaceNode) entities() iter.Seq[EntityNode] {
+// Entities returns an iterator over all EntityNode declarations in the namespace.
+func (n NamespaceNode) Entities() iter.Seq[EntityNode] {
 	return func(yield func(EntityNode) bool) {
 		for _, decl := range n.Declarations {
 			if e, ok := decl.(EntityNode); ok {
@@ -93,8 +93,8 @@ func (n NamespaceNode) entities() iter.Seq[EntityNode] {
 	}
 }
 
-// enums returns an iterator over all EnumNode declarations in the namespace.
-func (n NamespaceNode) enums() iter.Seq[EnumNode] {
+// Enums returns an iterator over all EnumNode declarations in the namespace.
+func (n NamespaceNode) Enums() iter.Seq[EnumNode] {
 	return func(yield func(EnumNode) bool) {
 		for _, decl := range n.Declarations {
 			if e, ok := decl.(EnumNode); ok {
@@ -106,8 +106,8 @@ func (n NamespaceNode) enums() iter.Seq[EnumNode] {
 	}
 }
 
-// actions returns an iterator over all ActionNode declarations in the namespace.
-func (n NamespaceNode) actions() iter.Seq[ActionNode] {
+// Actions returns an iterator over all ActionNode declarations in the namespace.
+func (n NamespaceNode) Actions() iter.Seq[ActionNode] {
 	return func(yield func(ActionNode) bool) {
 		for _, decl := range n.Declarations {
 			if a, ok := decl.(ActionNode); ok {
