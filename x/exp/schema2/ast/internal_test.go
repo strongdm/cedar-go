@@ -1283,3 +1283,94 @@ func TestUnreachableErrorPaths(t *testing.T) {
 		}
 	})
 }
+
+// TestGlobalEntityResolution tests resolution of global entities referenced from namespaces
+func TestGlobalEntityResolution(t *testing.T) {
+	t.Parallel()
+
+	t.Run("action referencing global enum", func(t *testing.T) {
+		// Global enum
+		globalEnum := Enum("Status", "active", "inactive")
+		// Namespace with action referencing the global enum
+		localEntity := Entity("User")
+		action := Action("view").Principal(Ref("User")).Resource(Ref("Status"))
+		ns := Namespace("App", localEntity, action)
+		schema := NewSchema(globalEnum, ns)
+
+		resolved, err := schema.Resolve()
+		if err != nil {
+			t.Fatalf("Resolve() failed: %v", err)
+		}
+
+		// Verify global enum is present
+		if _, found := resolved.Enums["Status"]; !found {
+			t.Error("expected global enum 'Status' to be present")
+		}
+
+		// Verify action exists (with namespace qualification)
+		actionUID := types.EntityUID{Type: "App::Action", ID: "view"}
+		if _, found := resolved.Actions[actionUID]; !found {
+			t.Errorf("expected action 'App::Action::view' to be present, got actions: %v", resolved.Actions)
+		}
+	})
+
+	t.Run("entity referencing already qualified name", func(t *testing.T) {
+		// Test that already qualified names (starting with ::) are handled
+		baseEntity := Entity("Base")
+		ns1 := Namespace("Core", baseEntity)
+
+		// Entity with already qualified reference
+		derivedEntity := Entity("Derived").MemberOf(Ref("Core::Base"))
+		ns2 := Namespace("App", derivedEntity)
+
+		schema := NewSchema(ns1, ns2)
+		resolved, err := schema.Resolve()
+		if err != nil {
+			t.Fatalf("Resolve() failed: %v", err)
+		}
+
+		// Verify both entities exist with qualified names
+		if _, found := resolved.Entities["Core::Base"]; !found {
+			t.Error("expected 'Core::Base' entity")
+		}
+		if _, found := resolved.Entities["App::Derived"]; !found {
+			t.Error("expected 'App::Derived' entity")
+		}
+	})
+
+	t.Run("entity exists check with nil schema", func(t *testing.T) {
+		// Test entityExistsInEmptyNamespace with nil schema (edge case)
+		rd := &resolveData{
+			schema:               nil,
+			namespace:            &NamespaceNode{Name: "Test"},
+			schemaCommonTypes:    make(map[string]*commonTypeEntry),
+			namespaceCommonTypes: make(map[string]*commonTypeEntry),
+		}
+		// Should return false for nil schema
+		exists := rd.entityExistsInEmptyNamespace("SomeEntity")
+		if exists {
+			t.Error("expected false for nil schema")
+		}
+	})
+
+	t.Run("entity exists check with non-entity nodes", func(t *testing.T) {
+		// Create schema with a CommonType node (not entity or enum)
+		commonType := CommonType("MyType", String())
+		globalEntity := Entity("GlobalEntity")
+
+		// Namespace that references the global entity
+		localAction := Action("view").Resource(Ref("GlobalEntity"))
+		ns := Namespace("App", localAction)
+
+		schema := NewSchema(commonType, globalEntity, ns)
+		resolved, err := schema.Resolve()
+		if err != nil {
+			t.Fatalf("Resolve() failed: %v", err)
+		}
+
+		// Verify global entity exists
+		if _, found := resolved.Entities["GlobalEntity"]; !found {
+			t.Error("expected global entity 'GlobalEntity' to be present")
+		}
+	})
+}

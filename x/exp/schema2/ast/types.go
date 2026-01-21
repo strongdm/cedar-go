@@ -146,18 +146,28 @@ type EntityTypeRef struct {
 func (EntityTypeRef) isType() { _ = 0 }
 
 // mustResolve resolves the entity type reference relative to the given namespace.
-// If the name is unqualified and namespace is provided, it is qualified with the namespace.
+// If the name is unqualified and namespace is provided, it checks if the entity exists
+// in the empty namespace first before qualifying it with the current namespace.
 // This method never returns an error.
 func (e EntityTypeRef) mustResolve(rd *resolveData) EntityTypeRef {
 	if rd.namespace == nil {
 		return e
 	}
-	// If the name doesn't contain "::", qualify it with the namespace
+
 	name := string(e.Name)
-	if len(name) > 0 && name[0] != ':' && !containsDoubleColon(name) {
-		return EntityTypeRef{Name: types.EntityType(string(rd.namespace.Name) + "::" + name)}
+	// If already qualified (contains "::"), return as-is
+	if containsDoubleColon(name) || (len(name) > 0 && name[0] == ':') {
+		return e
 	}
-	return e
+
+	// Check if this entity exists in the empty namespace (global)
+	if rd.entityExistsInEmptyNamespace(e.Name) {
+		// Keep it unqualified to reference the global entity
+		return e
+	}
+
+	// Otherwise, qualify it with the current namespace
+	return EntityTypeRef{Name: types.EntityType(string(rd.namespace.Name) + "::" + name)}
 }
 
 // resolve implements the IsType interface by calling mustResolve.

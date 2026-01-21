@@ -41,6 +41,28 @@ type resolveData struct {
 	namespaceCommonTypes map[string]*commonTypeEntry // Unqualified name -> common type entry
 }
 
+// entityExistsInEmptyNamespace checks if an entity with the given name exists in the empty namespace (global scope).
+func (rd *resolveData) entityExistsInEmptyNamespace(name types.EntityType) bool {
+	if rd.schema == nil {
+		return false
+	}
+
+	nameStr := string(name)
+	for _, node := range rd.schema.Nodes {
+		switch n := node.(type) {
+		case EntityNode:
+			if string(n.Name) == nameStr {
+				return true
+			}
+		case EnumNode:
+			if string(n.Name) == nameStr {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // Annotation represents a Cedar annotation (@key("value")).
 type Annotation struct {
 	Key   types.Ident
