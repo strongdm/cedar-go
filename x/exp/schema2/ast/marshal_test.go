@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/cedar-policy/cedar-go/internal/testutil"
+	"github.com/cedar-policy/cedar-go/types"
 	"github.com/cedar-policy/cedar-go/x/exp/schema2/ast"
 )
 
@@ -333,13 +334,19 @@ func TestSchemaResolve(t *testing.T) {
 		schema := ast.NewSchema(ns)
 
 		// Resolve the schema
-		resolved := schema.Resolve()
+		resolved, err := schema.Resolve()
+		if err != nil {
+			t.Fatalf("unexpected error resolving schema: %v", err)
+		}
 
-		// Verify the resolved schema can be marshaled
-		result := string(resolved.MarshalCedar())
-		// The resolved schema should have qualified type references
-		if len(result) == 0 {
-			t.Errorf("expected non-empty marshal result")
+		// Verify the resolved schema has the entity
+		if len(resolved.Entities) == 0 {
+			t.Errorf("expected entities in resolved schema")
+		}
+		// Verify User entity is present with fully qualified name
+		userType := types.EntityType("MyApp::User")
+		if _, found := resolved.Entities[userType]; !found {
+			t.Errorf("expected MyApp::User in resolved entities")
 		}
 	})
 
@@ -352,12 +359,14 @@ func TestSchemaResolve(t *testing.T) {
 		schema := ast.NewSchema(ns)
 
 		// Resolve the schema
-		resolved := schema.Resolve()
+		resolved, err := schema.Resolve()
+		if err != nil {
+			t.Fatalf("unexpected error resolving schema: %v", err)
+		}
 
-		// Verify the resolved schema can be marshaled
-		result := string(resolved.MarshalCedar())
-		if len(result) == 0 {
-			t.Errorf("expected non-empty marshal result")
+		// Verify the resolved schema has the entity
+		if len(resolved.Entities) == 0 {
+			t.Errorf("expected entities in resolved schema")
 		}
 	})
 }

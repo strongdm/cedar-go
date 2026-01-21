@@ -86,10 +86,13 @@ func TestSchemaCedarMarshalUnmarshal(t *testing.T) {
 func TestSchemaCedarMarshalEmpty(t *testing.T) {
 	var s Schema
 	s.SetFilename("test.cedar")
-	_, err := s.MarshalCedar()
-	if err == nil {
-		t.Errorf("MarshalCedar() should return an error for empty schema")
+	out, err := s.MarshalCedar()
+	if err != nil {
+		t.Errorf("MarshalCedar() error = %v", err)
 		return
+	}
+	if len(out) != 0 {
+		t.Errorf("MarshalCedar() produced non-empty output for empty schema")
 	}
 }
 
@@ -101,8 +104,9 @@ func TestSchemaJSONMarshalEmpty(t *testing.T) {
 		t.Errorf("MarshalJSON() error = %v", err)
 		return
 	}
-	if len(out) != 0 {
-		t.Errorf("MarshalJSON() produced non-empty output for empty schema")
+	// Empty schema marshals to "{}"
+	if string(out) != "{}" {
+		t.Errorf("MarshalJSON() = %s, want {}", string(out))
 	}
 }
 
@@ -195,6 +199,241 @@ func TestSchemaCrossFormatMarshaling(t *testing.T) {
 		_, err = s.MarshalJSON()
 		if err != nil {
 			t.Errorf("MarshalJSON() error = %v", err)
+		}
+	})
+}
+
+func TestSchemaResolve(t *testing.T) {
+	t.Parallel()
+
+	t.Run("resolve empty schema", func(t *testing.T) {
+		t.Parallel()
+		var s Schema
+		resolved, err := s.Resolve()
+		if err != nil {
+			t.Errorf("Resolve() error = %v", err)
+		}
+		if len(resolved.Entities) != 0 {
+			t.Errorf("Resolve() entities count = %d, want 0", len(resolved.Entities))
+		}
+		if len(resolved.Enums) != 0 {
+			t.Errorf("Resolve() enums count = %d, want 0", len(resolved.Enums))
+		}
+		if len(resolved.Actions) != 0 {
+			t.Errorf("Resolve() actions count = %d, want 0", len(resolved.Actions))
+		}
+	})
+
+	t.Run("resolve valid schema with entities", func(t *testing.T) {
+		t.Parallel()
+		cedarSchema := `
+namespace MyApp {
+	entity User;
+	entity Group;
+}
+`
+		var s Schema
+		if err := s.UnmarshalCedar([]byte(cedarSchema)); err != nil {
+			t.Fatalf("UnmarshalCedar() error = %v", err)
+		}
+
+		resolved, err := s.Resolve()
+		if err != nil {
+			t.Fatalf("Resolve() error = %v", err)
+		}
+
+		if len(resolved.Entities) != 2 {
+			t.Errorf("Resolve() entities count = %d, want 2", len(resolved.Entities))
+		}
+
+		if _, found := resolved.Entities["MyApp::User"]; !found {
+			t.Error("Resolve() should contain MyApp::User entity")
+		}
+		if _, found := resolved.Entities["MyApp::Group"]; !found {
+			t.Error("Resolve() should contain MyApp::Group entity")
+		}
+	})
+
+	t.Run("resolve schema with common types", func(t *testing.T) {
+		t.Parallel()
+		cedarSchema := `
+namespace MyApp {
+	type Address = {
+		street: String,
+		city: String
+	};
+
+	entity User {
+		address: Address
+	};
+}
+`
+		var s Schema
+		if err := s.UnmarshalCedar([]byte(cedarSchema)); err != nil {
+			t.Fatalf("UnmarshalCedar() error = %v", err)
+		}
+
+		resolved, err := s.Resolve()
+		if err != nil {
+			t.Fatalf("Resolve() error = %v", err)
+		}
+
+		if len(resolved.Entities) != 1 {
+			t.Errorf("Resolve() entities count = %d, want 1", len(resolved.Entities))
+		}
+
+		if _, found := resolved.Entities["MyApp::User"]; !found {
+			t.Error("Resolve() should contain MyApp::User entity")
+		}
+	})
+
+	t.Run("resolve schema with enums", func(t *testing.T) {
+		t.Parallel()
+		cedarSchema := `
+namespace MyApp {
+	entity Status enum ["active", "inactive", "pending"];
+}
+`
+		var s Schema
+		if err := s.UnmarshalCedar([]byte(cedarSchema)); err != nil {
+			t.Fatalf("UnmarshalCedar() error = %v", err)
+		}
+
+		resolved, err := s.Resolve()
+		if err != nil {
+			t.Fatalf("Resolve() error = %v", err)
+		}
+
+		if len(resolved.Enums) != 1 {
+			t.Errorf("Resolve() enums count = %d, want 1", len(resolved.Enums))
+		}
+
+		if _, found := resolved.Enums["MyApp::Status"]; !found {
+			t.Error("Resolve() should contain MyApp::Status enum")
+		}
+	})
+
+	t.Run("resolve schema with actions", func(t *testing.T) {
+		t.Parallel()
+		cedarSchema := `
+namespace MyApp {
+	action View appliesTo {
+		principal: User,
+		resource: Document
+	};
+
+	entity User;
+	entity Document;
+}
+`
+		var s Schema
+		if err := s.UnmarshalCedar([]byte(cedarSchema)); err != nil {
+			t.Fatalf("UnmarshalCedar() error = %v", err)
+		}
+
+		resolved, err := s.Resolve()
+		if err != nil {
+			t.Fatalf("Resolve() error = %v", err)
+		}
+
+		if len(resolved.Actions) != 1 {
+			t.Errorf("Resolve() actions count = %d, want 1", len(resolved.Actions))
+		}
+
+		// Actions should be indexed by EntityUID
+		found := false
+		for uid := range resolved.Actions {
+			if uid.Type == "MyApp::Action" && uid.ID == "View" {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Error("Resolve() should contain MyApp::Action::View action")
+		}
+	})
+
+	t.Run("resolve schema with undefined type error", func(t *testing.T) {
+		t.Parallel()
+		cedarSchema := `
+namespace MyApp {
+	entity User {
+		address: NonExistentType
+	};
+}
+`
+		var s Schema
+		if err := s.UnmarshalCedar([]byte(cedarSchema)); err != nil {
+			t.Fatalf("UnmarshalCedar() error = %v", err)
+		}
+
+		_, err := s.Resolve()
+		if err == nil {
+			t.Error("Resolve() should return error for undefined type")
+		}
+
+		expectedMsg := `type "MyApp::NonExistentType" not found`
+		if err.Error() != expectedMsg {
+			t.Errorf("Resolve() error = %v, want %v", err.Error(), expectedMsg)
+		}
+	})
+
+	t.Run("resolve top-level entities", func(t *testing.T) {
+		t.Parallel()
+		cedarSchema := `
+entity User;
+entity Group;
+`
+		var s Schema
+		if err := s.UnmarshalCedar([]byte(cedarSchema)); err != nil {
+			t.Fatalf("UnmarshalCedar() error = %v", err)
+		}
+
+		resolved, err := s.Resolve()
+		if err != nil {
+			t.Fatalf("Resolve() error = %v", err)
+		}
+
+		if len(resolved.Entities) != 2 {
+			t.Errorf("Resolve() entities count = %d, want 2", len(resolved.Entities))
+		}
+
+		if _, found := resolved.Entities["User"]; !found {
+			t.Error("Resolve() should contain User entity")
+		}
+		if _, found := resolved.Entities["Group"]; !found {
+			t.Error("Resolve() should contain Group entity")
+		}
+	})
+
+	t.Run("resolve mixed top-level and namespaced declarations", func(t *testing.T) {
+		t.Parallel()
+		cedarSchema := `
+entity TopLevel;
+
+namespace MyApp {
+	entity Namespaced;
+}
+`
+		var s Schema
+		if err := s.UnmarshalCedar([]byte(cedarSchema)); err != nil {
+			t.Fatalf("UnmarshalCedar() error = %v", err)
+		}
+
+		resolved, err := s.Resolve()
+		if err != nil {
+			t.Fatalf("Resolve() error = %v", err)
+		}
+
+		if len(resolved.Entities) != 2 {
+			t.Errorf("Resolve() entities count = %d, want 2", len(resolved.Entities))
+		}
+
+		if _, found := resolved.Entities["TopLevel"]; !found {
+			t.Error("Resolve() should contain TopLevel entity")
+		}
+		if _, found := resolved.Entities["MyApp::Namespaced"]; !found {
+			t.Error("Resolve() should contain MyApp::Namespaced entity")
 		}
 	})
 }

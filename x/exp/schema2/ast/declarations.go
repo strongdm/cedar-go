@@ -30,35 +30,48 @@ func (n NamespaceNode) Annotate(key types.Ident, value types.String) NamespaceNo
 }
 
 // Resolve returns a new NamespaceNode with all type references in its declarations resolved.
-func (n NamespaceNode) Resolve() NamespaceNode {
+func (n NamespaceNode) Resolve(rd *resolveData) (NamespaceNode, error) {
 	resolved := NamespaceNode{
 		Name:        n.Name,
 		Annotations: n.Annotations,
 	}
+
+	// Create resolve data with this namespace
+	nsRd := rd.withNamespace(&n)
 
 	if len(n.Declarations) > 0 {
 		resolved.Declarations = make([]IsDeclaration, len(n.Declarations))
 		for i, decl := range n.Declarations {
 			switch d := decl.(type) {
 			case CommonTypeNode:
-				resolved.Declarations[i] = d.Resolve(&n)
+				resolvedDecl, err := d.Resolve(nsRd)
+				if err != nil {
+					return NamespaceNode{}, err
+				}
+				resolved.Declarations[i] = resolvedDecl
 			case EntityNode:
-				resolved.Declarations[i] = d.Resolve(&n)
+				resolvedDecl, err := d.Resolve(nsRd)
+				if err != nil {
+					return NamespaceNode{}, err
+				}
+				resolved.Declarations[i] = resolvedDecl
 			case EnumNode:
-				resolved.Declarations[i] = d.Resolve(&n)
+				resolved.Declarations[i] = d.Resolve(nsRd)
 			case ActionNode:
-				resolved.Declarations[i] = d.Resolve(&n)
+				resolvedDecl, err := d.Resolve(nsRd)
+				if err != nil {
+					return NamespaceNode{}, err
+				}
+				resolved.Declarations[i] = resolvedDecl
 			}
 		}
 	}
 
-	return resolved
+	return resolved, nil
 }
 
-// CommonTypes returns an iterator over all CommonTypeNode declarations in the namespace.
-// This allows you to iterate through only the common type (type alias) declarations
-// within this specific namespace.
-func (n NamespaceNode) CommonTypes() iter.Seq[CommonTypeNode] {
+// commonTypes returns an iterator over all CommonTypeNode declarations in the namespace.
+func (n NamespaceNode) commonTypes() iter.Seq[CommonTypeNode] {
 	return func(yield func(CommonTypeNode) bool) {
 		for _, decl := range n.Declarations {
 			if ct, ok := decl.(CommonTypeNode); ok {
@@ -70,10 +83,8 @@ func (n NamespaceNode) CommonTypes() iter.Seq[CommonTypeNode] {
 	}
 }
 
-// Entities returns an iterator over all EntityNode declarations in the namespace.
-// This allows you to iterate through only the entity type declarations
-// within this specific namespace.
-func (n NamespaceNode) Entities() iter.Seq[EntityNode] {
+// entities returns an iterator over all EntityNode declarations in the namespace.
+func (n NamespaceNode) entities() iter.Seq[EntityNode] {
 	return func(yield func(EntityNode) bool) {
 		for _, decl := range n.Declarations {
 			if e, ok := decl.(EntityNode); ok {
@@ -85,10 +96,8 @@ func (n NamespaceNode) Entities() iter.Seq[EntityNode] {
 	}
 }
 
-// Enums returns an iterator over all EnumNode declarations in the namespace.
-// This allows you to iterate through only the enum entity type declarations
-// within this specific namespace.
-func (n NamespaceNode) Enums() iter.Seq[EnumNode] {
+// enums returns an iterator over all EnumNode declarations in the namespace.
+func (n NamespaceNode) enums() iter.Seq[EnumNode] {
 	return func(yield func(EnumNode) bool) {
 		for _, decl := range n.Declarations {
 			if e, ok := decl.(EnumNode); ok {
@@ -100,10 +109,8 @@ func (n NamespaceNode) Enums() iter.Seq[EnumNode] {
 	}
 }
 
-// Actions returns an iterator over all ActionNode declarations in the namespace.
-// This allows you to iterate through only the action declarations
-// within this specific namespace.
-func (n NamespaceNode) Actions() iter.Seq[ActionNode] {
+// actions returns an iterator over all ActionNode declarations in the namespace.
+func (n NamespaceNode) actions() iter.Seq[ActionNode] {
 	return func(yield func(ActionNode) bool) {
 		for _, decl := range n.Declarations {
 			if a, ok := decl.(ActionNode); ok {
@@ -150,12 +157,16 @@ func (c CommonTypeNode) FullName(namespace *NamespaceNode) types.Path {
 }
 
 // Resolve returns a new CommonTypeNode with all type references resolved.
-func (c CommonTypeNode) Resolve(namespace *NamespaceNode) CommonTypeNode {
+func (c CommonTypeNode) Resolve(rd *resolveData) (CommonTypeNode, error) {
+	resolvedType, err := c.Type.resolve(rd)
+	if err != nil {
+		return CommonTypeNode{}, err
+	}
 	return CommonTypeNode{
 		Name:        c.Name,
 		Annotations: c.Annotations,
-		Type:        c.Type.Resolve(namespace),
-	}
+		Type:        resolvedType,
+	}, nil
 }
 
 // EntityNode represents a Cedar entity type declaration.
@@ -211,7 +222,7 @@ func (e EntityNode) EntityType(namespace *NamespaceNode) types.EntityType {
 }
 
 // Resolve returns a new EntityNode with all type references resolved.
-func (e EntityNode) Resolve(namespace *NamespaceNode) EntityNode {
+func (e EntityNode) Resolve(rd *resolveData) (EntityNode, error) {
 	resolved := EntityNode{
 		Name:        e.Name,
 		Annotations: e.Annotations,
@@ -221,22 +232,34 @@ func (e EntityNode) Resolve(namespace *NamespaceNode) EntityNode {
 	if len(e.MemberOfVal) > 0 {
 		resolved.MemberOfVal = make([]EntityTypeRef, len(e.MemberOfVal))
 		for i, ref := range e.MemberOfVal {
-			resolved.MemberOfVal[i] = ref.Resolve(namespace).(EntityTypeRef)
+			resolvedRef, err := ref.resolve(rd)
+			if err != nil {
+				return EntityNode{}, err
+			}
+			resolved.MemberOfVal[i] = resolvedRef.(EntityTypeRef)
 		}
 	}
 
 	// Resolve Shape
 	if e.ShapeVal != nil {
-		resolvedShape := e.ShapeVal.Resolve(namespace).(RecordType)
-		resolved.ShapeVal = &resolvedShape
+		resolvedShape, err := e.ShapeVal.resolve(rd)
+		if err != nil {
+			return EntityNode{}, err
+		}
+		recordType := resolvedShape.(RecordType)
+		resolved.ShapeVal = &recordType
 	}
 
 	// Resolve Tags
 	if e.TagsVal != nil {
-		resolved.TagsVal = e.TagsVal.Resolve(namespace)
+		resolvedTags, err := e.TagsVal.resolve(rd)
+		if err != nil {
+			return EntityNode{}, err
+		}
+		resolved.TagsVal = resolvedTags
 	}
 
-	return resolved
+	return resolved, nil
 }
 
 // EnumNode represents a Cedar enum entity type declaration.
@@ -283,7 +306,7 @@ func (e EnumNode) EntityUIDs(namespace *NamespaceNode) iter.Seq[types.EntityUID]
 }
 
 // Resolve returns the EnumNode unchanged (enums have no type references to resolve).
-func (e EnumNode) Resolve(namespace *NamespaceNode) EnumNode {
+func (e EnumNode) Resolve(rd *resolveData) EnumNode {
 	return e
 }
 
@@ -385,7 +408,7 @@ func (a ActionNode) EntityUID(namespace *NamespaceNode) types.EntityUID {
 }
 
 // Resolve returns a new ActionNode with all type references resolved.
-func (a ActionNode) Resolve(namespace *NamespaceNode) ActionNode {
+func (a ActionNode) Resolve(rd *resolveData) (ActionNode, error) {
 	resolved := ActionNode{
 		Name:        a.Name,
 		Annotations: a.Annotations,
@@ -395,8 +418,12 @@ func (a ActionNode) Resolve(namespace *NamespaceNode) ActionNode {
 	if len(a.MemberOfVal) > 0 {
 		resolved.MemberOfVal = make([]EntityRef, len(a.MemberOfVal))
 		for i, ref := range a.MemberOfVal {
+			resolvedType, err := ref.Type.resolve(rd)
+			if err != nil {
+				return ActionNode{}, err
+			}
 			resolved.MemberOfVal[i] = EntityRef{
-				Type: ref.Type.Resolve(namespace).(EntityTypeRef),
+				Type: resolvedType.(EntityTypeRef),
 				ID:   ref.ID,
 			}
 		}
@@ -409,21 +436,33 @@ func (a ActionNode) Resolve(namespace *NamespaceNode) ActionNode {
 		if len(a.AppliesToVal.PrincipalTypes) > 0 {
 			resolved.AppliesToVal.PrincipalTypes = make([]EntityTypeRef, len(a.AppliesToVal.PrincipalTypes))
 			for i, ref := range a.AppliesToVal.PrincipalTypes {
-				resolved.AppliesToVal.PrincipalTypes[i] = ref.Resolve(namespace).(EntityTypeRef)
+				resolvedRef, err := ref.resolve(rd)
+				if err != nil {
+					return ActionNode{}, err
+				}
+				resolved.AppliesToVal.PrincipalTypes[i] = resolvedRef.(EntityTypeRef)
 			}
 		}
 
 		if len(a.AppliesToVal.ResourceTypes) > 0 {
 			resolved.AppliesToVal.ResourceTypes = make([]EntityTypeRef, len(a.AppliesToVal.ResourceTypes))
 			for i, ref := range a.AppliesToVal.ResourceTypes {
-				resolved.AppliesToVal.ResourceTypes[i] = ref.Resolve(namespace).(EntityTypeRef)
+				resolvedRef, err := ref.resolve(rd)
+				if err != nil {
+					return ActionNode{}, err
+				}
+				resolved.AppliesToVal.ResourceTypes[i] = resolvedRef.(EntityTypeRef)
 			}
 		}
 
 		if a.AppliesToVal.Context != nil {
-			resolved.AppliesToVal.Context = a.AppliesToVal.Context.Resolve(namespace)
+			resolvedContext, err := a.AppliesToVal.Context.resolve(rd)
+			if err != nil {
+				return ActionNode{}, err
+			}
+			resolved.AppliesToVal.Context = resolvedContext
 		}
 	}
 
-	return resolved
+	return resolved, nil
 }

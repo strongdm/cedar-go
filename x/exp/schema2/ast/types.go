@@ -1,6 +1,10 @@
 package ast
 
-import "github.com/cedar-policy/cedar-go/types"
+import (
+	"fmt"
+
+	"github.com/cedar-policy/cedar-go/types"
+)
 
 // Primitive types
 
@@ -9,8 +13,8 @@ type StringType struct{}
 
 func (StringType) isType() { _ = 0 }
 
-// Resolve returns the StringType unchanged (no references to resolve).
-func (s StringType) Resolve(namespace *NamespaceNode) IsType { return s }
+// resolve returns the StringType unchanged (no references to resolve).
+func (s StringType) resolve(rd *resolveData) (IsType, error) { return s, nil }
 
 // String returns a StringType.
 func String() StringType { return StringType{} }
@@ -20,8 +24,8 @@ type LongType struct{}
 
 func (LongType) isType() { _ = 0 }
 
-// Resolve returns the LongType unchanged (no references to resolve).
-func (l LongType) Resolve(namespace *NamespaceNode) IsType { return l }
+// resolve returns the LongType unchanged (no references to resolve).
+func (l LongType) resolve(rd *resolveData) (IsType, error) { return l, nil }
 
 // Long returns a LongType.
 func Long() LongType { return LongType{} }
@@ -31,8 +35,8 @@ type BoolType struct{}
 
 func (BoolType) isType() { _ = 0 }
 
-// Resolve returns the BoolType unchanged (no references to resolve).
-func (b BoolType) Resolve(namespace *NamespaceNode) IsType { return b }
+// resolve returns the BoolType unchanged (no references to resolve).
+func (b BoolType) resolve(rd *resolveData) (IsType, error) { return b, nil }
 
 // Bool returns a BoolType.
 func Bool() BoolType { return BoolType{} }
@@ -46,8 +50,8 @@ type ExtensionType struct {
 
 func (ExtensionType) isType() { _ = 0 }
 
-// Resolve returns the ExtensionType unchanged (no references to resolve).
-func (e ExtensionType) Resolve(namespace *NamespaceNode) IsType { return e }
+// resolve returns the ExtensionType unchanged (no references to resolve).
+func (e ExtensionType) resolve(rd *resolveData) (IsType, error) { return e, nil }
 
 // IPAddr returns an ExtensionType for ipaddr.
 func IPAddr() ExtensionType { return ExtensionType{Name: "ipaddr"} }
@@ -70,9 +74,13 @@ type SetType struct {
 
 func (SetType) isType() { _ = 0 }
 
-// Resolve returns a new SetType with the element type resolved.
-func (s SetType) Resolve(namespace *NamespaceNode) IsType {
-	return SetType{Element: s.Element.Resolve(namespace)}
+// resolve returns a new SetType with the element type resolved.
+func (s SetType) resolve(rd *resolveData) (IsType, error) {
+	resolved, err := s.Element.resolve(rd)
+	if err != nil {
+		return nil, err
+	}
+	return SetType{Element: resolved}, nil
 }
 
 // Set returns a SetType with the given element type.
@@ -106,17 +114,21 @@ type RecordType struct {
 
 func (RecordType) isType() { _ = 0 }
 
-// Resolve returns a new RecordType with all attribute types resolved.
-func (r RecordType) Resolve(namespace *NamespaceNode) IsType {
+// resolve returns a new RecordType with all attribute types resolved.
+func (r RecordType) resolve(rd *resolveData) (IsType, error) {
 	resolved := make([]Pair, len(r.Pairs))
 	for i, p := range r.Pairs {
+		resolvedType, err := p.Type.resolve(rd)
+		if err != nil {
+			return nil, err
+		}
 		resolved[i] = Pair{
 			Key:      p.Key,
-			Type:     p.Type.Resolve(namespace),
+			Type:     resolvedType,
 			Optional: p.Optional,
 		}
 	}
-	return RecordType{Pairs: resolved}
+	return RecordType{Pairs: resolved}, nil
 }
 
 // Record returns a RecordType with the given pairs.
@@ -133,18 +145,18 @@ type EntityTypeRef struct {
 
 func (EntityTypeRef) isType() { _ = 0 }
 
-// Resolve resolves the entity type reference relative to the given namespace.
+// resolve resolves the entity type reference relative to the given namespace.
 // If the name is unqualified and namespace is provided, it is qualified with the namespace.
-func (e EntityTypeRef) Resolve(namespace *NamespaceNode) IsType {
-	if namespace == nil {
-		return e
+func (e EntityTypeRef) resolve(rd *resolveData) (IsType, error) {
+	if rd.namespace == nil {
+		return e, nil
 	}
 	// If the name doesn't contain "::", qualify it with the namespace
 	name := string(e.Name)
 	if len(name) > 0 && name[0] != ':' && !containsDoubleColon(name) {
-		return EntityTypeRef{Name: types.EntityType(string(namespace.Name) + "::" + name)}
+		return EntityTypeRef{Name: types.EntityType(string(rd.namespace.Name) + "::" + name)}, nil
 	}
-	return e
+	return e, nil
 }
 
 func containsDoubleColon(s string) bool {
@@ -173,18 +185,60 @@ type TypeRef struct {
 
 func (TypeRef) isType() { _ = 0 }
 
-// Resolve resolves the type reference relative to the given namespace.
-// If the name is unqualified and namespace is provided, it is qualified with the namespace.
-func (t TypeRef) Resolve(namespace *NamespaceNode) IsType {
-	if namespace == nil {
-		return t
-	}
-	// If the name doesn't contain "::", qualify it with the namespace
+// resolve resolves the type reference relative to the given namespace and schema.
+// It searches for a matching CommonType in the namespace first, then in the entire schema.
+// If found, it returns the resolved concrete type. Otherwise, it returns an error.
+func (t TypeRef) resolve(rd *resolveData) (IsType, error) {
 	name := string(t.Name)
-	if len(name) > 0 && name[0] != ':' && !containsDoubleColon(name) {
-		return TypeRef{Name: types.Path(string(namespace.Name) + "::" + name)}
+
+	// Try to find the type in the current namespace first (for unqualified names)
+	if rd.namespace != nil && len(name) > 0 && name[0] != ':' && !containsDoubleColon(name) {
+		// Check cache first
+		if resolved, found := rd.namespaceCommonTypes[name]; found {
+			return resolved, nil
+		}
+
+		// Search within the current namespace
+		for ct := range rd.namespace.commonTypes() {
+			if string(ct.Name) == name {
+				// Found it, resolve and cache it
+				resolved, err := ct.Type.resolve(rd)
+				if err != nil {
+					return nil, err
+				}
+				rd.namespaceCommonTypes[name] = resolved
+				return resolved, nil
+			}
+		}
+
+		// Not found in namespace, qualify the name for schema search
+		name = string(rd.namespace.Name) + "::" + name
 	}
-	return t
+
+	// Check schema-wide cache
+	if resolved, found := rd.schemaCommonTypes[name]; found {
+		return resolved, nil
+	}
+
+	// Search the entire schema for a matching CommonType
+	if rd.schema != nil {
+		for ns, ct := range rd.schema.commonTypes() {
+			fullName := ct.FullName(ns)
+			if string(fullName) == name {
+				// Found it, resolve with the common type's namespace and cache it
+				ctRd := rd.withNamespace(ns)
+				resolved, err := ct.Type.resolve(ctRd)
+				if err != nil {
+					return nil, err
+				}
+				rd.schemaCommonTypes[name] = resolved
+				return resolved, nil
+			}
+		}
+	}
+
+	// Not found, return an error
+	return nil, fmt.Errorf("type %q not found", name)
 }
 
 // Type creates a TypeRef from a path name.

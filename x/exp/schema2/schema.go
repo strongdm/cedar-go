@@ -12,8 +12,12 @@ import (
 // Schema represents a Cedar schema with parsing and marshaling capabilities.
 type Schema struct {
 	filename string
-	schema   *ast.Schema
+	schema   ast.Schema
 }
+
+// ResolvedSchema is an alias for ast.ResolvedSchema, providing efficient lookup maps
+// for entities, enums, and actions with fully qualified names.
+type ResolvedSchema = ast.ResolvedSchema
 
 // SetFilename sets the filename for this schema.
 func (s *Schema) SetFilename(filename string) {
@@ -22,10 +26,7 @@ func (s *Schema) SetFilename(filename string) {
 
 // MarshalJSON encodes the Schema in the JSON format specified by the Cedar documentation.
 func (s *Schema) MarshalJSON() ([]byte, error) {
-	if s.schema == nil {
-		return []byte{}, nil
-	}
-	jsonSchema := (*json.Schema)(s.schema)
+	jsonSchema := (*json.Schema)(&s.schema)
 	return jsonSchema.MarshalJSON()
 }
 
@@ -35,16 +36,12 @@ func (s *Schema) UnmarshalJSON(b []byte) error {
 	if err := jsonSchema.UnmarshalJSON(b); err != nil {
 		return err
 	}
-	s.schema = (*ast.Schema)(&jsonSchema)
+	s.schema = *(*ast.Schema)(&jsonSchema)
 	return nil
 }
 
 // MarshalCedar encodes the Schema in the human-readable format specified by the Cedar documentation.
 func (s *Schema) MarshalCedar() ([]byte, error) {
-	if s.schema == nil {
-		return nil, &SchemaError{Err: "cannot marshal empty schema"}
-	}
-
 	var buf bytes.Buffer
 	cedarBytes := s.schema.MarshalCedar()
 	buf.Write(cedarBytes)
@@ -57,15 +54,14 @@ func (s *Schema) UnmarshalCedar(b []byte) error {
 	if err != nil {
 		return err
 	}
-	s.schema = schema
+	s.schema = *schema
 	return nil
 }
 
-// SchemaError represents an error in schema processing.
-type SchemaError struct {
-	Err string
-}
-
-func (e *SchemaError) Error() string {
-	return e.Err
+// Resolve returns a ResolvedSchema with all type references resolved and indexed for efficient lookup.
+// Type references within namespaces are resolved relative to their namespace.
+// Top-level type references are resolved as-is.
+// Returns an error if any type reference cannot be resolved.
+func (s *Schema) Resolve() (*ResolvedSchema, error) {
+	return s.schema.Resolve()
 }
