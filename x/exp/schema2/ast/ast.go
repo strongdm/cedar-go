@@ -27,12 +27,19 @@ type IsType interface {
 	resolve(rd *resolveData) (IsType, error)
 }
 
+// commonTypeEntry represents a common type that may or may not be resolved yet.
+type commonTypeEntry struct {
+	resolved bool
+	typ      IsType
+	node     *CommonTypeNode
+}
+
 // resolveData contains cached information for efficient type resolution.
 type resolveData struct {
 	schema               *Schema
 	namespace            *NamespaceNode
-	schemaCommonTypes    map[string]IsType // Fully qualified name -> resolved Type
-	namespaceCommonTypes map[string]IsType // Unqualified name -> resolved Type
+	schemaCommonTypes    map[string]*commonTypeEntry // Fully qualified name -> common type entry
+	namespaceCommonTypes map[string]*commonTypeEntry // Unqualified name -> common type entry
 }
 
 // Annotation represents a Cedar annotation (@key("value")).
@@ -56,15 +63,37 @@ func newResolveData(schema *Schema, namespace *NamespaceNode) *resolveData {
 	rd := &resolveData{
 		schema:               schema,
 		namespace:            namespace,
-		schemaCommonTypes:    make(map[string]IsType),
-		namespaceCommonTypes: make(map[string]IsType),
+		schemaCommonTypes:    make(map[string]*commonTypeEntry),
+		namespaceCommonTypes: make(map[string]*commonTypeEntry),
 	}
 
 	// Build schema-wide common types map (fully qualified names)
-	// We resolve the types lazily in TypeRef.Resolve to avoid circular dependencies
+	// Populate with unresolved entries that will be resolved lazily
+	for ns, ct := range schema.CommonTypes() {
+		ctCopy := ct
+		var fullName string
+		if ns == nil {
+			fullName = string(ct.Name)
+		} else {
+			fullName = string(ns.Name) + "::" + string(ct.Name)
+		}
+		rd.schemaCommonTypes[fullName] = &commonTypeEntry{
+			resolved: false,
+			node:     &ctCopy,
+		}
+	}
 
 	// Build namespace-local common types map (unqualified names)
-	// We resolve the types lazily in TypeRef.Resolve to avoid circular dependencies
+	// Populate with unresolved entries for the current namespace
+	if namespace != nil {
+		for ct := range namespace.CommonTypes() {
+			ctCopy := ct
+			rd.namespaceCommonTypes[string(ct.Name)] = &commonTypeEntry{
+				resolved: false,
+				node:     &ctCopy,
+			}
+		}
+	}
 
 	return rd
 }

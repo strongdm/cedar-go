@@ -193,22 +193,21 @@ func (t TypeRef) resolve(rd *resolveData) (IsType, error) {
 
 	// Try to find the type in the current namespace first (for unqualified names)
 	if rd.namespace != nil && len(name) > 0 && name[0] != ':' && !containsDoubleColon(name) {
-		// Check cache first
-		if resolved, found := rd.namespaceCommonTypes[name]; found {
-			return resolved, nil
-		}
-
-		// Search within the current namespace
-		for ct := range rd.namespace.CommonTypes() {
-			if string(ct.Name) == name {
-				// Found it, resolve and cache it
-				resolved, err := ct.Type.resolve(rd)
-				if err != nil {
-					return nil, err
-				}
-				rd.namespaceCommonTypes[name] = resolved
-				return resolved, nil
+		// Check namespace-local cache first
+		if entry, found := rd.namespaceCommonTypes[name]; found {
+			// If already resolved, return cached type
+			if entry.resolved {
+				return entry.typ, nil
 			}
+			// Resolve lazily
+			resolved, err := entry.node.Type.resolve(rd)
+			if err != nil {
+				return nil, err
+			}
+			// Cache the resolved type
+			entry.typ = resolved
+			entry.resolved = true
+			return resolved, nil
 		}
 
 		// Not found in namespace, qualify the name for schema search
@@ -216,31 +215,41 @@ func (t TypeRef) resolve(rd *resolveData) (IsType, error) {
 	}
 
 	// Check schema-wide cache
-	if resolved, found := rd.schemaCommonTypes[name]; found {
-		return resolved, nil
-	}
-
-	// Search the entire schema for a matching CommonType
-	if rd.schema != nil {
-		for ns, ct := range rd.schema.CommonTypes() {
-			// Compute fully qualified name
-			var fullName string
-			if ns == nil {
-				fullName = string(ct.Name)
-			} else {
-				fullName = string(ns.Name) + "::" + string(ct.Name)
-			}
-			if fullName == name {
-				// Found it, resolve with the common type's namespace and cache it
-				ctRd := rd.withNamespace(ns)
-				resolved, err := ct.Type.resolve(ctRd)
-				if err != nil {
-					return nil, err
-				}
-				rd.schemaCommonTypes[name] = resolved
-				return resolved, nil
-			}
+	if entry, found := rd.schemaCommonTypes[name]; found {
+		// If already resolved, return cached type
+		if entry.resolved {
+			return entry.typ, nil
 		}
+		// Resolve lazily with the common type's namespace context
+		var ctRd *resolveData
+		if entry.node != nil {
+			// Find the namespace for this common type by checking where it's declared
+			var ns *NamespaceNode
+			for nsNode, ct := range rd.schema.CommonTypes() {
+				var fullName string
+				if nsNode == nil {
+					fullName = string(ct.Name)
+				} else {
+					fullName = string(nsNode.Name) + "::" + string(ct.Name)
+				}
+				if fullName == name {
+					ns = nsNode
+					break
+				}
+			}
+			ctRd = rd.withNamespace(ns)
+		} else {
+			ctRd = rd
+		}
+
+		resolved, err := entry.node.Type.resolve(ctRd)
+		if err != nil {
+			return nil, err
+		}
+		// Cache the resolved type
+		entry.typ = resolved
+		entry.resolved = true
+		return resolved, nil
 	}
 
 	// Not found, return an error
