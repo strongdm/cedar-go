@@ -12,6 +12,10 @@ import (
 	"github.com/cedar-policy/cedar-go/x/exp/schema2"
 )
 
+// Note: Helper functions (cedarCLI, verifyWithCedarCLI, verifyJSONWithCedarCLI,
+// translateCedarToJSONWithRust, translateJSONToCedarWithRust, normalizeJSON)
+// are defined in testutil_test.go
+
 // TestCorpus runs all schema files in testdata/corpus against the parser.
 // Files in corpus/valid/ must parse successfully and round-trip.
 // Files in corpus/invalid/ must fail to parse.
@@ -38,14 +42,8 @@ func TestCorpus(t *testing.T) {
 					t.Fatalf("failed to parse valid schema %s: %v", name, err)
 				}
 
-				// Round-trip Cedar -> Cedar
-				marshaled, err := schema.MarshalCedar()
-				testutil.OK(t, err)
-				var schema2Parsed schema2.Schema
-				err = schema2Parsed.UnmarshalCedar(marshaled)
-				if err != nil {
-					t.Fatalf("round-trip failed for %s: %v\nmarshaled:\n%s", name, err, string(marshaled))
-				}
+				// Round-trip Cedar -> Cedar using helper
+				roundTripCedar(t, &schema)
 			})
 		}
 	})
@@ -123,32 +121,11 @@ func TestJSONCorpus(t *testing.T) {
 				t.Fatalf("failed to parse Cedar schema: %v", err)
 			}
 
-			// Cedar -> JSON
-			jsonData, err := schema.MarshalJSON()
-			if err != nil {
-				t.Fatalf("failed to marshal to JSON: %v", err)
-			}
-
-			// JSON -> Cedar (parse JSON back)
-			var schema2Parsed schema2.Schema
-			err = schema2Parsed.UnmarshalJSON(jsonData)
-			if err != nil {
-				t.Fatalf("failed to parse JSON schema: %v\nJSON:\n%s", err, string(jsonData))
-			}
+			// Cedar -> JSON round-trip using helper
+			jsonData := roundTripJSON(t, &schema)
 
 			// Verify JSON validates with reference implementation
 			verifyJSONWithCedarCLI(t, string(jsonData))
-
-			// JSON -> Cedar -> JSON round-trip stability
-			jsonData2, err := schema2Parsed.MarshalJSON()
-			if err != nil {
-				t.Fatalf("failed to re-marshal to JSON: %v", err)
-			}
-
-			// Verify JSON stability
-			if normalizeJSON(t, string(jsonData)) != normalizeJSON(t, string(jsonData2)) {
-				t.Fatalf("JSON round-trip unstable:\nfirst:\n%s\nsecond:\n%s", jsonData, jsonData2)
-			}
 		})
 	}
 }
@@ -430,88 +407,14 @@ func TestCorpusFilesRustSemanticParity(t *testing.T) {
 	}
 }
 
-// Helper functions for JSON/Rust parity tests
-
-// translateCedarToJSONWithRust uses the Rust CLI to convert Cedar schema to JSON.
-func translateCedarToJSONWithRust(t *testing.T, cedarContent string) string {
-	t.Helper()
-	cli := cedarCLI()
-	if cli == "" {
-		t.Skip("cedar CLI not available")
-	}
-
-	tmpDir := t.TempDir()
-	cedarFile := filepath.Join(tmpDir, "schema.cedarschema")
-	if err := os.WriteFile(cedarFile, []byte(cedarContent), 0o644); err != nil {
-		t.Fatalf("failed to write temp schema: %v", err)
-	}
-
-	cmd := exec.Command(cli, "translate-schema", "--direction", "cedar-to-json", "--schema", cedarFile)
-	output, err := cmd.Output()
-	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			t.Fatalf("cedar translate-schema failed: %v\nstderr: %s", err, exitErr.Stderr)
-		}
-		t.Fatalf("cedar translate-schema failed: %v", err)
-	}
-	return string(output)
-}
-
-// translateJSONToCedarWithRust uses the Rust CLI to convert JSON schema to Cedar.
-func translateJSONToCedarWithRust(t *testing.T, jsonContent string) string {
-	t.Helper()
-	cli := cedarCLI()
-	if cli == "" {
-		t.Skip("cedar CLI not available")
-	}
-
-	tmpDir := t.TempDir()
-	jsonFile := filepath.Join(tmpDir, "schema.cedarschema.json")
-	if err := os.WriteFile(jsonFile, []byte(jsonContent), 0o644); err != nil {
-		t.Fatalf("failed to write temp schema: %v", err)
-	}
-
-	cmd := exec.Command(cli, "translate-schema", "--direction", "json-to-cedar", "--schema", jsonFile)
-	output, err := cmd.Output()
-	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			t.Fatalf("cedar translate-schema failed: %v\nstderr: %s", err, exitErr.Stderr)
-		}
-		t.Fatalf("cedar translate-schema failed: %v", err)
-	}
-	return string(output)
-}
-
-// normalizeJSON parses and re-marshals JSON for consistent comparison.
-func normalizeJSON(t *testing.T, jsonStr string) string {
-	t.Helper()
-	var m map[string]interface{}
-	if err := json.Unmarshal([]byte(jsonStr), &m); err != nil {
-		t.Fatalf("failed to parse JSON: %v\nJSON: %s", err, jsonStr)
-	}
-	normalized, err := json.MarshalIndent(m, "", "    ")
-	if err != nil {
-		t.Fatalf("failed to marshal JSON: %v", err)
-	}
-	return string(normalized)
-}
+// Helper functions are defined in testutil_test.go
 
 // TestComprehensiveCorpus tests comprehensive corpus files with all conversion paths.
-// For each .cedarschema file in testdata/corpus/comprehensive/, we expect:
-//   - filename.cedarschema: input schema
-//   - filename.out.cedarschema: expected Cedar output (normalized)
-//   - filename.json: expected JSON output
-//   - filename.resolved.cedarschema: expected resolved Cedar output
-//   - filename.policy: policy set for validation (optional)
-//
-// Tests verify:
-//  1. Cedar → MarshalCedar matches .out.cedarschema
-//  2. Cedar → MarshalJSON matches .json
-//  3. JSON → MarshalCedar matches .out.cedarschema
-//  4. Cedar → Resolve → MarshalCedar matches .resolved.cedarschema
-//  5. JSON → Resolve → MarshalCedar matches .resolved.cedarschema
-//  6. Policies validate against original schema (if .policy exists)
-//  7. Policies validate against .out schema (if .policy exists)
+// For each .cedarschema file in testdata/corpus/comprehensive/, we test:
+//  1. Cedar → MarshalCedar is valid and stable
+//  2. Cedar → MarshalJSON is valid and stable
+//  3. JSON → Cedar is valid
+//  4. Policies validate against original schema (if .policy exists)
 func TestComprehensiveCorpus(t *testing.T) {
 	t.Parallel()
 
@@ -536,62 +439,31 @@ func TestComprehensiveCorpus(t *testing.T) {
 			dir := filepath.Dir(inputFile)
 			policyFile := filepath.Join(dir, baseName+".policy")
 
-			// Read input Cedar schema
+			// Read and parse input Cedar schema
 			cedarData, err := os.ReadFile(inputFile)
 			testutil.OK(t, err)
 
-			// Parse Cedar schema
 			var schema schema2.Schema
 			err = schema.UnmarshalCedar(cedarData)
 			if err != nil {
 				t.Fatalf("failed to parse Cedar schema: %v", err)
 			}
 
-			// Test 1: Cedar → MarshalCedar is valid and stable
-			actualOut, err := schema.MarshalCedar()
-			testutil.OK(t, err)
-
-			// Verify with reference implementation
+			// Test 1: Cedar round-trip using helper
+			actualOut := roundTripCedar(t, &schema)
 			verifyWithCedarCLI(t, string(actualOut))
 
-			// Verify round-trip stability
-			var schema2Parsed schema2.Schema
-			err = schema2Parsed.UnmarshalCedar(actualOut)
-			testutil.OK(t, err)
-
-			actualOut2, err := schema2Parsed.MarshalCedar()
-			testutil.OK(t, err)
-
-			if string(actualOut) != string(actualOut2) {
-				t.Errorf("Cedar round-trip unstable:\nfirst:\n%s\n\nsecond:\n%s",
-					string(actualOut), string(actualOut2))
-			}
-
-			// Test 2: Cedar → MarshalJSON is valid and stable
-			actualJSON, err := schema.MarshalJSON()
-			testutil.OK(t, err)
-
-			// Verify with reference implementation
+			// Test 2: JSON round-trip using helper
+			actualJSON := roundTripJSON(t, &schema)
 			verifyJSONWithCedarCLI(t, string(actualJSON))
 
-			// Verify round-trip stability
+			// Test 3: JSON → Cedar is valid
 			var schemaFromJSON schema2.Schema
 			err = schemaFromJSON.UnmarshalJSON(actualJSON)
 			testutil.OK(t, err)
 
-			actualJSON2, err := schemaFromJSON.MarshalJSON()
-			testutil.OK(t, err)
-
-			if normalizeJSON(t, string(actualJSON)) != normalizeJSON(t, string(actualJSON2)) {
-				t.Errorf("JSON round-trip unstable:\nfirst:\n%s\n\nsecond:\n%s",
-					string(actualJSON), string(actualJSON2))
-			}
-
-			// Test 3: JSON → Cedar is valid
 			cedarFromJSON, err := schemaFromJSON.MarshalCedar()
 			testutil.OK(t, err)
-
-			// Verify with reference implementation
 			verifyWithCedarCLI(t, string(cedarFromJSON))
 
 			// Test 4: Validate policies against original schema (if .policy exists)

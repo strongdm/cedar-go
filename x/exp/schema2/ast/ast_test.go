@@ -11,18 +11,22 @@ import (
 func TestSchema(t *testing.T) {
 	t.Parallel()
 
-	t.Run("empty schema", func(t *testing.T) {
-		t.Parallel()
-		s := ast.NewSchema()
-		testutil.Equals(t, len(s.Nodes), 0)
-	})
+	tests := []struct {
+		name      string
+		nodes     []ast.IsNode
+		wantNodes int
+	}{
+		{"empty schema", []ast.IsNode{}, 0},
+		{"schema with namespace", []ast.IsNode{ast.Namespace("MyApp")}, 1},
+	}
 
-	t.Run("schema with namespace", func(t *testing.T) {
-		t.Parallel()
-		ns := ast.Namespace("MyApp")
-		s := ast.NewSchema(ns)
-		testutil.Equals(t, len(s.Nodes), 1)
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			s := ast.NewSchema(tt.nodes...)
+			testutil.Equals(t, len(s.Nodes), tt.wantNodes)
+		})
+	}
 }
 
 func TestSchemaIterators(t *testing.T) {
@@ -45,160 +49,103 @@ func TestSchemaIterators(t *testing.T) {
 	a2 := ast.Action("write")
 	a3 := ast.Action("delete")
 
-	// Create namespaces with different declarations
 	ns1 := ast.Namespace(types.Path("App1"), ct1, e1, enum1, a1)
 	ns2 := ast.Namespace(types.Path("App2"), ct2, e2, enum2, a2)
 	ns3 := ast.Namespace(types.Path("App3"), ct3, e3, enum3, a3)
 
 	schema := ast.NewSchema(ns1, ns2, ns3)
 
-	t.Run("Namespaces", func(t *testing.T) {
-		var namespaces []ast.NamespaceNode
-		for ns := range schema.Namespaces() {
-			namespaces = append(namespaces, ns)
-		}
-		testutil.Equals(t, len(namespaces), 3)
-		testutil.Equals(t, namespaces[0], ns1)
-		testutil.Equals(t, namespaces[1], ns2)
-		testutil.Equals(t, namespaces[2], ns3)
-	})
+	tests := []struct {
+		name      string
+		count     func() int
+		wantCount int
+	}{
+		{
+			"Namespaces",
+			func() int {
+				count := 0
+				for range schema.Namespaces() {
+					count++
+				}
+				return count
+			},
+			3,
+		},
+		{
+			"CommonTypes",
+			func() int {
+				count := 0
+				for range schema.CommonTypes() {
+					count++
+				}
+				return count
+			},
+			3,
+		},
+		{
+			"Entities",
+			func() int {
+				count := 0
+				for range schema.Entities() {
+					count++
+				}
+				return count
+			},
+			3,
+		},
+		{
+			"Enums",
+			func() int {
+				count := 0
+				for range schema.Enums() {
+					count++
+				}
+				return count
+			},
+			3,
+		},
+		{
+			"Actions",
+			func() int {
+				count := 0
+				for range schema.Actions() {
+					count++
+				}
+				return count
+			},
+			3,
+		},
+	}
 
-	t.Run("CommonTypes", func(t *testing.T) {
-		var commonTypes []ast.CommonTypeNode
-		var namespaces []*ast.NamespaceNode
-		for ns, ct := range schema.CommonTypes() {
-			namespaces = append(namespaces, ns)
-			commonTypes = append(commonTypes, ct)
-		}
-		testutil.Equals(t, len(commonTypes), 3)
-		testutil.Equals(t, commonTypes[0], ct1)
-		testutil.Equals(t, commonTypes[1], ct2)
-		testutil.Equals(t, commonTypes[2], ct3)
-		testutil.Equals(t, namespaces[0].Name, types.Path("App1"))
-		testutil.Equals(t, namespaces[1].Name, types.Path("App2"))
-		testutil.Equals(t, namespaces[2].Name, types.Path("App3"))
-	})
-
-	t.Run("Entities", func(t *testing.T) {
-		var entities []ast.EntityNode
-		var namespaces []*ast.NamespaceNode
-		for ns, e := range schema.Entities() {
-			namespaces = append(namespaces, ns)
-			entities = append(entities, e)
-		}
-		testutil.Equals(t, len(entities), 3)
-		testutil.Equals(t, entities[0], e1)
-		testutil.Equals(t, entities[1], e2)
-		testutil.Equals(t, entities[2], e3)
-		testutil.Equals(t, namespaces[0].Name, types.Path("App1"))
-		testutil.Equals(t, namespaces[1].Name, types.Path("App2"))
-		testutil.Equals(t, namespaces[2].Name, types.Path("App3"))
-	})
-
-	t.Run("Enums", func(t *testing.T) {
-		var enums []ast.EnumNode
-		var namespaces []*ast.NamespaceNode
-		for ns, e := range schema.Enums() {
-			namespaces = append(namespaces, ns)
-			enums = append(enums, e)
-		}
-		testutil.Equals(t, len(enums), 3)
-		testutil.Equals(t, enums[0], enum1)
-		testutil.Equals(t, enums[1], enum2)
-		testutil.Equals(t, enums[2], enum3)
-		testutil.Equals(t, namespaces[0].Name, types.Path("App1"))
-		testutil.Equals(t, namespaces[1].Name, types.Path("App2"))
-		testutil.Equals(t, namespaces[2].Name, types.Path("App3"))
-	})
-
-	t.Run("Actions", func(t *testing.T) {
-		var actions []ast.ActionNode
-		var namespaces []*ast.NamespaceNode
-		for ns, a := range schema.Actions() {
-			namespaces = append(namespaces, ns)
-			actions = append(actions, a)
-		}
-		testutil.Equals(t, len(actions), 3)
-		testutil.Equals(t, actions[0], a1)
-		testutil.Equals(t, actions[1], a2)
-		testutil.Equals(t, actions[2], a3)
-		testutil.Equals(t, namespaces[0].Name, types.Path("App1"))
-		testutil.Equals(t, namespaces[1].Name, types.Path("App2"))
-		testutil.Equals(t, namespaces[2].Name, types.Path("App3"))
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.count()
+			testutil.Equals(t, got, tt.wantCount)
+		})
+	}
 }
 
 func TestSchemaIteratorsEmpty(t *testing.T) {
 	t.Parallel()
 
+	testIteratorCounts := func(t *testing.T, schema *ast.Schema, wantNS, wantCT, wantE, wantEnum, wantA int) {
+		testutil.Equals(t, countIter(schema.Namespaces()), wantNS)
+		testutil.Equals(t, countIter2(schema.CommonTypes()), wantCT)
+		testutil.Equals(t, countIter2(schema.Entities()), wantE)
+		testutil.Equals(t, countIter2(schema.Enums()), wantEnum)
+		testutil.Equals(t, countIter2(schema.Actions()), wantA)
+	}
+
 	t.Run("empty schema", func(t *testing.T) {
 		schema := ast.NewSchema()
-
-		nsCount := 0
-		for range schema.Namespaces() {
-			nsCount++
-		}
-		testutil.Equals(t, nsCount, 0)
-
-		ctCount := 0
-		for range schema.CommonTypes() {
-			ctCount++
-		}
-		testutil.Equals(t, ctCount, 0)
-
-		eCount := 0
-		for range schema.Entities() {
-			eCount++
-		}
-		testutil.Equals(t, eCount, 0)
-
-		enumCount := 0
-		for range schema.Enums() {
-			enumCount++
-		}
-		testutil.Equals(t, enumCount, 0)
-
-		aCount := 0
-		for range schema.Actions() {
-			aCount++
-		}
-		testutil.Equals(t, aCount, 0)
+		testIteratorCounts(t, schema, 0, 0, 0, 0, 0)
 	})
 
 	t.Run("schema with empty namespaces", func(t *testing.T) {
 		ns1 := ast.Namespace(types.Path("Empty1"))
 		ns2 := ast.Namespace(types.Path("Empty2"))
 		schema := ast.NewSchema(ns1, ns2)
-
-		nsCount := 0
-		for range schema.Namespaces() {
-			nsCount++
-		}
-		testutil.Equals(t, nsCount, 2)
-
-		ctCount := 0
-		for range schema.CommonTypes() {
-			ctCount++
-		}
-		testutil.Equals(t, ctCount, 0)
-
-		eCount := 0
-		for range schema.Entities() {
-			eCount++
-		}
-		testutil.Equals(t, eCount, 0)
-
-		enumCount := 0
-		for range schema.Enums() {
-			enumCount++
-		}
-		testutil.Equals(t, enumCount, 0)
-
-		aCount := 0
-		for range schema.Actions() {
-			aCount++
-		}
-		testutil.Equals(t, aCount, 0)
+		testIteratorCounts(t, schema, 2, 0, 0, 0, 0)
 	})
 }
 
@@ -233,129 +180,164 @@ func TestSchemaIteratorsEarlyBreak(t *testing.T) {
 		testutil.Equals(t, count, 1)
 	})
 
-	e1 := ast.Entity("E1")
-	e2 := ast.Entity("E2")
-	e3 := ast.Entity("E3")
-	schemaE := ast.NewSchema(
-		ast.Namespace(types.Path("A"), e1),
-		ast.Namespace(types.Path("B"), e2),
-		ast.Namespace(types.Path("C"), e3),
-	)
+	// Test early break for all iterator types
+	iteratorTests := []struct {
+		name      string
+		schema    *ast.Schema
+		countFunc func(*ast.Schema) int
+	}{
+		{
+			"Entities",
+			ast.NewSchema(
+				ast.Namespace(types.Path("A"), ast.Entity("E1")),
+				ast.Namespace(types.Path("B"), ast.Entity("E2")),
+				ast.Namespace(types.Path("C"), ast.Entity("E3")),
+			),
+			func(s *ast.Schema) int {
+				count := 0
+				for range s.Entities() {
+					count++
+					if count == 1 {
+						break
+					}
+				}
+				return count
+			},
+		},
+		{
+			"Enums",
+			ast.NewSchema(
+				ast.Namespace(types.Path("A"), ast.Enum("E1", "a")),
+				ast.Namespace(types.Path("B"), ast.Enum("E2", "b")),
+				ast.Namespace(types.Path("C"), ast.Enum("E3", "c")),
+			),
+			func(s *ast.Schema) int {
+				count := 0
+				for range s.Enums() {
+					count++
+					if count == 1 {
+						break
+					}
+				}
+				return count
+			},
+		},
+		{
+			"Actions",
+			ast.NewSchema(
+				ast.Namespace(types.Path("A"), ast.Action("A1")),
+				ast.Namespace(types.Path("B"), ast.Action("A2")),
+				ast.Namespace(types.Path("C"), ast.Action("A3")),
+			),
+			func(s *ast.Schema) int {
+				count := 0
+				for range s.Actions() {
+					count++
+					if count == 1 {
+						break
+					}
+				}
+				return count
+			},
+		},
+	}
 
-	t.Run("Entities early break", func(t *testing.T) {
-		count := 0
-		for range schemaE.Entities() {
-			count++
-			if count == 1 {
-				break
-			}
-		}
-		testutil.Equals(t, count, 1)
-	})
-
-	enum1 := ast.Enum("E1", "a")
-	enum2 := ast.Enum("E2", "b")
-	enum3 := ast.Enum("E3", "c")
-	schemaEnum := ast.NewSchema(
-		ast.Namespace(types.Path("A"), enum1),
-		ast.Namespace(types.Path("B"), enum2),
-		ast.Namespace(types.Path("C"), enum3),
-	)
-
-	t.Run("Enums early break", func(t *testing.T) {
-		count := 0
-		for range schemaEnum.Enums() {
-			count++
-			if count == 1 {
-				break
-			}
-		}
-		testutil.Equals(t, count, 1)
-	})
-
-	a1 := ast.Action("A1")
-	a2 := ast.Action("A2")
-	a3 := ast.Action("A3")
-	schemaA := ast.NewSchema(
-		ast.Namespace(types.Path("A"), a1),
-		ast.Namespace(types.Path("B"), a2),
-		ast.Namespace(types.Path("C"), a3),
-	)
-
-	t.Run("Actions early break", func(t *testing.T) {
-		count := 0
-		for range schemaA.Actions() {
-			count++
-			if count == 1 {
-				break
-			}
-		}
-		testutil.Equals(t, count, 1)
-	})
+	for _, tt := range iteratorTests {
+		t.Run(tt.name+" early break", func(t *testing.T) {
+			testutil.Equals(t, tt.countFunc(tt.schema), 1)
+		})
+	}
 
 	// Test early break on top-level declarations
-	ct1 := ast.CommonType("CT1", ast.String())
-	ct2 := ast.CommonType("CT2", ast.String())
-	topE1 := ast.Entity("TopE1")
-	topE2 := ast.Entity("TopE2")
-	topEnum1 := ast.Enum("TopEnum1", "a")
-	topEnum2 := ast.Enum("TopEnum2", "b")
-	topA1 := ast.Action("TopA1")
-	topA2 := ast.Action("TopA2")
+	topLevelTests := []struct {
+		name      string
+		schema    *ast.Schema
+		countFunc func(*ast.Schema) int
+	}{
+		{
+			"CommonTypes on top-level",
+			ast.NewSchema(
+				ast.CommonType("CT1", ast.String()),
+				ast.CommonType("CT2", ast.String()),
+				ast.Namespace(types.Path("NS")),
+			),
+			func(s *ast.Schema) int {
+				count := 0
+				for range s.CommonTypes() {
+					count++
+					if count == 1 {
+						break
+					}
+				}
+				return count
+			},
+		},
+		{
+			"Entities on top-level",
+			ast.NewSchema(
+				ast.Entity("TopE1"),
+				ast.Entity("TopE2"),
+				ast.Namespace(types.Path("NS")),
+			),
+			func(s *ast.Schema) int {
+				count := 0
+				for range s.Entities() {
+					count++
+					if count == 1 {
+						break
+					}
+				}
+				return count
+			},
+		},
+		{
+			"Enums on top-level",
+			ast.NewSchema(
+				ast.Enum("TopEnum1", "a"),
+				ast.Enum("TopEnum2", "b"),
+				ast.Namespace(types.Path("NS")),
+			),
+			func(s *ast.Schema) int {
+				count := 0
+				for range s.Enums() {
+					count++
+					if count == 1 {
+						break
+					}
+				}
+				return count
+			},
+		},
+		{
+			"Actions on top-level",
+			ast.NewSchema(
+				ast.Action("TopA1"),
+				ast.Action("TopA2"),
+				ast.Namespace(types.Path("NS")),
+			),
+			func(s *ast.Schema) int {
+				count := 0
+				for range s.Actions() {
+					count++
+					if count == 1 {
+						break
+					}
+				}
+				return count
+			},
+		},
+	}
 
-	t.Run("CommonTypes early break on top-level", func(t *testing.T) {
-		schema := ast.NewSchema(ct1, ct2, ast.Namespace(types.Path("NS")))
-		count := 0
-		for range schema.CommonTypes() {
-			count++
-			if count == 1 {
-				break
-			}
-		}
-		testutil.Equals(t, count, 1)
-	})
-
-	t.Run("Entities early break on top-level", func(t *testing.T) {
-		schema := ast.NewSchema(topE1, topE2, ast.Namespace(types.Path("NS")))
-		count := 0
-		for range schema.Entities() {
-			count++
-			if count == 1 {
-				break
-			}
-		}
-		testutil.Equals(t, count, 1)
-	})
-
-	t.Run("Enums early break on top-level", func(t *testing.T) {
-		schema := ast.NewSchema(topEnum1, topEnum2, ast.Namespace(types.Path("NS")))
-		count := 0
-		for range schema.Enums() {
-			count++
-			if count == 1 {
-				break
-			}
-		}
-		testutil.Equals(t, count, 1)
-	})
-
-	t.Run("Actions early break on top-level", func(t *testing.T) {
-		schema := ast.NewSchema(topA1, topA2, ast.Namespace(types.Path("NS")))
-		count := 0
-		for range schema.Actions() {
-			count++
-			if count == 1 {
-				break
-			}
-		}
-		testutil.Equals(t, count, 1)
-	})
+	for _, tt := range topLevelTests {
+		t.Run(tt.name+" early break", func(t *testing.T) {
+			testutil.Equals(t, tt.countFunc(tt.schema), 1)
+		})
+	}
 }
 
 func TestSchemaIteratorsMixed(t *testing.T) {
 	t.Parallel()
 
-	// Create a complex schema with multiple namespaces containing different declaration types
 	ns1 := ast.Namespace(types.Path("App"),
 		ast.CommonType("Name", ast.String()),
 		ast.Entity("User"),
@@ -373,49 +355,33 @@ func TestSchemaIteratorsMixed(t *testing.T) {
 
 	schema := ast.NewSchema(ns1, ns2)
 
-	t.Run("CommonTypes from mixed declarations", func(t *testing.T) {
-		count := 0
-		for range schema.CommonTypes() {
-			count++
-		}
-		testutil.Equals(t, count, 3) // Name, Age, ID
-	})
+	tests := []struct {
+		name      string
+		countFunc func(*ast.Schema) int
+		want      int
+	}{
+		{"CommonTypes", func(s *ast.Schema) int { return countIter2(s.CommonTypes()) }, 3},
+		{"Entities", func(s *ast.Schema) int { return countIter2(s.Entities()) }, 2},
+		{"Enums", func(s *ast.Schema) int { return countIter2(s.Enums()) }, 2},
+		{"Actions", func(s *ast.Schema) int { return countIter2(s.Actions()) }, 2},
+	}
 
-	t.Run("Entities from mixed declarations", func(t *testing.T) {
-		count := 0
-		for range schema.Entities() {
-			count++
-		}
-		testutil.Equals(t, count, 2) // User, Group
-	})
-
-	t.Run("Enums from mixed declarations", func(t *testing.T) {
-		count := 0
-		for range schema.Enums() {
-			count++
-		}
-		testutil.Equals(t, count, 2) // Status, Priority
-	})
-
-	t.Run("Actions from mixed declarations", func(t *testing.T) {
-		count := 0
-		for range schema.Actions() {
-			count++
-		}
-		testutil.Equals(t, count, 2) // read, write
-	})
+	for _, tt := range tests {
+		t.Run(tt.name+" from mixed declarations", func(t *testing.T) {
+			got := tt.countFunc(schema)
+			testutil.Equals(t, got, tt.want)
+		})
+	}
 }
 
 func TestSchemaIteratorsTopLevel(t *testing.T) {
 	t.Parallel()
 
-	// Create top-level declarations (not in a namespace)
 	ct1 := ast.CommonType("TopType", ast.String())
 	e1 := ast.Entity("TopEntity")
 	enum1 := ast.Enum("TopEnum", "a", "b")
 	a1 := ast.Action("topAction")
 
-	// Create a namespace with its own declarations
 	ns := ast.Namespace(types.Path("NS"),
 		ast.CommonType("NSType", ast.Long()),
 		ast.Entity("NSEntity"),
@@ -423,66 +389,30 @@ func TestSchemaIteratorsTopLevel(t *testing.T) {
 		ast.Action("nsAction"),
 	)
 
-	// Schema with both top-level declarations and namespaced declarations
 	schema := ast.NewSchema(ct1, e1, enum1, a1, ns)
 
-	t.Run("CommonTypes includes top-level", func(t *testing.T) {
-		var commonTypes []ast.CommonTypeNode
-		var namespaces []*ast.NamespaceNode
-		for ns, ct := range schema.CommonTypes() {
-			namespaces = append(namespaces, ns)
-			commonTypes = append(commonTypes, ct)
-		}
-		testutil.Equals(t, len(commonTypes), 2) // TopType, NSType
-		testutil.Equals(t, commonTypes[0], ct1)
-		testutil.Equals(t, namespaces[0] == nil, true) // top-level
-		testutil.Equals(t, namespaces[1].Name, types.Path("NS"))
-	})
+	tests := []struct {
+		name      string
+		countFunc func(*ast.Schema) int
+		want      int
+	}{
+		{"CommonTypes", func(s *ast.Schema) int { return countIter2(s.CommonTypes()) }, 2},
+		{"Entities", func(s *ast.Schema) int { return countIter2(s.Entities()) }, 2},
+		{"Enums", func(s *ast.Schema) int { return countIter2(s.Enums()) }, 2},
+		{"Actions", func(s *ast.Schema) int { return countIter2(s.Actions()) }, 2},
+	}
 
-	t.Run("Entities includes top-level", func(t *testing.T) {
-		var entities []ast.EntityNode
-		var namespaces []*ast.NamespaceNode
-		for ns, e := range schema.Entities() {
-			namespaces = append(namespaces, ns)
-			entities = append(entities, e)
-		}
-		testutil.Equals(t, len(entities), 2) // TopEntity, NSEntity
-		testutil.Equals(t, entities[0], e1)
-		testutil.Equals(t, namespaces[0] == nil, true) // top-level
-		testutil.Equals(t, namespaces[1].Name, types.Path("NS"))
-	})
-
-	t.Run("Enums includes top-level", func(t *testing.T) {
-		var enums []ast.EnumNode
-		var namespaces []*ast.NamespaceNode
-		for ns, e := range schema.Enums() {
-			namespaces = append(namespaces, ns)
-			enums = append(enums, e)
-		}
-		testutil.Equals(t, len(enums), 2) // TopEnum, NSEnum
-		testutil.Equals(t, enums[0], enum1)
-		testutil.Equals(t, namespaces[0] == nil, true) // top-level
-		testutil.Equals(t, namespaces[1].Name, types.Path("NS"))
-	})
-
-	t.Run("Actions includes top-level", func(t *testing.T) {
-		var actions []ast.ActionNode
-		var namespaces []*ast.NamespaceNode
-		for ns, a := range schema.Actions() {
-			namespaces = append(namespaces, ns)
-			actions = append(actions, a)
-		}
-		testutil.Equals(t, len(actions), 2) // topAction, nsAction
-		testutil.Equals(t, actions[0], a1)
-		testutil.Equals(t, namespaces[0] == nil, true) // top-level
-		testutil.Equals(t, namespaces[1].Name, types.Path("NS"))
-	})
+	for _, tt := range tests {
+		t.Run(tt.name+" includes top-level", func(t *testing.T) {
+			got := tt.countFunc(schema)
+			testutil.Equals(t, got, tt.want)
+		})
+	}
 }
 
 func TestSchemaIteratorsOnlyTopLevel(t *testing.T) {
 	t.Parallel()
 
-	// Schema with only top-level declarations, no namespaces
 	ct := ast.CommonType("Type", ast.String())
 	e := ast.Entity("Entity")
 	enum := ast.Enum("Enum", "val")
@@ -490,163 +420,198 @@ func TestSchemaIteratorsOnlyTopLevel(t *testing.T) {
 
 	schema := ast.NewSchema(ct, e, enum, a)
 
-	t.Run("CommonTypes only top-level", func(t *testing.T) {
-		count := 0
-		for range schema.CommonTypes() {
-			count++
-		}
-		testutil.Equals(t, count, 1)
-	})
+	tests := []struct {
+		name      string
+		countFunc func(*ast.Schema) int
+		want      int
+	}{
+		{"CommonTypes", func(s *ast.Schema) int { return countIter2(s.CommonTypes()) }, 1},
+		{"Entities", func(s *ast.Schema) int { return countIter2(s.Entities()) }, 1},
+		{"Enums", func(s *ast.Schema) int { return countIter2(s.Enums()) }, 1},
+		{"Actions", func(s *ast.Schema) int { return countIter2(s.Actions()) }, 1},
+	}
 
-	t.Run("Entities only top-level", func(t *testing.T) {
-		count := 0
-		for range schema.Entities() {
-			count++
-		}
-		testutil.Equals(t, count, 1)
-	})
-
-	t.Run("Enums only top-level", func(t *testing.T) {
-		count := 0
-		for range schema.Enums() {
-			count++
-		}
-		testutil.Equals(t, count, 1)
-	})
-
-	t.Run("Actions only top-level", func(t *testing.T) {
-		count := 0
-		for range schema.Actions() {
-			count++
-		}
-		testutil.Equals(t, count, 1)
-	})
+	for _, tt := range tests {
+		t.Run(tt.name+" only top-level", func(t *testing.T) {
+			got := tt.countFunc(schema)
+			testutil.Equals(t, got, tt.want)
+		})
+	}
 }
 
 func TestNamespace(t *testing.T) {
 	t.Parallel()
 
-	t.Run("basic namespace", func(t *testing.T) {
-		t.Parallel()
-		ns := ast.Namespace("MyApp::Accounts")
-		testutil.Equals(t, ns.Name, types.Path("MyApp::Accounts"))
-		testutil.Equals(t, len(ns.Declarations), 0)
-		testutil.Equals(t, len(ns.Annotations), 0)
-	})
+	tests := []struct {
+		name             string
+		ns               ast.NamespaceNode
+		wantName         types.Path
+		wantDeclarations int
+		wantAnnotations  int
+	}{
+		{
+			"basic namespace",
+			ast.Namespace("MyApp::Accounts"),
+			types.Path("MyApp::Accounts"),
+			0,
+			0,
+		},
+		{
+			"namespace with declarations",
+			ast.Namespace("MyApp", ast.Entity("User"), ast.Entity("Group")),
+			types.Path("MyApp"),
+			2,
+			0,
+		},
+		{
+			"namespace with annotations",
+			ast.Namespace("MyApp").Annotate("doc", "My application namespace"),
+			types.Path("MyApp"),
+			0,
+			1,
+		},
+	}
 
-	t.Run("namespace with declarations", func(t *testing.T) {
-		t.Parallel()
-		ns := ast.Namespace("MyApp",
-			ast.Entity("User"),
-			ast.Entity("Group"),
-		)
-		testutil.Equals(t, len(ns.Declarations), 2)
-	})
-
-	t.Run("namespace with annotations", func(t *testing.T) {
-		t.Parallel()
-		ns := ast.Namespace("MyApp").
-			Annotate("doc", "My application namespace")
-		testutil.Equals(t, len(ns.Annotations), 1)
-		testutil.Equals(t, ns.Annotations[0].Key, types.Ident("doc"))
-		testutil.Equals(t, ns.Annotations[0].Value, types.String("My application namespace"))
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			testutil.Equals(t, tt.ns.Name, tt.wantName)
+			testutil.Equals(t, len(tt.ns.Declarations), tt.wantDeclarations)
+			testutil.Equals(t, len(tt.ns.Annotations), tt.wantAnnotations)
+		})
+	}
 }
 
 func TestCommonType(t *testing.T) {
 	t.Parallel()
 
-	t.Run("basic common type", func(t *testing.T) {
-		t.Parallel()
-		ct := ast.CommonType("Name", ast.String())
-		testutil.Equals(t, ct.Name, types.Ident("Name"))
-		_, ok := ct.Type.(ast.StringType)
-		testutil.Equals(t, ok, true)
-	})
+	tests := []struct {
+		name            string
+		ct              ast.CommonTypeNode
+		wantName        types.Ident
+		wantAnnotations int
+		check           func(t *testing.T, ct ast.CommonTypeNode)
+	}{
+		{
+			"basic common type",
+			ast.CommonType("Name", ast.String()),
+			types.Ident("Name"),
+			0,
+			func(t *testing.T, ct ast.CommonTypeNode) {
+				_, ok := ct.Type.(ast.StringType)
+				testutil.Equals(t, ok, true)
+			},
+		},
+		{
+			"common type with record",
+			ast.CommonType("Address", ast.Record(
+				ast.Attribute("street", ast.String()),
+				ast.Optional("apt", ast.String()),
+			)),
+			types.Ident("Address"),
+			0,
+			func(t *testing.T, ct ast.CommonTypeNode) {
+				rt, ok := ct.Type.(ast.RecordType)
+				testutil.Equals(t, ok, true)
+				testutil.Equals(t, len(rt.Pairs), 2)
+			},
+		},
+		{
+			"common type with annotation",
+			ast.CommonType("Name", ast.String()).Annotate("doc", "A person's name"),
+			types.Ident("Name"),
+			1,
+			func(t *testing.T, ct ast.CommonTypeNode) {},
+		},
+	}
 
-	t.Run("common type with record", func(t *testing.T) {
-		t.Parallel()
-		ct := ast.CommonType("Address", ast.Record(
-			ast.Attribute("street", ast.String()),
-			ast.Optional("apt", ast.String()),
-		))
-		testutil.Equals(t, ct.Name, types.Ident("Address"))
-		rt, ok := ct.Type.(ast.RecordType)
-		testutil.Equals(t, ok, true)
-		testutil.Equals(t, len(rt.Pairs), 2)
-	})
-
-	t.Run("common type with annotation", func(t *testing.T) {
-		t.Parallel()
-		ct := ast.CommonType("Name", ast.String()).
-			Annotate("doc", "A person's name")
-		testutil.Equals(t, len(ct.Annotations), 1)
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			testutil.Equals(t, tt.ct.Name, tt.wantName)
+			testutil.Equals(t, len(tt.ct.Annotations), tt.wantAnnotations)
+			tt.check(t, tt.ct)
+		})
+	}
 }
 
 func TestEntity(t *testing.T) {
 	t.Parallel()
 
-	t.Run("basic entity", func(t *testing.T) {
-		t.Parallel()
-		e := ast.Entity("User")
-		testutil.Equals(t, e.Name, types.EntityType("User"))
-		testutil.Equals(t, e.MemberOfVal, nil)
-		testutil.Equals(t, e.ShapeVal, nil)
-		testutil.Equals(t, e.TagsVal, nil)
-	})
-
-	t.Run("entity with memberOf", func(t *testing.T) {
-		t.Parallel()
-		e := ast.Entity("User").
-			MemberOf(ast.EntityType("Group"), ast.EntityType("Team"))
-		testutil.Equals(t, len(e.MemberOfVal), 2)
-		testutil.Equals(t, e.MemberOfVal[0].Name, types.EntityType("Group"))
-		testutil.Equals(t, e.MemberOfVal[1].Name, types.EntityType("Team"))
-	})
-
-	t.Run("entity with shape", func(t *testing.T) {
-		t.Parallel()
-		e := ast.Entity("User").
-			Shape(
+	tests := []struct {
+		name  string
+		e     ast.EntityNode
+		check func(t *testing.T, e ast.EntityNode)
+	}{
+		{
+			"basic entity",
+			ast.Entity("User"),
+			func(t *testing.T, e ast.EntityNode) {
+				testutil.Equals(t, e.Name, types.EntityType("User"))
+				testutil.Equals(t, e.MemberOfVal, nil)
+				testutil.Equals(t, e.ShapeVal, nil)
+				testutil.Equals(t, e.TagsVal, nil)
+			},
+		},
+		{
+			"entity with memberOf",
+			ast.Entity("User").MemberOf(ast.EntityType("Group"), ast.EntityType("Team")),
+			func(t *testing.T, e ast.EntityNode) {
+				testutil.Equals(t, len(e.MemberOfVal), 2)
+				testutil.Equals(t, e.MemberOfVal[0].Name, types.EntityType("Group"))
+				testutil.Equals(t, e.MemberOfVal[1].Name, types.EntityType("Team"))
+			},
+		},
+		{
+			"entity with shape",
+			ast.Entity("User").Shape(
 				ast.Attribute("name", ast.String()),
 				ast.Optional("email", ast.String()),
-			)
-		testutil.Equals(t, e.ShapeVal != nil, true)
-		testutil.Equals(t, len(e.ShapeVal.Pairs), 2)
-		testutil.Equals(t, e.ShapeVal.Pairs[0].Key, types.String("name"))
-		testutil.Equals(t, e.ShapeVal.Pairs[0].Optional, false)
-		testutil.Equals(t, e.ShapeVal.Pairs[1].Key, types.String("email"))
-		testutil.Equals(t, e.ShapeVal.Pairs[1].Optional, true)
-	})
+			),
+			func(t *testing.T, e ast.EntityNode) {
+				testutil.Equals(t, e.ShapeVal != nil, true)
+				testutil.Equals(t, len(e.ShapeVal.Pairs), 2)
+				testutil.Equals(t, e.ShapeVal.Pairs[0].Optional, false)
+				testutil.Equals(t, e.ShapeVal.Pairs[1].Optional, true)
+			},
+		},
+		{
+			"entity with tags",
+			ast.Entity("Document").Tags(ast.String()),
+			func(t *testing.T, e ast.EntityNode) {
+				_, ok := e.TagsVal.(ast.StringType)
+				testutil.Equals(t, ok, true)
+			},
+		},
+		{
+			"entity with annotation",
+			ast.Entity("User").Annotate("doc", "A user entity"),
+			func(t *testing.T, e ast.EntityNode) {
+				testutil.Equals(t, len(e.Annotations), 1)
+			},
+		},
+		{
+			"entity with everything",
+			ast.Entity("User").
+				MemberOf(ast.EntityType("Group")).
+				Shape(ast.Attribute("name", ast.String())).
+				Tags(ast.String()).
+				Annotate("doc", "A user"),
+			func(t *testing.T, e ast.EntityNode) {
+				testutil.Equals(t, len(e.MemberOfVal), 1)
+				testutil.Equals(t, e.ShapeVal != nil, true)
+				testutil.Equals(t, e.TagsVal != nil, true)
+				testutil.Equals(t, len(e.Annotations), 1)
+			},
+		},
+	}
 
-	t.Run("entity with tags", func(t *testing.T) {
-		t.Parallel()
-		e := ast.Entity("Document").
-			Tags(ast.String())
-		_, ok := e.TagsVal.(ast.StringType)
-		testutil.Equals(t, ok, true)
-	})
-
-	t.Run("entity with annotation", func(t *testing.T) {
-		t.Parallel()
-		e := ast.Entity("User").
-			Annotate("doc", "A user entity")
-		testutil.Equals(t, len(e.Annotations), 1)
-	})
-
-	t.Run("entity with everything", func(t *testing.T) {
-		t.Parallel()
-		e := ast.Entity("User").
-			MemberOf(ast.EntityType("Group")).
-			Shape(ast.Attribute("name", ast.String())).
-			Tags(ast.String()).
-			Annotate("doc", "A user")
-		testutil.Equals(t, len(e.MemberOfVal), 1)
-		testutil.Equals(t, e.ShapeVal != nil, true)
-		testutil.Equals(t, e.TagsVal != nil, true)
-		testutil.Equals(t, len(e.Annotations), 1)
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			tt.check(t, tt.e)
+		})
+	}
 }
 
 func TestEnum(t *testing.T) {
@@ -687,73 +652,104 @@ func TestEnum(t *testing.T) {
 func TestAction(t *testing.T) {
 	t.Parallel()
 
-	t.Run("basic action", func(t *testing.T) {
-		t.Parallel()
-		a := ast.Action("view")
-		testutil.Equals(t, a.Name, types.String("view"))
-		testutil.Equals(t, a.MemberOfVal, nil)
-		testutil.Equals(t, a.AppliesToVal, nil)
-	})
+	tests := []struct {
+		name  string
+		a     ast.ActionNode
+		check func(t *testing.T, a ast.ActionNode)
+	}{
+		{
+			"basic action",
+			ast.Action("view"),
+			func(t *testing.T, a ast.ActionNode) {
+				testutil.Equals(t, a.Name, types.String("view"))
+				testutil.Equals(t, a.MemberOfVal, nil)
+				testutil.Equals(t, a.AppliesToVal, nil)
+			},
+		},
+		{
+			"action with memberOf",
+			ast.Action("view").MemberOf(ast.UID("readOnly"), ast.EntityUID("Action", "allActions")),
+			func(t *testing.T, a ast.ActionNode) {
+				testutil.Equals(t, len(a.MemberOfVal), 2)
+				testutil.Equals(t, a.MemberOfVal[0].Type.Name, types.EntityType("Action"))
+				testutil.Equals(t, a.MemberOfVal[0].ID, types.String("readOnly"))
+			},
+		},
+		{
+			"action with principal",
+			ast.Action("view").Principal(ast.EntityType("User"), ast.EntityType("Admin")),
+			func(t *testing.T, a ast.ActionNode) {
+				testutil.Equals(t, a.AppliesToVal != nil, true)
+				testutil.Equals(t, len(a.AppliesToVal.PrincipalTypes), 2)
+			},
+		},
+		{
+			"action with resource",
+			ast.Action("view").Resource(ast.EntityType("Document")),
+			func(t *testing.T, a ast.ActionNode) {
+				testutil.Equals(t, a.AppliesToVal != nil, true)
+				testutil.Equals(t, len(a.AppliesToVal.ResourceTypes), 1)
+			},
+		},
+		{
+			"action with context",
+			ast.Action("view").Context(ast.Record(ast.Attribute("ip", ast.IPAddr()))),
+			func(t *testing.T, a ast.ActionNode) {
+				testutil.Equals(t, a.AppliesToVal != nil, true)
+				rt, ok := a.AppliesToVal.Context.(ast.RecordType)
+				testutil.Equals(t, ok, true)
+				testutil.Equals(t, len(rt.Pairs), 1)
+			},
+		},
+		{
+			"action with annotation",
+			ast.Action("view").Annotate("doc", "View action"),
+			func(t *testing.T, a ast.ActionNode) {
+				testutil.Equals(t, len(a.Annotations), 1)
+			},
+		},
+		{
+			"action with everything",
+			ast.Action("view").
+				MemberOf(ast.UID("readOnly")).
+				Principal(ast.EntityType("User")).
+				Resource(ast.EntityType("Document")).
+				Context(ast.Record()).
+				Annotate("doc", "View action"),
+			func(t *testing.T, a ast.ActionNode) {
+				testutil.Equals(t, len(a.MemberOfVal), 1)
+				testutil.Equals(t, a.AppliesToVal != nil, true)
+				testutil.Equals(t, len(a.AppliesToVal.PrincipalTypes), 1)
+				testutil.Equals(t, len(a.AppliesToVal.ResourceTypes), 1)
+				testutil.Equals(t, a.AppliesToVal.Context != nil, true)
+				testutil.Equals(t, len(a.Annotations), 1)
+			},
+		},
+	}
 
-	t.Run("action with memberOf", func(t *testing.T) {
-		t.Parallel()
-		a := ast.Action("view").
-			MemberOf(ast.UID("readOnly"), ast.EntityUID("Action", "allActions"))
-		testutil.Equals(t, len(a.MemberOfVal), 2)
-		testutil.Equals(t, a.MemberOfVal[0].Type.Name, types.EntityType("Action"))
-		testutil.Equals(t, a.MemberOfVal[0].ID, types.String("readOnly"))
-		testutil.Equals(t, a.MemberOfVal[1].ID, types.String("allActions"))
-	})
-
-	t.Run("action with principal", func(t *testing.T) {
-		t.Parallel()
-		a := ast.Action("view").
-			Principal(ast.EntityType("User"), ast.EntityType("Admin"))
-		testutil.Equals(t, a.AppliesToVal != nil, true)
-		testutil.Equals(t, len(a.AppliesToVal.PrincipalTypes), 2)
-	})
-
-	t.Run("action with resource", func(t *testing.T) {
-		t.Parallel()
-		a := ast.Action("view").
-			Resource(ast.EntityType("Document"))
-		testutil.Equals(t, a.AppliesToVal != nil, true)
-		testutil.Equals(t, len(a.AppliesToVal.ResourceTypes), 1)
-	})
-
-	t.Run("action with context", func(t *testing.T) {
-		t.Parallel()
-		a := ast.Action("view").
-			Context(ast.Record(
-				ast.Attribute("ip", ast.IPAddr()),
-			))
-		testutil.Equals(t, a.AppliesToVal != nil, true)
-		rt, ok := a.AppliesToVal.Context.(ast.RecordType)
-		testutil.Equals(t, ok, true)
-		testutil.Equals(t, len(rt.Pairs), 1)
-	})
-
-	t.Run("action with annotation", func(t *testing.T) {
-		t.Parallel()
-		a := ast.Action("view").
-			Annotate("doc", "View action")
-		testutil.Equals(t, len(a.Annotations), 1)
-	})
-
-	t.Run("action with everything", func(t *testing.T) {
-		t.Parallel()
-		a := ast.Action("view").
-			MemberOf(ast.UID("readOnly")).
-			Principal(ast.EntityType("User")).
-			Resource(ast.EntityType("Document")).
-			Context(ast.Record()).
-			Annotate("doc", "View action")
-		testutil.Equals(t, len(a.MemberOfVal), 1)
-		testutil.Equals(t, a.AppliesToVal != nil, true)
-		testutil.Equals(t, len(a.AppliesToVal.PrincipalTypes), 1)
-		testutil.Equals(t, len(a.AppliesToVal.ResourceTypes), 1)
-		testutil.Equals(t, a.AppliesToVal.Context != nil, true)
-		testutil.Equals(t, len(a.Annotations), 1)
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			tt.check(t, tt.a)
+		})
+	}
 }
 
+// Helper functions for counting iterators
+func countIter[T any](iter func(func(T) bool)) int {
+	count := 0
+	iter(func(T) bool {
+		count++
+		return true
+	})
+	return count
+}
+
+func countIter2[T, U any](iter func(func(T, U) bool)) int {
+	count := 0
+	iter(func(T, U) bool {
+		count++
+		return true
+	})
+	return count
+}

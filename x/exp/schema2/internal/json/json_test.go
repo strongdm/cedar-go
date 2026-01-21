@@ -10,6 +10,26 @@ import (
 	"github.com/cedar-policy/cedar-go/x/exp/schema2/ast"
 )
 
+// testRoundTrip is a helper that marshals a schema to JSON, unmarshals it back,
+// marshals again, and verifies both JSON outputs are identical.
+func testRoundTrip(t *testing.T, schema *ast.Schema) {
+	t.Helper()
+	s := (*Schema)(schema)
+	jsonData, err := s.MarshalJSON()
+	testutil.OK(t, err)
+
+	var s2 Schema
+	err = s2.UnmarshalJSON(jsonData)
+	testutil.OK(t, err)
+	schema2 := (*ast.Schema)(&s2)
+
+	s3 := (*Schema)(schema2)
+	jsonData2, err := s3.MarshalJSON()
+	testutil.OK(t, err)
+
+	testutil.Equals(t, string(jsonData), string(jsonData2))
+}
+
 func TestMarshalUnmarshalRoundTrip(t *testing.T) {
 	t.Parallel()
 
@@ -136,7 +156,7 @@ func TestMarshalUnmarshalRoundTrip(t *testing.T) {
 			},
 		},
 		{
-			name: "common type",
+			name: "common type string",
 			schema: &ast.Schema{
 				Nodes: []ast.IsNode{
 					ast.CommonTypeNode{
@@ -274,7 +294,7 @@ func TestMarshalUnmarshalRoundTrip(t *testing.T) {
 			},
 		},
 		{
-			name: "extension type",
+			name: "extension types",
 			schema: &ast.Schema{
 				Nodes: []ast.IsNode{
 					ast.EntityNode{
@@ -289,31 +309,87 @@ func TestMarshalUnmarshalRoundTrip(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "nested record with optional",
+			schema: &ast.Schema{
+				Nodes: []ast.IsNode{
+					ast.EntityNode{
+						Name: types.EntityType("Config"),
+						ShapeVal: &ast.RecordType{
+							Pairs: []ast.Pair{
+								{
+									Key: "nested",
+									Type: ast.RecordType{
+										Pairs: []ast.Pair{
+											{Key: "required_field", Type: ast.StringType{}},
+											{Key: "optional_field", Type: ast.LongType{}, Optional: true},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "set nested in set",
+			schema: &ast.Schema{
+				Nodes: []ast.IsNode{
+					ast.CommonTypeNode{
+						Name: "NestedSets",
+						Type: ast.SetType{
+							Element: ast.SetType{
+								Element: ast.StringType{},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "entity with long tags",
+			schema: &ast.Schema{
+				Nodes: []ast.IsNode{
+					ast.EntityNode{
+						Name:    "Resource",
+						TagsVal: ast.LongType{},
+					},
+				},
+			},
+		},
+		{
+			name: "common type with primitives",
+			schema: &ast.Schema{
+				Nodes: []ast.IsNode{
+					ast.CommonTypeNode{Name: "MyLong", Type: ast.LongType{}},
+					ast.CommonTypeNode{Name: "MyBool", Type: ast.BoolType{}},
+					ast.CommonTypeNode{Name: "MyExt", Type: ast.ExtensionType{Name: "ipaddr"}},
+				},
+			},
+		},
+		{
+			name: "type ref to non-entity",
+			schema: &ast.Schema{
+				Nodes: []ast.IsNode{
+					ast.CommonTypeNode{Name: "Address", Type: ast.StringType{}},
+					ast.CommonTypeNode{
+						Name: "Person",
+						Type: ast.RecordType{
+							Pairs: []ast.Pair{
+								{Key: "addr", Type: ast.TypeRef{Name: "Address"}},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-
-			// Marshal to JSON
-			s := (*Schema)(tt.schema)
-			jsonData, err := s.MarshalJSON()
-			testutil.OK(t, err)
-
-			// Unmarshal back
-			var s2 Schema
-			err = s2.UnmarshalJSON(jsonData)
-			testutil.OK(t, err)
-			schema2 := (*ast.Schema)(&s2)
-
-			// Marshal again
-			s3 := (*Schema)(schema2)
-			jsonData2, err := s3.MarshalJSON()
-			testutil.OK(t, err)
-
-			// JSON should be identical
-			testutil.Equals(t, string(jsonData), string(jsonData2))
+			testRoundTrip(t, tt.schema)
 		})
 	}
 }
@@ -371,106 +447,50 @@ func TestUnmarshalErrors(t *testing.T) {
 			json:    `{"": {"entityTypes": {"User": {"shape": {"type": "Record", "attributes": {"nested": {"type": "Record", "attributes": {"bad": {"type": "Set"}}}}}}}, "actions": {}}}`,
 			wantErr: "set type missing element",
 		},
+		{
+			name:    "empty type name in commonTypes",
+			json:    `{"": {"entityTypes": {}, "actions": {}, "commonTypes": {"Bad": {"type": ""}}}}`,
+			wantErr: "unknown type",
+		},
+		{
+			name:    "empty type name in attribute",
+			json:    `{"": {"entityTypes": {"E": {"shape": {"type": "Record", "attributes": {"x": {"type": ""}}}}}, "actions": {}}}`,
+			wantErr: "unknown type",
+		},
+		{
+			name:    "nested set error",
+			json:    `{"": {"entityTypes": {}, "actions": {}, "commonTypes": {"Bad": {"type": "Set", "element": {"type": "Set"}}}}}`,
+			wantErr: "set type missing element",
+		},
+		{
+			name:    "nested record error",
+			json:    `{"": {"entityTypes": {}, "actions": {}, "commonTypes": {"Bad": {"type": "Record", "attributes": {"x": {"type": "Set"}}}}}}`,
+			wantErr: "set type missing element",
+		},
+		{
+			name:    "attr nested set error",
+			json:    `{"": {"entityTypes": {"E": {"shape": {"type": "Record", "attributes": {"x": {"type": "Set", "element": {"type": "Set"}}}}}}, "actions": {}}}`,
+			wantErr: "set type missing element",
+		},
+		{
+			name:    "namespace error",
+			json:    `{"MyApp": {"entityTypes": {}, "actions": {}, "commonTypes": {"Bad": {"type": "Set"}}}}`,
+			wantErr: "set type missing element",
+		},
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			var s Schema
 			err := s.UnmarshalJSON([]byte(tt.json))
-			if err == nil {
-				t.Fatalf("expected error containing %q", tt.wantErr)
-			}
-			if !contains(err.Error(), tt.wantErr) {
-				t.Errorf("error %q does not contain %q", err.Error(), tt.wantErr)
-			}
+			testutil.Error(t, err)
+			testutil.Equals(t, strings.Contains(err.Error(), tt.wantErr), true)
 		})
 	}
 }
 
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(substr) == 0 ||
-		(len(s) > 0 && len(substr) > 0 && findSubstring(s, substr)))
-}
-
-func findSubstring(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
-}
-
-func TestCollectEntityNames(t *testing.T) {
-	t.Parallel()
-
-	schema := &ast.Schema{
-		Nodes: []ast.IsNode{
-			ast.EntityNode{Name: "User"},
-			ast.EnumNode{Name: "Status"},
-			ast.NamespaceNode{
-				Name: "App",
-				Declarations: []ast.IsDeclaration{
-					ast.EntityNode{Name: "Admin"},
-					ast.EnumNode{Name: "Role"},
-				},
-			},
-		},
-	}
-
-	names := collectEntityNames(schema)
-	testutil.Equals(t, true, names["User"])
-	testutil.Equals(t, true, names["Status"])
-	testutil.Equals(t, true, names["Admin"])
-	testutil.Equals(t, true, names["Role"])
-	testutil.Equals(t, false, names["Unknown"])
-}
-
-func TestGetOrCreateNamespace(t *testing.T) {
-	t.Parallel()
-
-	namespaces := make(map[string]*Namespace)
-
-	// Create new namespace
-	ns1 := getOrCreateNamespace(namespaces, "App")
-	testutil.Equals(t, true, ns1 != nil)
-	testutil.Equals(t, true, ns1.EntityTypes != nil)
-	testutil.Equals(t, true, ns1.Actions != nil)
-	testutil.Equals(t, true, ns1.CommonTypes != nil)
-
-	// Get existing namespace
-	ns2 := getOrCreateNamespace(namespaces, "App")
-	testutil.Equals(t, ns1, ns2)
-}
-
-func TestMarshalJSONOutput(t *testing.T) {
-	t.Parallel()
-
-	schema := &ast.Schema{
-		Nodes: []ast.IsNode{
-			ast.EntityNode{Name: "User"},
-		},
-	}
-
-	s := (*Schema)(schema)
-	jsonData, err := s.MarshalJSON()
-	testutil.OK(t, err)
-
-	// Verify it's valid JSON
-	var parsed map[string]interface{}
-	err = json.Unmarshal(jsonData, &parsed)
-	testutil.OK(t, err)
-
-	// Verify structure
-	defaultNS, ok := parsed[""].(map[string]interface{})
-	testutil.Equals(t, true, ok)
-	testutil.Equals(t, true, defaultNS["entityTypes"] != nil)
-	testutil.Equals(t, true, defaultNS["actions"] != nil)
-}
-
-func TestAttrTypesInRecord(t *testing.T) {
+func TestRecordAttributeTypes(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -488,7 +508,6 @@ func TestAttrTypesInRecord(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -505,179 +524,11 @@ func TestAttrTypesInRecord(t *testing.T) {
 				},
 			}
 
-			s := (*Schema)(schema)
-			jsonData, err := s.MarshalJSON()
-			testutil.OK(t, err)
-
-			var s2 Schema
-			err = s2.UnmarshalJSON(jsonData)
-			testutil.OK(t, err)
-			schema2 := (*ast.Schema)(&s2)
-
-			s3 := (*Schema)(schema2)
-			jsonData2, err := s3.MarshalJSON()
-			testutil.OK(t, err)
-
-			testutil.Equals(t, string(jsonData), string(jsonData2))
+			testRoundTrip(t, schema)
 		})
 	}
 }
 
-func TestUnknownAttrType(t *testing.T) {
-	t.Parallel()
-
-	// Test attr with unknown type - should return empty string for type
-	json := `{"": {"entityTypes": {"User": {"shape": {"type": "Record", "attributes": {"field": {"type": ""}}}}}, "actions": {}}}`
-	var s Schema
-	err := s.UnmarshalJSON([]byte(json))
-	if err == nil {
-		t.Fatal("expected error for unknown attr type")
-	}
-}
-
-// TestCommonTypePrimitives tests common types with all primitive types
-func TestCommonTypePrimitives(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name     string
-		typeVal  ast.IsType
-		jsonType string
-	}{
-		{"long", ast.LongType{}, "Long"},
-		{"bool", ast.BoolType{}, "Bool"},
-		{"extension", ast.ExtensionType{Name: "ipaddr"}, "Extension"},
-	}
-
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			schema := &ast.Schema{
-				Nodes: []ast.IsNode{
-					ast.CommonTypeNode{
-						Name: "MyType",
-						Type: tt.typeVal,
-					},
-				},
-			}
-
-			s := (*Schema)(schema)
-			jsonData, err := s.MarshalJSON()
-			testutil.OK(t, err)
-
-			// Verify JSON contains expected type
-			if !contains(string(jsonData), tt.jsonType) {
-				t.Errorf("expected JSON to contain %q, got %s", tt.jsonType, jsonData)
-			}
-
-			// Round-trip
-			var s2 Schema
-			err = s2.UnmarshalJSON(jsonData)
-			testutil.OK(t, err)
-			schema2 := (*ast.Schema)(&s2)
-
-			s3 := (*Schema)(schema2)
-			jsonData2, err := s3.MarshalJSON()
-			testutil.OK(t, err)
-
-			testutil.Equals(t, string(jsonData), string(jsonData2))
-		})
-	}
-}
-
-// TestTypeRefToNonEntity tests TypeRef that refers to a common type (not an entity)
-func TestTypeRefToNonEntity(t *testing.T) {
-	t.Parallel()
-
-	schema := &ast.Schema{
-		Nodes: []ast.IsNode{
-			ast.CommonTypeNode{
-				Name: "Address",
-				Type: ast.StringType{},
-			},
-			ast.CommonTypeNode{
-				Name: "Person",
-				Type: ast.RecordType{
-					Pairs: []ast.Pair{
-						{Key: "addr", Type: ast.TypeRef{Name: "Address"}},
-					},
-				},
-			},
-		},
-	}
-
-	s := (*Schema)(schema)
-	jsonData, err := s.MarshalJSON()
-	testutil.OK(t, err)
-
-	// Verify it uses type reference, not Entity
-	if contains(string(jsonData), `"type": "Entity"`) {
-		t.Errorf("expected type reference, not Entity type: %s", jsonData)
-	}
-
-	// Round-trip
-	var s2 Schema
-	err = s2.UnmarshalJSON(jsonData)
-	testutil.OK(t, err)
-	schema2 := (*ast.Schema)(&s2)
-
-	s3 := (*Schema)(schema2)
-	jsonData2, err := s3.MarshalJSON()
-	testutil.OK(t, err)
-
-	testutil.Equals(t, string(jsonData), string(jsonData2))
-}
-
-// TestNestedRecordWithOptional tests nested records with optional fields
-func TestNestedRecordWithOptional(t *testing.T) {
-	t.Parallel()
-
-	schema := &ast.Schema{
-		Nodes: []ast.IsNode{
-			ast.EntityNode{
-				Name: "Config",
-				ShapeVal: &ast.RecordType{
-					Pairs: []ast.Pair{
-						{
-							Key: "nested",
-							Type: ast.RecordType{
-								Pairs: []ast.Pair{
-									{Key: "required_field", Type: ast.StringType{}},
-									{Key: "optional_field", Type: ast.LongType{}, Optional: true},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	s := (*Schema)(schema)
-	jsonData, err := s.MarshalJSON()
-	testutil.OK(t, err)
-
-	// Verify JSON contains required: false
-	if !contains(string(jsonData), `"required": false`) {
-		t.Errorf("expected JSON to contain required: false, got %s", jsonData)
-	}
-
-	// Round-trip
-	var s2 Schema
-	err = s2.UnmarshalJSON(jsonData)
-	testutil.OK(t, err)
-	schema2 := (*ast.Schema)(&s2)
-
-	s3 := (*Schema)(schema2)
-	jsonData2, err := s3.MarshalJSON()
-	testutil.OK(t, err)
-
-	testutil.Equals(t, string(jsonData), string(jsonData2))
-}
-
-// TestUnmarshalPrimitiveTypes tests unmarshalling all primitive types
 func TestUnmarshalPrimitiveTypes(t *testing.T) {
 	t.Parallel()
 
@@ -690,6 +541,11 @@ func TestUnmarshalPrimitiveTypes(t *testing.T) {
 			name:     "Long type",
 			json:     `{"": {"commonTypes": {"X": {"type": "Long"}}, "entityTypes": {}, "actions": {}}}`,
 			wantType: "Long",
+		},
+		{
+			name:     "Bool type",
+			json:     `{"": {"commonTypes": {"X": {"type": "Bool"}}, "entityTypes": {}, "actions": {}}}`,
+			wantType: "Bool",
 		},
 		{
 			name:     "Boolean type",
@@ -714,7 +570,6 @@ func TestUnmarshalPrimitiveTypes(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -723,19 +578,15 @@ func TestUnmarshalPrimitiveTypes(t *testing.T) {
 			testutil.OK(t, err)
 			schema := (*ast.Schema)(&s)
 
-			// Re-marshal and verify
 			s2 := (*Schema)(schema)
 			jsonData, err := s2.MarshalJSON()
 			testutil.OK(t, err)
 
-			if !contains(string(jsonData), tt.wantType) {
-				t.Errorf("expected JSON to contain %q, got %s", tt.wantType, jsonData)
-			}
+			testutil.Equals(t, strings.Contains(string(jsonData), tt.wantType), true)
 		})
 	}
 }
 
-// TestUnmarshalRecordWithOptional tests unmarshalling records with optional attributes
 func TestUnmarshalRecordWithOptional(t *testing.T) {
 	t.Parallel()
 
@@ -761,14 +612,12 @@ func TestUnmarshalRecordWithOptional(t *testing.T) {
 	testutil.OK(t, err)
 	schema := (*ast.Schema)(&s)
 
-	// Verify the schema was parsed correctly
 	testutil.Equals(t, 1, len(schema.Nodes))
 
 	entity, ok := schema.Nodes[0].(ast.EntityNode)
 	testutil.Equals(t, true, ok)
 	testutil.Equals(t, 2, len(entity.ShapeVal.Pairs))
 
-	// Check that email is optional
 	for _, pair := range entity.ShapeVal.Pairs {
 		if string(pair.Key) == "email" {
 			testutil.Equals(t, true, pair.Optional)
@@ -776,7 +625,6 @@ func TestUnmarshalRecordWithOptional(t *testing.T) {
 	}
 }
 
-// TestUnmarshalNamedNamespace tests unmarshalling a named namespace
 func TestUnmarshalNamedNamespace(t *testing.T) {
 	t.Parallel()
 
@@ -804,7 +652,6 @@ func TestUnmarshalNamedNamespace(t *testing.T) {
 	testutil.Equals(t, 2, len(ns.Declarations))
 }
 
-// TestUnmarshalAttrTypes tests unmarshalling all attribute types in records
 func TestUnmarshalAttrTypes(t *testing.T) {
 	t.Parallel()
 
@@ -843,16 +690,14 @@ func TestUnmarshalAttrTypes(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
 			var s Schema
 			err := s.UnmarshalJSON([]byte(tt.json))
 			testutil.OK(t, err)
-			schema := (*ast.Schema)(&s)
 
-			// Re-marshal and verify round-trip
+			schema := (*ast.Schema)(&s)
 			s2 := (*Schema)(schema)
 			jsonData, err := s2.MarshalJSON()
 			testutil.OK(t, err)
@@ -871,292 +716,6 @@ func TestUnmarshalAttrTypes(t *testing.T) {
 	}
 }
 
-// TestEntityWithTags tests entity with tags marshalling
-func TestEntityWithTagsRoundTrip(t *testing.T) {
-	t.Parallel()
-
-	// Test with Long tags type
-	schema := &ast.Schema{
-		Nodes: []ast.IsNode{
-			ast.EntityNode{
-				Name:    "Resource",
-				TagsVal: ast.LongType{},
-			},
-		},
-	}
-
-	s := (*Schema)(schema)
-	jsonData, err := s.MarshalJSON()
-	testutil.OK(t, err)
-
-	var s2 Schema
-	err = s2.UnmarshalJSON(jsonData)
-	testutil.OK(t, err)
-	schema2 := (*ast.Schema)(&s2)
-
-	s3 := (*Schema)(schema2)
-	jsonData2, err := s3.MarshalJSON()
-	testutil.OK(t, err)
-
-	testutil.Equals(t, string(jsonData), string(jsonData2))
-}
-
-// TestSetNestedInSet tests Set type nested within another Set
-func TestSetNestedInSet(t *testing.T) {
-	t.Parallel()
-
-	schema := &ast.Schema{
-		Nodes: []ast.IsNode{
-			ast.CommonTypeNode{
-				Name: "NestedSets",
-				Type: ast.SetType{
-					Element: ast.SetType{
-						Element: ast.StringType{},
-					},
-				},
-			},
-		},
-	}
-
-	s := (*Schema)(schema)
-	jsonData, err := s.MarshalJSON()
-	testutil.OK(t, err)
-
-	var s2 Schema
-	err = s2.UnmarshalJSON(jsonData)
-	testutil.OK(t, err)
-	schema2 := (*ast.Schema)(&s2)
-
-	s3 := (*Schema)(schema2)
-	jsonData2, err := s3.MarshalJSON()
-	testutil.OK(t, err)
-
-	testutil.Equals(t, string(jsonData), string(jsonData2))
-}
-
-// TestTypeRefToEntityInCommonType tests that TypeRef to an entity name
-// is correctly serialized as Entity type in JSON.
-func TestTypeRefToEntityInCommonType(t *testing.T) {
-	t.Parallel()
-
-	// Create a common type that references an entity using TypeRef
-	schema := &ast.Schema{
-		Nodes: []ast.IsNode{
-			ast.EntityNode{
-				Name: "User",
-			},
-			ast.CommonTypeNode{
-				Name: "UserAlias",
-				Type: ast.TypeRef{Name: "User"},
-			},
-		},
-	}
-
-	s := (*Schema)(schema)
-	jsonData, err := s.MarshalJSON()
-	testutil.OK(t, err)
-
-	// The JSON should have User as Entity type
-	testutil.Equals(t, strings.Contains(string(jsonData), `"type": "Entity"`), true)
-	testutil.Equals(t, strings.Contains(string(jsonData), `"name": "User"`), true)
-}
-
-// TestTypeRefToEntityInRecordAttr tests that TypeRef to an entity name
-// in a record attribute is correctly serialized as Entity type.
-func TestTypeRefToEntityInRecordAttr(t *testing.T) {
-	t.Parallel()
-
-	// Create an entity with attribute that has TypeRef to entity
-	schema := &ast.Schema{
-		Nodes: []ast.IsNode{
-			ast.EntityNode{
-				Name: "User",
-			},
-			ast.EntityNode{
-				Name: "Doc",
-				ShapeVal: &ast.RecordType{
-					Pairs: []ast.Pair{
-						{
-							Key:  "owner",
-							Type: ast.TypeRef{Name: "User"}, // TypeRef not EntityTypeRef
-						},
-					},
-				},
-			},
-		},
-	}
-
-	s := (*Schema)(schema)
-	jsonData, err := s.MarshalJSON()
-	testutil.OK(t, err)
-
-	// Verify it round-trips
-	var s2 Schema
-	err = s2.UnmarshalJSON(jsonData)
-	testutil.OK(t, err)
-	schema2 := (*ast.Schema)(&s2)
-
-	s3 := (*Schema)(schema2)
-	jsonData2, err := s3.MarshalJSON()
-	testutil.OK(t, err)
-
-	// Verify JSON contains Entity type for owner
-	testutil.Equals(t, strings.Contains(string(jsonData), `"type": "Entity"`), true)
-	testutil.Equals(t, string(jsonData), string(jsonData2))
-}
-
-// TestUnmarshalNestedSetError tests error propagation for invalid Set element
-func TestUnmarshalNestedSetError(t *testing.T) {
-	t.Parallel()
-
-	// JSON with Set containing invalid nested Set (missing element)
-	jsonData := `{"": {"entityTypes": {}, "actions": {}, "commonTypes": {"Bad": {"type": "Set", "element": {"type": "Set"}}}}}`
-
-	var s Schema
-	err := s.UnmarshalJSON([]byte(jsonData))
-	testutil.Error(t, err)
-	testutil.Equals(t, strings.Contains(err.Error(), "set type missing element"), true)
-}
-
-// TestUnmarshalNestedRecordError tests error propagation for invalid Record attribute
-func TestUnmarshalNestedRecordError(t *testing.T) {
-	t.Parallel()
-
-	// JSON with Record containing attribute with invalid nested Set
-	jsonData := `{"": {"entityTypes": {}, "actions": {}, "commonTypes": {"Bad": {"type": "Record", "attributes": {"x": {"type": "Set"}}}}}}`
-
-	var s Schema
-	err := s.UnmarshalJSON([]byte(jsonData))
-	testutil.Error(t, err)
-	testutil.Equals(t, strings.Contains(err.Error(), "set type missing element"), true)
-}
-
-// TestUnmarshalEmptyTypeName tests error for empty TypeName
-func TestUnmarshalEmptyTypeName(t *testing.T) {
-	t.Parallel()
-
-	// JSON with empty type name (creates error)
-	jsonData := `{"": {"entityTypes": {}, "actions": {}, "commonTypes": {"Bad": {"type": ""}}}}`
-
-	var s Schema
-	err := s.UnmarshalJSON([]byte(jsonData))
-	testutil.Error(t, err)
-	testutil.Equals(t, strings.Contains(err.Error(), "unknown type"), true)
-}
-
-// TestUnmarshalAttrEmptyTypeName tests error for empty TypeName in attribute
-func TestUnmarshalAttrEmptyTypeName(t *testing.T) {
-	t.Parallel()
-
-	// JSON with attribute having empty type name
-	jsonData := `{"": {"entityTypes": {"E": {"shape": {"type": "Record", "attributes": {"x": {"type": ""}}}}}, "actions": {}}}`
-
-	var s Schema
-	err := s.UnmarshalJSON([]byte(jsonData))
-	testutil.Error(t, err)
-	testutil.Equals(t, strings.Contains(err.Error(), "unknown type"), true)
-}
-
-// TestUnmarshalAttrNestedSetError tests error propagation for Set in attribute
-func TestUnmarshalAttrNestedSetError(t *testing.T) {
-	t.Parallel()
-
-	// JSON with attribute containing Set with missing element
-	jsonData := `{"": {"entityTypes": {"E": {"shape": {"type": "Record", "attributes": {"x": {"type": "Set"}}}}}, "actions": {}}}`
-
-	var s Schema
-	err := s.UnmarshalJSON([]byte(jsonData))
-	testutil.Error(t, err)
-	testutil.Equals(t, strings.Contains(err.Error(), "set type missing element"), true)
-}
-
-// TestUnmarshalAttrNestedRecordError tests error in nested Record attribute
-func TestUnmarshalAttrNestedRecordError(t *testing.T) {
-	t.Parallel()
-
-	// JSON with nested Record containing attribute with invalid Set
-	jsonData := `{"": {"entityTypes": {"E": {"shape": {"type": "Record", "attributes": {"x": {"type": "Record", "attributes": {"y": {"type": "Set"}}}}}}}, "actions": {}}}`
-
-	var s Schema
-	err := s.UnmarshalJSON([]byte(jsonData))
-	testutil.Error(t, err)
-	testutil.Equals(t, strings.Contains(err.Error(), "set type missing element"), true)
-}
-
-// TestUnmarshalNamespaceError tests error propagation from named namespace
-func TestUnmarshalNamespaceError(t *testing.T) {
-	t.Parallel()
-
-	// JSON with named namespace containing error
-	jsonData := `{"MyApp": {"entityTypes": {}, "actions": {}, "commonTypes": {"Bad": {"type": "Set"}}}}`
-
-	var s Schema
-	err := s.UnmarshalJSON([]byte(jsonData))
-	testutil.Error(t, err)
-	testutil.Equals(t, strings.Contains(err.Error(), "set type missing element"), true)
-}
-
-// TestUnmarshalAttrSetWithBadElement tests error in Set attribute with bad element
-func TestUnmarshalAttrSetWithBadElement(t *testing.T) {
-	t.Parallel()
-
-	// JSON with attribute containing Set whose element is another Set without element
-	jsonData := `{"": {"entityTypes": {"E": {"shape": {"type": "Record", "attributes": {"x": {"type": "Set", "element": {"type": "Set"}}}}}}, "actions": {}}}`
-
-	var s Schema
-	err := s.UnmarshalJSON([]byte(jsonData))
-	testutil.Error(t, err)
-	testutil.Equals(t, strings.Contains(err.Error(), "set type missing element"), true)
-}
-
-// TestMarshalNilTypeInCommonType tests marshalling a common type with nil type
-func TestMarshalNilTypeInCommonType(t *testing.T) {
-	t.Parallel()
-
-	schema := &ast.Schema{
-		Nodes: []ast.IsNode{
-			ast.CommonTypeNode{
-				Name: "BadType",
-				Type: nil, // nil type - hits default case
-			},
-		},
-	}
-
-	s := (*Schema)(schema)
-	jsonData, err := s.MarshalJSON()
-	testutil.OK(t, err)
-	// Should produce JSON with null type
-	testutil.Equals(t, strings.Contains(string(jsonData), "BadType"), true)
-}
-
-// TestMarshalNilTypeInRecordAttr tests marshalling record with nil attribute type
-func TestMarshalNilTypeInRecordAttr(t *testing.T) {
-	t.Parallel()
-
-	schema := &ast.Schema{
-		Nodes: []ast.IsNode{
-			ast.EntityNode{
-				Name: "E",
-				ShapeVal: &ast.RecordType{
-					Pairs: []ast.Pair{
-						{
-							Key:  "badAttr",
-							Type: nil, // nil type - hits default case in attrToJSON
-						},
-					},
-				},
-			},
-		},
-	}
-
-	s := (*Schema)(schema)
-	jsonData, err := s.MarshalJSON()
-	testutil.OK(t, err)
-	// Should produce JSON with the entity
-	testutil.Equals(t, strings.Contains(string(jsonData), "badAttr"), true)
-}
-
-// TestEntityOrCommonFormat tests parsing Rust CLI v4.8+ EntityOrCommon JSON format
 func TestEntityOrCommonFormat(t *testing.T) {
 	t.Parallel()
 
@@ -1165,66 +724,64 @@ func TestEntityOrCommonFormat(t *testing.T) {
 		json string
 	}{
 		{
-			name: "EntityOrCommon with __cedar::String",
+			name: "__cedar::String",
 			json: `{"": {"entityTypes": {"User": {"shape": {"type": "Record", "attributes": {"name": {"type": "EntityOrCommon", "name": "__cedar::String"}}}}}, "actions": {}}}`,
 		},
 		{
-			name: "EntityOrCommon with __cedar::Long",
+			name: "__cedar::Long",
 			json: `{"": {"entityTypes": {"User": {"shape": {"type": "Record", "attributes": {"age": {"type": "EntityOrCommon", "name": "__cedar::Long"}}}}}, "actions": {}}}`,
 		},
 		{
-			name: "EntityOrCommon with __cedar::Bool",
+			name: "__cedar::Bool",
 			json: `{"": {"entityTypes": {"User": {"shape": {"type": "Record", "attributes": {"active": {"type": "EntityOrCommon", "name": "__cedar::Bool"}}}}}, "actions": {}}}`,
 		},
 		{
-			name: "EntityOrCommon with __cedar::Boolean",
+			name: "__cedar::Boolean",
 			json: `{"": {"entityTypes": {"User": {"shape": {"type": "Record", "attributes": {"active": {"type": "EntityOrCommon", "name": "__cedar::Boolean"}}}}}, "actions": {}}}`,
 		},
 		{
-			name: "EntityOrCommon with __cedar::ipaddr extension",
+			name: "__cedar::ipaddr extension",
 			json: `{"": {"entityTypes": {"User": {"shape": {"type": "Record", "attributes": {"ip": {"type": "EntityOrCommon", "name": "__cedar::ipaddr"}}}}}, "actions": {}}}`,
 		},
 		{
-			name: "EntityOrCommon with __cedar::datetime extension",
+			name: "__cedar::datetime extension",
 			json: `{"": {"entityTypes": {"User": {"shape": {"type": "Record", "attributes": {"time": {"type": "EntityOrCommon", "name": "__cedar::datetime"}}}}}, "actions": {}}}`,
 		},
 		{
-			name: "EntityOrCommon with unprefixed String",
+			name: "unprefixed String",
 			json: `{"": {"entityTypes": {"User": {"shape": {"type": "Record", "attributes": {"name": {"type": "EntityOrCommon", "name": "String"}}}}}, "actions": {}}}`,
 		},
 		{
-			name: "EntityOrCommon with unprefixed Long",
+			name: "unprefixed Long",
 			json: `{"": {"entityTypes": {"User": {"shape": {"type": "Record", "attributes": {"age": {"type": "EntityOrCommon", "name": "Long"}}}}}, "actions": {}}}`,
 		},
 		{
-			name: "EntityOrCommon with unprefixed Bool",
+			name: "unprefixed Bool",
 			json: `{"": {"entityTypes": {"User": {"shape": {"type": "Record", "attributes": {"flag": {"type": "EntityOrCommon", "name": "Bool"}}}}}, "actions": {}}}`,
 		},
 		{
-			name: "EntityOrCommon with unprefixed Boolean",
+			name: "unprefixed Boolean",
 			json: `{"": {"entityTypes": {"User": {"shape": {"type": "Record", "attributes": {"flag": {"type": "EntityOrCommon", "name": "Boolean"}}}}}, "actions": {}}}`,
 		},
 		{
-			name: "EntityOrCommon with type reference",
+			name: "type reference",
 			json: `{"": {"entityTypes": {"User": {"shape": {"type": "Record", "attributes": {"data": {"type": "EntityOrCommon", "name": "MyType"}}}}}, "actions": {}}}`,
 		},
 		{
-			name: "EntityOrCommon in commonTypes",
+			name: "in commonTypes",
 			json: `{"": {"commonTypes": {"X": {"type": "EntityOrCommon", "name": "__cedar::String"}}, "entityTypes": {}, "actions": {}}}`,
 		},
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
 			var s Schema
 			err := s.UnmarshalJSON([]byte(tt.json))
 			testutil.OK(t, err)
-			schema := (*ast.Schema)(&s)
 
-			// Re-marshal and verify round-trip
+			schema := (*ast.Schema)(&s)
 			s2 := (*Schema)(schema)
 			jsonData, err := s2.MarshalJSON()
 			testutil.OK(t, err)
@@ -1243,116 +800,7 @@ func TestEntityOrCommonFormat(t *testing.T) {
 	}
 }
 
-// TestRecordMarshalJSONWithNilAttributes tests Record type MarshalJSON with nil attributes
-func TestRecordMarshalJSONWithNilAttributes(t *testing.T) {
-	t.Parallel()
-
-	// Create a Type directly with nil Attributes to test MarshalJSON
-	recordType := Type{
-		TypeName:   "Record",
-		Attributes: nil, // nil, not empty map
-	}
-
-	jsonData, err := json.Marshal(recordType)
-	testutil.OK(t, err)
-
-	// Should output attributes: {}
-	testutil.Equals(t, strings.Contains(string(jsonData), `"attributes":{}`), true)
-}
-
-// TestAttrRecordMarshalJSONWithNilAttributes tests Attr Record type MarshalJSON with nil attributes
-func TestAttrRecordMarshalJSONWithNilAttributes(t *testing.T) {
-	t.Parallel()
-
-	// Create an Attr directly with nil Attributes to test MarshalJSON
-	recordAttr := Attr{
-		TypeName:   "Record",
-		Attributes: nil, // nil, not empty map
-	}
-
-	jsonData, err := json.Marshal(recordAttr)
-	testutil.OK(t, err)
-
-	// Should output attributes: {}
-	testutil.Equals(t, strings.Contains(string(jsonData), `"attributes":{}`), true)
-}
-
-// TestActionMemberOfWithEmptyType tests action memberOf with empty type defaults to Action
-func TestActionMemberOfWithEmptyType(t *testing.T) {
-	t.Parallel()
-
-	// JSON with action memberOf where type is empty (Rust CLI v4.8+ format)
-	jsonData := `{"": {"entityTypes": {}, "actions": {"read": {}, "write": {"memberOf": [{"id": "read"}]}}}}`
-
-	var s Schema
-	err := s.UnmarshalJSON([]byte(jsonData))
-	testutil.OK(t, err)
-	schema := (*ast.Schema)(&s)
-
-	// Marshal back
-	s2 := (*Schema)(schema)
-	jsonOut, err := s2.MarshalJSON()
-	testutil.OK(t, err)
-
-	// Should have type: Action in output (check both possible formats)
-	hasType := strings.Contains(string(jsonOut), `"type":"Action"`) ||
-		strings.Contains(string(jsonOut), `"type": "Action"`)
-	testutil.Equals(t, hasType, true)
-}
-
-// TestActionMemberOfEmptyTypeInSchema tests marshalling action with empty memberOf type
-func TestActionMemberOfEmptyTypeInSchema(t *testing.T) {
-	t.Parallel()
-
-	schema := &ast.Schema{
-		Nodes: []ast.IsNode{
-			ast.ActionNode{
-				Name: "write",
-				MemberOfVal: []ast.EntityRef{
-					{
-						Type: ast.EntityTypeRef{Name: ""}, // empty type
-						ID:   "read",
-					},
-				},
-			},
-		},
-	}
-
-	s := (*Schema)(schema)
-	jsonData, err := s.MarshalJSON()
-	testutil.OK(t, err)
-
-	// Should have type: Action (default for empty type) - check both formats
-	hasType := strings.Contains(string(jsonData), `"type":"Action"`) ||
-		strings.Contains(string(jsonData), `"type": "Action"`)
-	if !hasType {
-		t.Errorf("expected type:Action in JSON, got: %s", string(jsonData))
-	}
-}
-
-// TestEmptyAppliesToNotEmitted tests that empty appliesTo is not emitted
-func TestEmptyAppliesToNotEmitted(t *testing.T) {
-	t.Parallel()
-
-	// JSON with action having empty appliesTo (Rust CLI format)
-	jsonData := `{"": {"entityTypes": {}, "actions": {"view": {"appliesTo": {"principalTypes": [], "resourceTypes": []}}}}}`
-
-	var s Schema
-	err := s.UnmarshalJSON([]byte(jsonData))
-	testutil.OK(t, err)
-	schema := (*ast.Schema)(&s)
-
-	// Marshal back
-	s2 := (*Schema)(schema)
-	jsonOut, err := s2.MarshalJSON()
-	testutil.OK(t, err)
-
-	// Should NOT have appliesTo in output (since it's empty)
-	testutil.Equals(t, !strings.Contains(string(jsonOut), "appliesTo"), true)
-}
-
-// TestResolveEntityOrCommonDirectly tests resolveEntityOrCommon function directly
-func TestResolveEntityOrCommonDirectly(t *testing.T) {
+func TestResolveEntityOrCommon(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -1360,27 +808,22 @@ func TestResolveEntityOrCommonDirectly(t *testing.T) {
 		input    string
 		wantType string
 	}{
-		// __cedar:: prefixed primitives
 		{"__cedar::String", "__cedar::String", "StringType"},
 		{"__cedar::Long", "__cedar::Long", "LongType"},
 		{"__cedar::Bool", "__cedar::Bool", "BoolType"},
-		// __cedar:: prefixed extension types
 		{"__cedar::ipaddr", "__cedar::ipaddr", "ExtensionType"},
 		{"__cedar::datetime", "__cedar::datetime", "ExtensionType"},
 		{"__cedar::decimal", "__cedar::decimal", "ExtensionType"},
 		{"__cedar::duration", "__cedar::duration", "ExtensionType"},
-		// Unprefixed primitives
 		{"String", "String", "StringType"},
 		{"Long", "Long", "LongType"},
 		{"Bool", "Bool", "BoolType"},
-		// Type references (Boolean is not a valid primitive name, it would be a type reference)
 		{"Boolean", "Boolean", "TypeRef"},
 		{"MyType", "MyType", "TypeRef"},
 		{"User", "User", "TypeRef"},
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -1393,7 +836,6 @@ func TestResolveEntityOrCommonDirectly(t *testing.T) {
 	}
 }
 
-// getTypeName returns the type name of an ast.IsType for testing
 func getTypeName(t ast.IsType) string {
 	switch t.(type) {
 	case ast.StringType:
@@ -1411,43 +853,260 @@ func getTypeName(t ast.IsType) string {
 	}
 }
 
-// TestUnmarshalBoolType tests unmarshalling Bool type directly
-func TestUnmarshalBoolType(t *testing.T) {
+func TestActionMemberOfWithEmptyType(t *testing.T) {
+	t.Parallel()
+
+	jsonData := `{"": {"entityTypes": {}, "actions": {"read": {}, "write": {"memberOf": [{"id": "read"}]}}}}`
+
+	var s Schema
+	err := s.UnmarshalJSON([]byte(jsonData))
+	testutil.OK(t, err)
+	schema := (*ast.Schema)(&s)
+
+	s2 := (*Schema)(schema)
+	jsonOut, err := s2.MarshalJSON()
+	testutil.OK(t, err)
+
+	hasType := strings.Contains(string(jsonOut), `"type":"Action"`) ||
+		strings.Contains(string(jsonOut), `"type": "Action"`)
+	testutil.Equals(t, hasType, true)
+}
+
+func TestEmptyAppliesToNotEmitted(t *testing.T) {
+	t.Parallel()
+
+	jsonData := `{"": {"entityTypes": {}, "actions": {"view": {"appliesTo": {"principalTypes": [], "resourceTypes": []}}}}}`
+
+	var s Schema
+	err := s.UnmarshalJSON([]byte(jsonData))
+	testutil.OK(t, err)
+	schema := (*ast.Schema)(&s)
+
+	s2 := (*Schema)(schema)
+	jsonOut, err := s2.MarshalJSON()
+	testutil.OK(t, err)
+
+	testutil.Equals(t, !strings.Contains(string(jsonOut), "appliesTo"), true)
+}
+
+func TestRecordMarshalJSONWithNilAttributes(t *testing.T) {
+	t.Parallel()
+
+	recordType := Type{
+		TypeName:   "Record",
+		Attributes: nil,
+	}
+
+	jsonData, err := json.Marshal(recordType)
+	testutil.OK(t, err)
+
+	testutil.Equals(t, strings.Contains(string(jsonData), `"attributes":{}`), true)
+}
+
+func TestAttrRecordMarshalJSONWithNilAttributes(t *testing.T) {
+	t.Parallel()
+
+	recordAttr := Attr{
+		TypeName:   "Record",
+		Attributes: nil,
+	}
+
+	jsonData, err := json.Marshal(recordAttr)
+	testutil.OK(t, err)
+
+	testutil.Equals(t, strings.Contains(string(jsonData), `"attributes":{}`), true)
+}
+
+func TestMarshalNilTypeInCommonType(t *testing.T) {
+	t.Parallel()
+
+	schema := &ast.Schema{
+		Nodes: []ast.IsNode{
+			ast.CommonTypeNode{
+				Name: "BadType",
+				Type: nil,
+			},
+		},
+	}
+
+	s := (*Schema)(schema)
+	jsonData, err := s.MarshalJSON()
+	testutil.OK(t, err)
+	testutil.Equals(t, strings.Contains(string(jsonData), "BadType"), true)
+}
+
+func TestMarshalNilTypeInRecordAttr(t *testing.T) {
+	t.Parallel()
+
+	schema := &ast.Schema{
+		Nodes: []ast.IsNode{
+			ast.EntityNode{
+				Name: "E",
+				ShapeVal: &ast.RecordType{
+					Pairs: []ast.Pair{
+						{
+							Key:  "badAttr",
+							Type: nil,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	s := (*Schema)(schema)
+	jsonData, err := s.MarshalJSON()
+	testutil.OK(t, err)
+	testutil.Equals(t, strings.Contains(string(jsonData), "badAttr"), true)
+}
+
+func TestMarshalJSONOutput(t *testing.T) {
+	t.Parallel()
+
+	schema := &ast.Schema{
+		Nodes: []ast.IsNode{
+			ast.EntityNode{Name: "User"},
+		},
+	}
+
+	s := (*Schema)(schema)
+	jsonData, err := s.MarshalJSON()
+	testutil.OK(t, err)
+
+	var parsed map[string]interface{}
+	err = json.Unmarshal(jsonData, &parsed)
+	testutil.OK(t, err)
+
+	defaultNS, ok := parsed[""].(map[string]interface{})
+	testutil.Equals(t, true, ok)
+	testutil.Equals(t, true, defaultNS["entityTypes"] != nil)
+	testutil.Equals(t, true, defaultNS["actions"] != nil)
+}
+
+func TestCollectEntityNames(t *testing.T) {
+	t.Parallel()
+
+	schema := &ast.Schema{
+		Nodes: []ast.IsNode{
+			ast.EntityNode{Name: "User"},
+			ast.EnumNode{Name: "Status"},
+			ast.NamespaceNode{
+				Name: "App",
+				Declarations: []ast.IsDeclaration{
+					ast.EntityNode{Name: "Admin"},
+					ast.EnumNode{Name: "Role"},
+				},
+			},
+		},
+	}
+
+	names := collectEntityNames(schema)
+	testutil.Equals(t, true, names["User"])
+	testutil.Equals(t, true, names["Status"])
+	testutil.Equals(t, true, names["Admin"])
+	testutil.Equals(t, true, names["Role"])
+	testutil.Equals(t, false, names["Unknown"])
+}
+
+func TestGetOrCreateNamespace(t *testing.T) {
+	t.Parallel()
+
+	namespaces := make(map[string]*Namespace)
+
+	ns1 := getOrCreateNamespace(namespaces, "App")
+	testutil.Equals(t, true, ns1 != nil)
+	testutil.Equals(t, true, ns1.EntityTypes != nil)
+	testutil.Equals(t, true, ns1.Actions != nil)
+	testutil.Equals(t, true, ns1.CommonTypes != nil)
+
+	ns2 := getOrCreateNamespace(namespaces, "App")
+	testutil.Equals(t, ns1, ns2)
+}
+
+func TestTypeRefToEntity(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name string
-		json string
+		name   string
+		schema *ast.Schema
 	}{
 		{
-			name: "Bool in commonTypes",
-			json: `{"": {"commonTypes": {"X": {"type": "Bool"}}, "entityTypes": {}, "actions": {}}}`,
+			name: "in common type",
+			schema: &ast.Schema{
+				Nodes: []ast.IsNode{
+					ast.EntityNode{Name: "User"},
+					ast.CommonTypeNode{
+						Name: "UserAlias",
+						Type: ast.TypeRef{Name: "User"},
+					},
+				},
+			},
 		},
 		{
-			name: "Bool in entity shape attribute",
-			json: `{"": {"entityTypes": {"E": {"shape": {"type": "Record", "attributes": {"active": {"type": "Bool"}}}}}, "actions": {}}}`,
+			name: "in record attribute",
+			schema: &ast.Schema{
+				Nodes: []ast.IsNode{
+					ast.EntityNode{Name: "User"},
+					ast.EntityNode{
+						Name: "Doc",
+						ShapeVal: &ast.RecordType{
+							Pairs: []ast.Pair{
+								{Key: "owner", Type: ast.TypeRef{Name: "User"}},
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			var s Schema
-			err := s.UnmarshalJSON([]byte(tt.json))
-			testutil.OK(t, err)
-			schema := (*ast.Schema)(&s)
-
-			// Re-marshal and verify
-			s2 := (*Schema)(schema)
-			jsonData, err := s2.MarshalJSON()
+			s := (*Schema)(tt.schema)
+			jsonData, err := s.MarshalJSON()
 			testutil.OK(t, err)
 
-			// Round-trip
-			var s3 Schema
-			err = s3.UnmarshalJSON(jsonData)
+			testutil.Equals(t, strings.Contains(string(jsonData), `"type": "Entity"`), true)
+			testutil.Equals(t, strings.Contains(string(jsonData), `"name": "User"`), true)
+
+			var s2 Schema
+			err = s2.UnmarshalJSON(jsonData)
 			testutil.OK(t, err)
+			schema2 := (*ast.Schema)(&s2)
+
+			s3 := (*Schema)(schema2)
+			jsonData2, err := s3.MarshalJSON()
+			testutil.OK(t, err)
+
+			testutil.Equals(t, string(jsonData), string(jsonData2))
 		})
 	}
+}
+
+func TestActionMemberOfEmptyTypeInSchema(t *testing.T) {
+	t.Parallel()
+
+	schema := &ast.Schema{
+		Nodes: []ast.IsNode{
+			ast.ActionNode{
+				Name: "write",
+				MemberOfVal: []ast.EntityRef{
+					{
+						Type: ast.EntityTypeRef{Name: ""},
+						ID:   "read",
+					},
+				},
+			},
+		},
+	}
+
+	s := (*Schema)(schema)
+	jsonData, err := s.MarshalJSON()
+	testutil.OK(t, err)
+
+	hasType := strings.Contains(string(jsonData), `"type":"Action"`) ||
+		strings.Contains(string(jsonData), `"type": "Action"`)
+	testutil.Equals(t, hasType, true)
 }

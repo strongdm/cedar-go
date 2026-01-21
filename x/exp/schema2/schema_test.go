@@ -2,11 +2,14 @@ package schema2
 
 import (
 	"encoding/json"
-	"reflect"
 	"testing"
+
+	"github.com/cedar-policy/cedar-go/types"
 )
 
 func TestSchemaCedarMarshalUnmarshal(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		input   string
@@ -20,12 +23,10 @@ func TestSchemaCedarMarshalUnmarshal(t *testing.T) {
 					resource: String
 				};
 			}`,
-			wantErr: false,
 		},
 		{
-			name:    "empty schema",
-			input:   "",
-			wantErr: false,
+			name:  "empty schema",
+			input: "",
 		},
 		{
 			name: "invalid schema",
@@ -40,6 +41,7 @@ func TestSchemaCedarMarshalUnmarshal(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			var s Schema
 			s.SetFilename("test.cedar")
 			err := s.UnmarshalCedar([]byte(tt.input))
@@ -52,65 +54,33 @@ func TestSchemaCedarMarshalUnmarshal(t *testing.T) {
 				return
 			}
 
-			// Test marshaling
+			// Test marshaling and round-trip stability
 			out, err := s.MarshalCedar()
 			if err != nil {
-				t.Errorf("MarshalCedar() error = %v", err)
-				return
+				t.Fatalf("MarshalCedar() error = %v", err)
 			}
 
-			// For valid schemas, unmarshaling and marshaling should preserve content
-			if !tt.wantErr {
-				var s2 Schema
-				s2.SetFilename("test.cedar")
-				err = s2.UnmarshalCedar(out)
-				if err != nil {
-					t.Errorf("UnmarshalCedar() second pass error = %v", err)
-					return
-				}
+			var s2 Schema
+			s2.SetFilename("test.cedar")
+			if err = s2.UnmarshalCedar(out); err != nil {
+				t.Fatalf("UnmarshalCedar() second pass error = %v", err)
+			}
 
-				out2, err := s2.MarshalCedar()
-				if err != nil {
-					t.Errorf("MarshalCedar() second pass error = %v", err)
-					return
-				}
+			out2, err := s2.MarshalCedar()
+			if err != nil {
+				t.Fatalf("MarshalCedar() second pass error = %v", err)
+			}
 
-				if !reflect.DeepEqual(out, out2) {
-					t.Errorf("Marshal/Unmarshal cycle produced different results:\nFirst: %s\nSecond: %s", out, out2)
-				}
+			if string(out) != string(out2) {
+				t.Errorf("Marshal/Unmarshal cycle produced different results:\nFirst: %s\nSecond: %s", out, out2)
 			}
 		})
 	}
 }
 
-func TestSchemaCedarMarshalEmpty(t *testing.T) {
-	var s Schema
-	s.SetFilename("test.cedar")
-	out, err := s.MarshalCedar()
-	if err != nil {
-		t.Errorf("MarshalCedar() error = %v", err)
-		return
-	}
-	if len(out) != 0 {
-		t.Errorf("MarshalCedar() produced non-empty output for empty schema")
-	}
-}
-
-func TestSchemaJSONMarshalEmpty(t *testing.T) {
-	var s Schema
-	s.SetFilename("test.json")
-	out, err := s.MarshalJSON()
-	if err != nil {
-		t.Errorf("MarshalJSON() error = %v", err)
-		return
-	}
-	// Empty schema marshals to "{}"
-	if string(out) != "{}" {
-		t.Errorf("MarshalJSON() = %s, want {}", string(out))
-	}
-}
-
 func TestSchemaJSONMarshalUnmarshal(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		input   string
@@ -130,12 +100,10 @@ func TestSchemaJSONMarshalUnmarshal(t *testing.T) {
 					}
 				}
 			}`,
-			wantErr: false,
 		},
 		{
-			name:    "empty JSON",
-			input:   "{}",
-			wantErr: false,
+			name:  "empty JSON",
+			input: "{}",
 		},
 		{
 			name:    "invalid JSON",
@@ -146,6 +114,7 @@ func TestSchemaJSONMarshalUnmarshal(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			var s Schema
 			s.SetFilename("test.json")
 			err := s.UnmarshalJSON([]byte(tt.input))
@@ -161,12 +130,11 @@ func TestSchemaJSONMarshalUnmarshal(t *testing.T) {
 			// Test marshaling
 			out, err := s.MarshalJSON()
 			if err != nil {
-				t.Errorf("MarshalJSON() error = %v", err)
-				return
+				t.Fatalf("MarshalJSON() error = %v", err)
 			}
 
 			// Verify JSON validity
-			var raw interface{}
+			var raw any
 			if err := json.Unmarshal(out, &raw); err != nil {
 				t.Errorf("MarshalJSON() produced invalid JSON: %v", err)
 			}
@@ -174,89 +142,148 @@ func TestSchemaJSONMarshalUnmarshal(t *testing.T) {
 	}
 }
 
+func TestSchemaEmptyMarshal(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		format     string
+		wantOutput string
+	}{
+		{
+			name:       "empty Cedar schema",
+			format:     "cedar",
+			wantOutput: "",
+		},
+		{
+			name:       "empty JSON schema",
+			format:     "json",
+			wantOutput: "{}",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			var s Schema
+			s.SetFilename("test." + tt.format)
+
+			var out []byte
+			var err error
+			if tt.format == "cedar" {
+				out, err = s.MarshalCedar()
+			} else {
+				out, err = s.MarshalJSON()
+			}
+
+			if err != nil {
+				t.Fatalf("Marshal%s() error = %v", tt.format, err)
+			}
+			if string(out) != tt.wantOutput {
+				t.Errorf("Marshal%s() = %q, want %q", tt.format, string(out), tt.wantOutput)
+			}
+		})
+	}
+}
+
 func TestSchemaCrossFormatMarshaling(t *testing.T) {
-	t.Run("JSON to Cedar Marshalling", func(t *testing.T) {
-		var s Schema
-		err := s.UnmarshalJSON([]byte(`{}`))
-		if err != nil {
-			t.Fatalf("UnmarshalJSON() error = %v", err)
-		}
+	t.Parallel()
 
-		_, err = s.MarshalCedar()
-		if err != nil {
-			t.Error("MarshalCedar() should not return error after UnmarshalJSON")
-		}
-	})
+	tests := []struct {
+		name       string
+		input      string
+		inputFmt   string
+		outputFmt  string
+		shouldFail bool
+	}{
+		{
+			name:      "JSON to Cedar",
+			input:     `{}`,
+			inputFmt:  "json",
+			outputFmt: "cedar",
+		},
+		{
+			name:      "Cedar to JSON",
+			input:     `namespace test {}`,
+			inputFmt:  "cedar",
+			outputFmt: "json",
+		},
+	}
 
-	t.Run("Cedar to JSON marshaling allowed", func(t *testing.T) {
-		var s Schema
-		s.SetFilename("test.cedar")
-		err := s.UnmarshalCedar([]byte(`namespace test {}`))
-		if err != nil {
-			t.Fatalf("UnmarshalCedar() error = %v", err)
-		}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			var s Schema
+			s.SetFilename("test." + tt.inputFmt)
 
-		_, err = s.MarshalJSON()
-		if err != nil {
-			t.Errorf("MarshalJSON() error = %v", err)
-		}
-	})
+			// Unmarshal input
+			var err error
+			if tt.inputFmt == "cedar" {
+				err = s.UnmarshalCedar([]byte(tt.input))
+			} else {
+				err = s.UnmarshalJSON([]byte(tt.input))
+			}
+			if err != nil {
+				t.Fatalf("Unmarshal%s() error = %v", tt.inputFmt, err)
+			}
+
+			// Marshal to output format
+			if tt.outputFmt == "cedar" {
+				_, err = s.MarshalCedar()
+			} else {
+				_, err = s.MarshalJSON()
+			}
+
+			if tt.shouldFail && err == nil {
+				t.Error("expected error but got none")
+			} else if !tt.shouldFail && err != nil {
+				t.Errorf("Marshal%s() error = %v", tt.outputFmt, err)
+			}
+		})
+	}
 }
 
 func TestSchemaResolve(t *testing.T) {
 	t.Parallel()
 
-	t.Run("resolve empty schema", func(t *testing.T) {
-		t.Parallel()
-		var s Schema
-		resolved, err := s.Resolve()
-		if err != nil {
-			t.Errorf("Resolve() error = %v", err)
-		}
-		if len(resolved.Entities) != 0 {
-			t.Errorf("Resolve() entities count = %d, want 0", len(resolved.Entities))
-		}
-		if len(resolved.Enums) != 0 {
-			t.Errorf("Resolve() enums count = %d, want 0", len(resolved.Enums))
-		}
-		if len(resolved.Actions) != 0 {
-			t.Errorf("Resolve() actions count = %d, want 0", len(resolved.Actions))
-		}
-	})
-
-	t.Run("resolve valid schema with entities", func(t *testing.T) {
-		t.Parallel()
-		cedarSchema := `
+	tests := []struct {
+		name        string
+		input       string
+		wantErr     bool
+		errContains string
+		checkFn     func(*testing.T, *ResolvedSchema)
+	}{
+		{
+			name:  "empty schema",
+			input: "",
+			checkFn: func(t *testing.T, rs *ResolvedSchema) {
+				if len(rs.Entities) != 0 || len(rs.Enums) != 0 || len(rs.Actions) != 0 {
+					t.Errorf("Resolve() counts = entities:%d enums:%d actions:%d, want all 0",
+						len(rs.Entities), len(rs.Enums), len(rs.Actions))
+				}
+			},
+		},
+		{
+			name: "valid schema with entities",
+			input: `
 namespace MyApp {
 	entity User;
 	entity Group;
-}
-`
-		var s Schema
-		if err := s.UnmarshalCedar([]byte(cedarSchema)); err != nil {
-			t.Fatalf("UnmarshalCedar() error = %v", err)
-		}
-
-		resolved, err := s.Resolve()
-		if err != nil {
-			t.Fatalf("Resolve() error = %v", err)
-		}
-
-		if len(resolved.Entities) != 2 {
-			t.Errorf("Resolve() entities count = %d, want 2", len(resolved.Entities))
-		}
-
-		if _, found := resolved.Entities["MyApp::User"]; !found {
-			t.Error("Resolve() should contain MyApp::User entity")
-		}
-		if _, found := resolved.Entities["MyApp::Group"]; !found {
-			t.Error("Resolve() should contain MyApp::Group entity")
-		}
-	})
-
-	t.Run("resolve schema with common types", func(t *testing.T) {
-		t.Parallel()
-		cedarSchema := `
+}`,
+			checkFn: func(t *testing.T, rs *ResolvedSchema) {
+				if len(rs.Entities) != 2 {
+					t.Errorf("Resolve() entities count = %d, want 2", len(rs.Entities))
+				}
+				for _, name := range []types.EntityType{"MyApp::User", "MyApp::Group"} {
+					if _, found := rs.Entities[name]; !found {
+						t.Errorf("Resolve() should contain %s entity", name)
+					}
+				}
+			},
+		},
+		{
+			name: "schema with common types",
+			input: `
 namespace MyApp {
 	type Address = {
 		street: String,
@@ -266,56 +293,34 @@ namespace MyApp {
 	entity User {
 		address: Address
 	};
-}
-`
-		var s Schema
-		if err := s.UnmarshalCedar([]byte(cedarSchema)); err != nil {
-			t.Fatalf("UnmarshalCedar() error = %v", err)
-		}
-
-		resolved, err := s.Resolve()
-		if err != nil {
-			t.Fatalf("Resolve() error = %v", err)
-		}
-
-		if len(resolved.Entities) != 1 {
-			t.Errorf("Resolve() entities count = %d, want 1", len(resolved.Entities))
-		}
-
-		if _, found := resolved.Entities["MyApp::User"]; !found {
-			t.Error("Resolve() should contain MyApp::User entity")
-		}
-	})
-
-	t.Run("resolve schema with enums", func(t *testing.T) {
-		t.Parallel()
-		cedarSchema := `
+}`,
+			checkFn: func(t *testing.T, rs *ResolvedSchema) {
+				if len(rs.Entities) != 1 {
+					t.Errorf("Resolve() entities count = %d, want 1", len(rs.Entities))
+				}
+				if _, found := rs.Entities["MyApp::User"]; !found {
+					t.Error("Resolve() should contain MyApp::User entity")
+				}
+			},
+		},
+		{
+			name: "schema with enums",
+			input: `
 namespace MyApp {
 	entity Status enum ["active", "inactive", "pending"];
-}
-`
-		var s Schema
-		if err := s.UnmarshalCedar([]byte(cedarSchema)); err != nil {
-			t.Fatalf("UnmarshalCedar() error = %v", err)
-		}
-
-		resolved, err := s.Resolve()
-		if err != nil {
-			t.Fatalf("Resolve() error = %v", err)
-		}
-
-		if len(resolved.Enums) != 1 {
-			t.Errorf("Resolve() enums count = %d, want 1", len(resolved.Enums))
-		}
-
-		if _, found := resolved.Enums["MyApp::Status"]; !found {
-			t.Error("Resolve() should contain MyApp::Status enum")
-		}
-	})
-
-	t.Run("resolve schema with actions", func(t *testing.T) {
-		t.Parallel()
-		cedarSchema := `
+}`,
+			checkFn: func(t *testing.T, rs *ResolvedSchema) {
+				if len(rs.Enums) != 1 {
+					t.Errorf("Resolve() enums count = %d, want 1", len(rs.Enums))
+				}
+				if _, found := rs.Enums["MyApp::Status"]; !found {
+					t.Error("Resolve() should contain MyApp::Status enum")
+				}
+			},
+		},
+		{
+			name: "schema with actions",
+			input: `
 namespace MyApp {
 	action View appliesTo {
 		principal: User,
@@ -324,118 +329,99 @@ namespace MyApp {
 
 	entity User;
 	entity Document;
-}
-`
-		var s Schema
-		if err := s.UnmarshalCedar([]byte(cedarSchema)); err != nil {
-			t.Fatalf("UnmarshalCedar() error = %v", err)
-		}
-
-		resolved, err := s.Resolve()
-		if err != nil {
-			t.Fatalf("Resolve() error = %v", err)
-		}
-
-		if len(resolved.Actions) != 1 {
-			t.Errorf("Resolve() actions count = %d, want 1", len(resolved.Actions))
-		}
-
-		// Actions should be indexed by EntityUID
-		found := false
-		for uid := range resolved.Actions {
-			if uid.Type == "MyApp::Action" && uid.ID == "View" {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Error("Resolve() should contain MyApp::Action::View action")
-		}
-	})
-
-	t.Run("resolve schema with undefined type error", func(t *testing.T) {
-		t.Parallel()
-		cedarSchema := `
+}`,
+			checkFn: func(t *testing.T, rs *ResolvedSchema) {
+				if len(rs.Actions) != 1 {
+					t.Errorf("Resolve() actions count = %d, want 1", len(rs.Actions))
+				}
+				found := false
+				for uid := range rs.Actions {
+					if uid.Type == "MyApp::Action" && uid.ID == "View" {
+						found = true
+						break
+					}
+				}
+				if !found {
+					t.Error("Resolve() should contain MyApp::Action::View action")
+				}
+			},
+		},
+		{
+			name: "undefined type error",
+			input: `
 namespace MyApp {
 	entity User {
 		address: NonExistentType
 	};
-}
-`
-		var s Schema
-		if err := s.UnmarshalCedar([]byte(cedarSchema)); err != nil {
-			t.Fatalf("UnmarshalCedar() error = %v", err)
-		}
-
-		_, err := s.Resolve()
-		if err == nil {
-			t.Error("Resolve() should return error for undefined type")
-		}
-
-		expectedMsg := `type "MyApp::NonExistentType" not found`
-		if err.Error() != expectedMsg {
-			t.Errorf("Resolve() error = %v, want %v", err.Error(), expectedMsg)
-		}
-	})
-
-	t.Run("resolve top-level entities", func(t *testing.T) {
-		t.Parallel()
-		cedarSchema := `
+}`,
+			wantErr:     true,
+			errContains: `type "MyApp::NonExistentType" not found`,
+		},
+		{
+			name: "top-level entities",
+			input: `
 entity User;
-entity Group;
-`
-		var s Schema
-		if err := s.UnmarshalCedar([]byte(cedarSchema)); err != nil {
-			t.Fatalf("UnmarshalCedar() error = %v", err)
-		}
-
-		resolved, err := s.Resolve()
-		if err != nil {
-			t.Fatalf("Resolve() error = %v", err)
-		}
-
-		if len(resolved.Entities) != 2 {
-			t.Errorf("Resolve() entities count = %d, want 2", len(resolved.Entities))
-		}
-
-		if _, found := resolved.Entities["User"]; !found {
-			t.Error("Resolve() should contain User entity")
-		}
-		if _, found := resolved.Entities["Group"]; !found {
-			t.Error("Resolve() should contain Group entity")
-		}
-	})
-
-	t.Run("resolve mixed top-level and namespaced declarations", func(t *testing.T) {
-		t.Parallel()
-		cedarSchema := `
+entity Group;`,
+			checkFn: func(t *testing.T, rs *ResolvedSchema) {
+				if len(rs.Entities) != 2 {
+					t.Errorf("Resolve() entities count = %d, want 2", len(rs.Entities))
+				}
+				for _, name := range []types.EntityType{"User", "Group"} {
+					if _, found := rs.Entities[name]; !found {
+						t.Errorf("Resolve() should contain %s entity", name)
+					}
+				}
+			},
+		},
+		{
+			name: "mixed top-level and namespaced declarations",
+			input: `
 entity TopLevel;
 
 namespace MyApp {
 	entity Namespaced;
-}
-`
-		var s Schema
-		if err := s.UnmarshalCedar([]byte(cedarSchema)); err != nil {
-			t.Fatalf("UnmarshalCedar() error = %v", err)
-		}
+}`,
+			checkFn: func(t *testing.T, rs *ResolvedSchema) {
+				if len(rs.Entities) != 2 {
+					t.Errorf("Resolve() entities count = %d, want 2", len(rs.Entities))
+				}
+				for _, name := range []types.EntityType{"TopLevel", "MyApp::Namespaced"} {
+					if _, found := rs.Entities[name]; !found {
+						t.Errorf("Resolve() should contain %s entity", name)
+					}
+				}
+			},
+		},
+	}
 
-		resolved, err := s.Resolve()
-		if err != nil {
-			t.Fatalf("Resolve() error = %v", err)
-		}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			var s Schema
+			if err := s.UnmarshalCedar([]byte(tt.input)); err != nil {
+				t.Fatalf("UnmarshalCedar() error = %v", err)
+			}
 
-		if len(resolved.Entities) != 2 {
-			t.Errorf("Resolve() entities count = %d, want 2", len(resolved.Entities))
-		}
+			resolved, err := s.Resolve()
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("Resolve() expected error but got none")
+				}
+				if tt.errContains != "" && err.Error() != tt.errContains {
+					t.Errorf("Resolve() error = %v, want %v", err.Error(), tt.errContains)
+				}
+				return
+			}
 
-		if _, found := resolved.Entities["TopLevel"]; !found {
-			t.Error("Resolve() should contain TopLevel entity")
-		}
-		if _, found := resolved.Entities["MyApp::Namespaced"]; !found {
-			t.Error("Resolve() should contain MyApp::Namespaced entity")
-		}
-	})
+			if err != nil {
+				t.Fatalf("Resolve() error = %v", err)
+			}
+
+			if tt.checkFn != nil {
+				tt.checkFn(t, resolved)
+			}
+		})
+	}
 }
 
 func TestSchemaAST(t *testing.T) {

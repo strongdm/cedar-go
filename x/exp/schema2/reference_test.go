@@ -1,9 +1,6 @@
 package schema2_test
 
 import (
-	"os"
-	"os/exec"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -11,80 +8,15 @@ import (
 	"github.com/cedar-policy/cedar-go/x/exp/schema2"
 )
 
-// cedarCLI is the path to the cedar-policy CLI for verification.
-// Set CEDAR_CLI env var to override, or it will look in common locations.
-func cedarCLI() string {
-	if cli := os.Getenv("CEDAR_CLI"); cli != "" {
-		return cli
-	}
-	// Check common locations
-	paths := []string{
-		"/home/user/cedar-rust/target/release/cedar",
-		"/usr/local/bin/cedar",
-		"cedar",
-	}
-	for _, p := range paths {
-		if _, err := exec.LookPath(p); err == nil {
-			return p
-		}
-	}
-	return ""
+// referenceSchemaTest represents a schema to test against the reference implementation.
+type referenceSchemaTest struct {
+	name   string
+	schema string
 }
 
-// verifyWithCedarCLI checks that a schema parses correctly using the reference implementation.
-func verifyWithCedarCLI(t *testing.T, schemaContent string) {
-	t.Helper()
-	cli := cedarCLI()
-	if cli == "" {
-		t.Skip("cedar CLI not available, skipping verification")
-	}
-
-	// Write schema to temp file
-	tmpDir := t.TempDir()
-	schemaFile := filepath.Join(tmpDir, "schema.cedarschema")
-	if err := os.WriteFile(schemaFile, []byte(schemaContent), 0o644); err != nil {
-		t.Fatalf("failed to write temp schema: %v", err)
-	}
-
-	// Run cedar check-parse
-	cmd := exec.Command(cli, "check-parse", "--schema", schemaFile)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Errorf("cedar CLI rejected schema:\n%s\nOutput: %s", schemaContent, string(output))
-	}
-}
-
-// verifyJSONWithCedarCLI checks that a JSON schema parses correctly using the reference implementation.
-func verifyJSONWithCedarCLI(t *testing.T, jsonContent string) {
-	t.Helper()
-	cli := cedarCLI()
-	if cli == "" {
-		t.Skip("cedar CLI not available, skipping verification")
-	}
-
-	// Write schema to temp file
-	tmpDir := t.TempDir()
-	schemaFile := filepath.Join(tmpDir, "schema.cedarschema.json")
-	if err := os.WriteFile(schemaFile, []byte(jsonContent), 0o644); err != nil {
-		t.Fatalf("failed to write temp schema: %v", err)
-	}
-
-	// Run cedar check-parse --schema-format json
-	cmd := exec.Command(cli, "check-parse", "--schema", schemaFile, "--schema-format", "json")
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Errorf("cedar CLI rejected JSON schema:\n%s\nOutput: %s", jsonContent, string(output))
-	}
-}
-
-// TestReferenceSchemas tests our parser against schemas from the Rust reference implementation.
-func TestReferenceSchemas(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name   string
-		schema string
-	}{
+// getReferenceSchemasFromRustExamples returns schemas from Rust cedar-policy examples.
+func getReferenceSchemasFromRustExamples() []referenceSchemaTest {
+	return []referenceSchemaTest{
 		// From cedar-policy-cli/sample-data/sandbox_a/schema.cedarschema
 		{
 			name: "sandbox_a - photo sharing",
@@ -434,9 +366,49 @@ action Delete appliesTo {
 `,
 		},
 	}
+}
+
+// getEdgeCaseSchemas returns edge case schemas for testing.
+func getEdgeCaseSchemas() []referenceSchemaTest {
+	return []referenceSchemaTest{
+		{name: "empty namespace", schema: `namespace EmptyNamespace {}`},
+		{name: "multiple entities same line", schema: `entity User, Admin, Guest;`},
+		{name: "multiple actions same line", schema: `action read, write, delete;`},
+		{name: "entity with self-reference", schema: `entity Group in [Group];`},
+		{name: "action quoted name", schema: `action "view document";`},
+		{name: "action in action group", schema: `action "readActions"; action view in ["readActions"];`},
+		{name: "record with reserved words as keys", schema: `type Config = { entity: String, namespace: String, type: String, action: String };`},
+		{name: "deeply nested anonymous types", schema: `type Deep = { level1: { level2: { level3: { value: String } } } };`},
+		{name: "set of anonymous record", schema: `type Items = Set<{ key: String, value: Long }>;`},
+		{name: "empty context", schema: `entity User; entity Doc; action view appliesTo { principal: User, resource: Doc, context: {} };`},
+		{name: "single principal without brackets", schema: `entity User; entity Doc; action view appliesTo { principal: User, resource: Doc };`},
+		{name: "extension type ipaddr short form", schema: `type IP = ipaddr;`},
+		{name: "extension type decimal short form", schema: `type Price = decimal;`},
+		{name: "extension type datetime short form", schema: `type Time = datetime;`},
+		{name: "extension type duration short form", schema: `type Dur = duration;`},
+		{name: "entity enum", schema: `entity Status enum ["active", "pending", "closed"];`},
+		{name: "annotation with value", schema: `@doc("User entity description") entity User;`},
+		{name: "annotation without value", schema: `@deprecated entity LegacyUser;`},
+		{name: "multiple annotations", schema: `@doc("Deprecated user") @deprecated @internal entity OldUser;`},
+		{name: "entity with equals and shape", schema: `entity User = { name: String };`},
+		{name: "entity with in and equals", schema: `entity Group; entity User in [Group] = { name: String };`},
+		{name: "optional in nested record", schema: `entity User { config: { setting?: Bool } };`},
+		{name: "multiple optional attributes", schema: `entity User { a?: String, b?: Long, c?: Bool };`},
+		{name: "set of set", schema: `type Matrix = Set<Set<Long>>;`},
+		{name: "attribute key with dash", schema: `type Config = { "my-key": String };`},
+		{name: "attribute key with spaces", schema: `type Config = { "my key here": String };`},
+		{name: "action name with spaces", schema: `action "do something";`},
+		{name: "unicode in string attribute key", schema: `type Config = { "キー": String };`},
+	}
+}
+
+// TestReferenceSchemas tests our parser against schemas from the Rust reference implementation.
+func TestReferenceSchemas(t *testing.T) {
+	t.Parallel()
+
+	tests := getReferenceSchemasFromRustExamples()
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -446,11 +418,7 @@ action Delete appliesTo {
 			testutil.OK(t, err)
 
 			// Round-trip test
-			marshaled, err := schema.MarshalCedar()
-			testutil.OK(t, err)
-			var schema2Parsed schema2.Schema
-			err = schema2Parsed.UnmarshalCedar(marshaled)
-			testutil.OK(t, err)
+			marshaled := roundTripCedar(t, &schema)
 
 			// Verify our output with the reference implementation
 			verifyWithCedarCLI(t, string(marshaled))
@@ -458,94 +426,13 @@ action Delete appliesTo {
 	}
 }
 
-// TestReferenceVerification verifies that specific edge cases match reference implementation behavior.
-func TestReferenceVerification(t *testing.T) {
+// TestReferenceEdgeCases tests edge cases discovered in reference implementation tests.
+func TestReferenceEdgeCases(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		name   string
-		schema string
-	}{
-		{
-			name:   "empty namespace",
-			schema: `namespace EmptyNamespace {}`,
-		},
-		{
-			name:   "multiple entities same line",
-			schema: `entity User, Admin, Guest;`,
-		},
-		{
-			name:   "multiple actions same line",
-			schema: `action read, write, delete;`,
-		},
-		{
-			name:   "entity with self-reference",
-			schema: `entity Group in [Group];`,
-		},
-		{
-			name:   "action quoted name",
-			schema: `action "view document";`,
-		},
-		{
-			name:   "action in action group",
-			schema: `action "readActions"; action view in ["readActions"];`,
-		},
-		{
-			name:   "record with reserved words as keys",
-			schema: `type Config = { entity: String, namespace: String, type: String, action: String };`,
-		},
-		{
-			name:   "deeply nested anonymous types",
-			schema: `type Deep = { level1: { level2: { level3: { value: String } } } };`,
-		},
-		{
-			name:   "set of anonymous record",
-			schema: `type Items = Set<{ key: String, value: Long }>;`,
-		},
-		{
-			name:   "empty context",
-			schema: `entity User; entity Doc; action view appliesTo { principal: User, resource: Doc, context: {} };`,
-		},
-		{
-			name:   "single principal without brackets",
-			schema: `entity User; entity Doc; action view appliesTo { principal: User, resource: Doc };`,
-		},
-		{
-			name:   "extension type ipaddr short form",
-			schema: `type IP = ipaddr;`,
-		},
-		{
-			name:   "extension type decimal short form",
-			schema: `type Price = decimal;`,
-		},
-		{
-			name:   "extension type datetime short form",
-			schema: `type Time = datetime;`,
-		},
-		{
-			name:   "extension type duration short form",
-			schema: `type Dur = duration;`,
-		},
-		{
-			name:   "entity enum",
-			schema: `entity Status enum ["active", "pending", "closed"];`,
-		},
-		{
-			name:   "annotation with value",
-			schema: `@doc("User entity description") entity User;`,
-		},
-		{
-			name:   "annotation without value",
-			schema: `@deprecated entity LegacyUser;`,
-		},
-		{
-			name:   "multiple annotations",
-			schema: `@doc("Deprecated user") @deprecated @internal entity OldUser;`,
-		},
-	}
+	tests := getEdgeCaseSchemas()
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -558,17 +445,12 @@ func TestReferenceVerification(t *testing.T) {
 			testutil.OK(t, err)
 
 			// Round-trip
-			marshaled, err := schema.MarshalCedar()
-			testutil.OK(t, err)
-			var schema2Parsed schema2.Schema
-			err = schema2Parsed.UnmarshalCedar(marshaled)
-			testutil.OK(t, err)
+			roundTripCedar(t, &schema)
 		})
 	}
 }
 
 // TestAccessControlSchema tests a comprehensive access control schema similar to real-world usage.
-// This is an anonymized version based on common IAM patterns.
 func TestAccessControlSchema(t *testing.T) {
 	t.Parallel()
 
@@ -750,11 +632,7 @@ namespace AccessControl {
 	testutil.OK(t, err)
 
 	// Round-trip
-	marshaled, err := parsed.MarshalCedar()
-	testutil.OK(t, err)
-	var reparsed schema2.Schema
-	err = reparsed.UnmarshalCedar(marshaled)
-	testutil.OK(t, err)
+	marshaled := roundTripCedar(t, &parsed)
 
 	// Verify with reference implementation
 	verifyWithCedarCLI(t, string(marshaled))
@@ -812,89 +690,10 @@ namespace Resources {
 	testutil.OK(t, err)
 
 	// Round-trip
-	marshaled, err := parsed.MarshalCedar()
-	testutil.OK(t, err)
-	var reparsed schema2.Schema
-	err = reparsed.UnmarshalCedar(marshaled)
-	testutil.OK(t, err)
+	marshaled := roundTripCedar(t, &parsed)
 
 	// Verify with reference
 	verifyWithCedarCLI(t, string(marshaled))
-}
-
-// TestEdgeCasesFromReference tests edge cases discovered in reference implementation tests.
-func TestEdgeCasesFromReference(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name   string
-		schema string
-		valid  bool
-	}{
-		{
-			name:   "entity with equals and shape",
-			schema: `entity User = { name: String };`,
-			valid:  true,
-		},
-		{
-			name:   "entity with in and equals",
-			schema: `entity Group; entity User in [Group] = { name: String };`,
-			valid:  true,
-		},
-		{
-			name:   "optional in nested record",
-			schema: `entity User { config: { setting?: Bool } };`,
-			valid:  true,
-		},
-		{
-			name:   "multiple optional attributes",
-			schema: `entity User { a?: String, b?: Long, c?: Bool };`,
-			valid:  true,
-		},
-		{
-			name:   "set of set",
-			schema: `type Matrix = Set<Set<Long>>;`,
-			valid:  true,
-		},
-		{
-			name:   "attribute key with dash",
-			schema: `type Config = { "my-key": String };`,
-			valid:  true,
-		},
-		{
-			name:   "attribute key with spaces",
-			schema: `type Config = { "my key here": String };`,
-			valid:  true,
-		},
-		{
-			name:   "action name with spaces",
-			schema: `action "do something";`,
-			valid:  true,
-		},
-		{
-			name:   "unicode in string attribute key",
-			schema: `type Config = { "キー": String };`,
-			valid:  true,
-		},
-	}
-
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			var schema schema2.Schema
-			err := schema.UnmarshalCedar([]byte(tt.schema))
-			if tt.valid {
-				testutil.OK(t, err)
-
-				// Verify with reference
-				verifyWithCedarCLI(t, tt.schema)
-			} else {
-				testutil.Error(t, err)
-			}
-		})
-	}
 }
 
 // TestMarshalMatchesReference ensures our marshal output is valid according to reference.
@@ -938,7 +737,6 @@ func TestMarshalMatchesReference(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -946,8 +744,7 @@ func TestMarshalMatchesReference(t *testing.T) {
 			err := schema.UnmarshalCedar([]byte(tt.schema))
 			testutil.OK(t, err)
 
-			marshaledBytes, err := schema.MarshalCedar()
-			testutil.OK(t, err)
+			marshaledBytes := roundTripCedar(t, &schema)
 			marshaled := string(marshaledBytes)
 
 			for _, substr := range tt.contains {
