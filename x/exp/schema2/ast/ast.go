@@ -149,12 +149,133 @@ func (rd *resolveData) withNamespace(namespace *NamespaceNode) *resolveData {
 	}
 }
 
+// ResolvedEntity represents an entity type with all type references fully resolved.
+// All EntityTypeRef references have been converted to types.EntityType.
+type ResolvedEntity struct {
+	Name        types.EntityType      // Fully qualified entity type
+	Annotations []Annotation          // Entity annotations
+	MemberOf    []types.EntityType    // Fully qualified parent entity types
+	Shape       *RecordType           // Entity shape (with all type references resolved)
+	Tags        IsType                // Tags type (with all type references resolved)
+}
+
+// ResolvedEnum represents an enum type with all references fully resolved.
+type ResolvedEnum struct {
+	Name        types.EntityType  // Fully qualified enum type
+	Annotations []Annotation      // Enum annotations
+	Values      []types.String    // Enum values
+}
+
+// EntityUIDs returns an iterator over EntityUID values for each enum value.
+// The Name field should already be fully qualified.
+func (e ResolvedEnum) EntityUIDs() iter.Seq[types.EntityUID] {
+	return func(yield func(types.EntityUID) bool) {
+		for _, v := range e.Values {
+			if !yield(types.NewEntityUID(e.Name, v)) {
+				return
+			}
+		}
+	}
+}
+
+// ResolvedAppliesTo represents the appliesTo clause with all type references fully resolved.
+// All EntityTypeRef references have been converted to types.EntityType.
+type ResolvedAppliesTo struct {
+	PrincipalTypes []types.EntityType // Fully qualified principal entity types
+	ResourceTypes  []types.EntityType // Fully qualified resource entity types
+	Context        IsType             // Context type (with all type references resolved)
+}
+
+// ResolvedAction represents an action with all type references fully resolved.
+// All EntityTypeRef and EntityRef references have been converted to types.EntityType and types.EntityUID.
+type ResolvedAction struct {
+	Name        types.String         // Action name (local, not qualified)
+	Annotations []Annotation         // Action annotations
+	MemberOf    []types.EntityUID    // Fully qualified parent action UIDs
+	AppliesTo   *ResolvedAppliesTo   // AppliesTo clause with all type references resolved
+}
+
 // ResolvedSchema represents a schema with all type references resolved and indexed for efficient lookup.
 type ResolvedSchema struct {
-	Entities   map[types.EntityType]EntityNode // Fully qualified entity type -> EntityNode
-	Enums      map[types.EntityType]EnumNode   // Fully qualified entity type -> EnumNode
-	Actions    map[types.EntityUID]ActionNode  // Fully qualified action UID -> ActionNode
-	Namespaces map[types.Path][]Annotation     // Namespace path -> Annotations
+	Entities   map[types.EntityType]ResolvedEntity // Fully qualified entity type -> ResolvedEntity
+	Enums      map[types.EntityType]ResolvedEnum   // Fully qualified entity type -> ResolvedEnum
+	Actions    map[types.EntityUID]ResolvedAction  // Fully qualified action UID -> ResolvedAction
+	Namespaces map[types.Path][]Annotation         // Namespace path -> Annotations
+}
+
+// convertResolvedEntityToNode converts a ResolvedEntity back to an EntityNode by converting
+// types.EntityType back to EntityTypeRef.
+func convertResolvedEntityToNode(e ResolvedEntity, localName types.EntityType) EntityNode {
+	node := EntityNode{
+		Name:        localName,
+		Annotations: e.Annotations,
+		ShapeVal:    e.Shape,
+		TagsVal:     e.Tags,
+	}
+
+	// Convert MemberOf from []types.EntityType to []EntityTypeRef
+	if len(e.MemberOf) > 0 {
+		node.MemberOfVal = make([]EntityTypeRef, len(e.MemberOf))
+		for i, typ := range e.MemberOf {
+			node.MemberOfVal[i] = EntityTypeRef{Name: typ}
+		}
+	}
+
+	return node
+}
+
+// convertResolvedEnumToNode converts a ResolvedEnum back to an EnumNode.
+func convertResolvedEnumToNode(e ResolvedEnum, localName types.EntityType) EnumNode {
+	return EnumNode{
+		Name:        localName,
+		Annotations: e.Annotations,
+		Values:      e.Values,
+	}
+}
+
+// convertResolvedActionToNode converts a ResolvedAction back to an ActionNode by converting
+// types.EntityUID and types.EntityType back to EntityRef and EntityTypeRef.
+func convertResolvedActionToNode(a ResolvedAction) ActionNode {
+	node := ActionNode{
+		Name:        a.Name,
+		Annotations: a.Annotations,
+	}
+
+	// Convert MemberOf from []types.EntityUID to []EntityRef
+	if len(a.MemberOf) > 0 {
+		node.MemberOfVal = make([]EntityRef, len(a.MemberOf))
+		for i, uid := range a.MemberOf {
+			node.MemberOfVal[i] = EntityRef{
+				Type: EntityTypeRef{Name: uid.Type},
+				ID:   uid.ID,
+			}
+		}
+	}
+
+	// Convert AppliesTo
+	if a.AppliesTo != nil {
+		node.AppliesToVal = &AppliesTo{
+			Context: a.AppliesTo.Context,
+		}
+
+		// Convert PrincipalTypes from []types.EntityType to []EntityTypeRef
+		if len(a.AppliesTo.PrincipalTypes) > 0 {
+			node.AppliesToVal.PrincipalTypes = make([]EntityTypeRef, len(a.AppliesTo.PrincipalTypes))
+			for i, typ := range a.AppliesTo.PrincipalTypes {
+				node.AppliesToVal.PrincipalTypes[i] = EntityTypeRef{Name: typ}
+			}
+		}
+
+		// Convert ResourceTypes from []types.EntityType to []EntityTypeRef
+		if len(a.AppliesTo.ResourceTypes) > 0 {
+			node.AppliesToVal.ResourceTypes = make([]EntityTypeRef, len(a.AppliesTo.ResourceTypes))
+			for i, typ := range a.AppliesTo.ResourceTypes {
+				node.AppliesToVal.ResourceTypes[i] = EntityTypeRef{Name: typ}
+			}
+		}
+	}
+
+	return node
 }
 
 // Schema converts the resolved schema back to a Schema with proper namespace structure.
@@ -176,8 +297,7 @@ func (r *ResolvedSchema) Schema() *Schema {
 	// Process entities
 	for qualifiedName, entity := range r.Entities {
 		ns, localName := extractNamespace(string(qualifiedName))
-		unqualifiedEntity := entity
-		unqualifiedEntity.Name = types.EntityType(localName)
+		unqualifiedEntity := convertResolvedEntityToNode(entity, types.EntityType(localName))
 
 		if ns == "" {
 			topLevelDecls = append(topLevelDecls, unqualifiedEntity)
@@ -189,8 +309,7 @@ func (r *ResolvedSchema) Schema() *Schema {
 	// Process enums
 	for qualifiedName, enum := range r.Enums {
 		ns, localName := extractNamespace(string(qualifiedName))
-		unqualifiedEnum := enum
-		unqualifiedEnum.Name = types.EntityType(localName)
+		unqualifiedEnum := convertResolvedEnumToNode(enum, types.EntityType(localName))
 
 		if ns == "" {
 			topLevelDecls = append(topLevelDecls, unqualifiedEnum)
@@ -210,7 +329,7 @@ func (r *ResolvedSchema) Schema() *Schema {
 			ns = types.Path(actionType[:len(actionType)-8]) // Remove "::Action"
 		}
 
-		unqualifiedAction := action
+		unqualifiedAction := convertResolvedActionToNode(action)
 		// Action name is already local (not qualified)
 
 		if ns == "" {
@@ -315,15 +434,87 @@ func nodeName(n IsNode) string {
 	}
 }
 
+// convertEntityNodeToResolved converts an EntityNode to a ResolvedEntity by replacing
+// all EntityTypeRef with types.EntityType.
+func convertEntityNodeToResolved(e EntityNode) ResolvedEntity {
+	resolved := ResolvedEntity{
+		Name:        e.Name,
+		Annotations: e.Annotations,
+		Shape:       e.ShapeVal,
+		Tags:        e.TagsVal,
+	}
+
+	// Convert MemberOfVal from []EntityTypeRef to []types.EntityType
+	if len(e.MemberOfVal) > 0 {
+		resolved.MemberOf = make([]types.EntityType, len(e.MemberOfVal))
+		for i, ref := range e.MemberOfVal {
+			resolved.MemberOf[i] = ref.Name
+		}
+	}
+
+	return resolved
+}
+
+// convertEnumNodeToResolved converts an EnumNode to a ResolvedEnum.
+func convertEnumNodeToResolved(e EnumNode) ResolvedEnum {
+	return ResolvedEnum{
+		Name:        e.Name,
+		Annotations: e.Annotations,
+		Values:      e.Values,
+	}
+}
+
+// convertActionNodeToResolved converts an ActionNode to a ResolvedAction by replacing
+// all EntityTypeRef and EntityRef with types.EntityType and types.EntityUID.
+func convertActionNodeToResolved(a ActionNode, actionUID types.EntityUID) ResolvedAction {
+	resolved := ResolvedAction{
+		Name:        a.Name,
+		Annotations: a.Annotations,
+	}
+
+	// Convert MemberOfVal from []EntityRef to []types.EntityUID
+	if len(a.MemberOfVal) > 0 {
+		resolved.MemberOf = make([]types.EntityUID, len(a.MemberOfVal))
+		for i, ref := range a.MemberOfVal {
+			resolved.MemberOf[i] = types.NewEntityUID(ref.Type.Name, ref.ID)
+		}
+	}
+
+	// Convert AppliesTo
+	if a.AppliesToVal != nil {
+		resolved.AppliesTo = &ResolvedAppliesTo{
+			Context: a.AppliesToVal.Context,
+		}
+
+		// Convert PrincipalTypes from []EntityTypeRef to []types.EntityType
+		if len(a.AppliesToVal.PrincipalTypes) > 0 {
+			resolved.AppliesTo.PrincipalTypes = make([]types.EntityType, len(a.AppliesToVal.PrincipalTypes))
+			for i, ref := range a.AppliesToVal.PrincipalTypes {
+				resolved.AppliesTo.PrincipalTypes[i] = ref.Name
+			}
+		}
+
+		// Convert ResourceTypes from []EntityTypeRef to []types.EntityType
+		if len(a.AppliesToVal.ResourceTypes) > 0 {
+			resolved.AppliesTo.ResourceTypes = make([]types.EntityType, len(a.AppliesToVal.ResourceTypes))
+			for i, ref := range a.AppliesToVal.ResourceTypes {
+				resolved.AppliesTo.ResourceTypes[i] = ref.Name
+			}
+		}
+	}
+
+	return resolved
+}
+
 // Resolve returns a ResolvedSchema with all type references resolved and indexed.
 // Type references within namespaces are resolved relative to their namespace.
 // Top-level type references are resolved as-is.
 // Returns an error if any type reference cannot be resolved or if there are naming conflicts.
 func (s *Schema) Resolve() (*ResolvedSchema, error) {
 	resolved := &ResolvedSchema{
-		Entities:   make(map[types.EntityType]EntityNode),
-		Enums:      make(map[types.EntityType]EnumNode),
-		Actions:    make(map[types.EntityUID]ActionNode),
+		Entities:   make(map[types.EntityType]ResolvedEntity),
+		Enums:      make(map[types.EntityType]ResolvedEnum),
+		Actions:    make(map[types.EntityUID]ResolvedAction),
 		Namespaces: make(map[types.Path][]Annotation),
 	}
 
@@ -355,7 +546,7 @@ func (s *Schema) Resolve() (*ResolvedSchema, error) {
 					if _, exists := resolved.Enums[d.Name]; exists {
 						return nil, fmt.Errorf("type %q is defined as both an entity and an enum", d.Name)
 					}
-					resolved.Entities[d.Name] = d
+					resolved.Entities[d.Name] = convertEntityNodeToResolved(d)
 				case EnumNode:
 					// Name is already fully qualified by Resolve
 					// Check for conflicts with existing enums or entities
@@ -365,7 +556,7 @@ func (s *Schema) Resolve() (*ResolvedSchema, error) {
 					if _, exists := resolved.Entities[d.Name]; exists {
 						return nil, fmt.Errorf("type %q is defined as both an entity and an enum", d.Name)
 					}
-					resolved.Enums[d.Name] = d
+					resolved.Enums[d.Name] = convertEnumNodeToResolved(d)
 				case ActionNode:
 					// Construct EntityUID from qualified action type
 					// Extract namespace from a fully qualified entity in this namespace's declarations
@@ -381,7 +572,7 @@ func (s *Schema) Resolve() (*ResolvedSchema, error) {
 					if _, exists := resolved.Actions[actionUID]; exists {
 						return nil, fmt.Errorf("action %q is defined multiple times", actionUID)
 					}
-					resolved.Actions[actionUID] = d
+					resolved.Actions[actionUID] = convertActionNodeToResolved(d, actionUID)
 				}
 			}
 
@@ -398,7 +589,7 @@ func (s *Schema) Resolve() (*ResolvedSchema, error) {
 			if _, exists := resolved.Enums[resolvedEntity.Name]; exists {
 				return nil, fmt.Errorf("type %q is defined as both an entity and an enum", resolvedEntity.Name)
 			}
-			resolved.Entities[resolvedEntity.Name] = resolvedEntity
+			resolved.Entities[resolvedEntity.Name] = convertEntityNodeToResolved(resolvedEntity)
 
 		case EnumNode:
 			resolvedEnum := n.resolve(rd)
@@ -410,7 +601,7 @@ func (s *Schema) Resolve() (*ResolvedSchema, error) {
 			if _, exists := resolved.Entities[resolvedEnum.Name]; exists {
 				return nil, fmt.Errorf("type %q is defined as both an entity and an enum", resolvedEnum.Name)
 			}
-			resolved.Enums[resolvedEnum.Name] = resolvedEnum
+			resolved.Enums[resolvedEnum.Name] = convertEnumNodeToResolved(resolvedEnum)
 
 		case ActionNode:
 			resolvedAction, err := n.resolve(rd)
@@ -423,7 +614,7 @@ func (s *Schema) Resolve() (*ResolvedSchema, error) {
 			if _, exists := resolved.Actions[actionUID]; exists {
 				return nil, fmt.Errorf("action %q is defined multiple times", actionUID)
 			}
-			resolved.Actions[actionUID] = resolvedAction
+			resolved.Actions[actionUID] = convertActionNodeToResolved(resolvedAction, actionUID)
 
 		case CommonTypeNode:
 			// Common types are resolved but not added to the maps
