@@ -29,44 +29,6 @@ func (n NamespaceNode) Annotate(key types.Ident, value types.String) NamespaceNo
 	return n
 }
 
-// resolve returns a slice of resolved declarations with all type references and names fully resolved.
-func (n NamespaceNode) resolve(rd *resolveData) ([]IsDeclaration, error) {
-	// Create resolve data with this namespace
-	nsRd := rd.withNamespace(&n)
-
-	if len(n.Declarations) == 0 {
-		return nil, nil
-	}
-
-	resolved := make([]IsDeclaration, len(n.Declarations))
-	for i, decl := range n.Declarations {
-		switch d := decl.(type) {
-		case CommonTypeNode:
-			resolvedDecl, err := d.resolve(nsRd)
-			if err != nil {
-				return nil, err
-			}
-			resolved[i] = resolvedDecl
-		case EntityNode:
-			resolvedDecl, err := d.resolve(nsRd)
-			if err != nil {
-				return nil, err
-			}
-			resolved[i] = resolvedDecl
-		case EnumNode:
-			resolved[i] = d.resolve(nsRd)
-		case ActionNode:
-			resolvedDecl, err := d.resolve(nsRd)
-			if err != nil {
-				return nil, err
-			}
-			resolved[i] = resolvedDecl
-		}
-	}
-
-	return resolved, nil
-}
-
 // CommonTypes returns an iterator over all CommonTypeNode declarations in the namespace.
 func (n NamespaceNode) CommonTypes() iter.Seq[CommonTypeNode] {
 	return func(yield func(CommonTypeNode) bool) {
@@ -198,24 +160,25 @@ func (e EntityNode) Annotate(key types.Ident, value types.String) EntityNode {
 	return e
 }
 
-// resolve returns a new EntityNode with all type references resolved and name fully qualified.
-func (e EntityNode) resolve(rd *resolveData) (EntityNode, error) {
+// resolve returns a ResolvedEntity with all type references resolved and name fully qualified.
+func (e EntityNode) resolve(rd *resolveData) (ResolvedEntity, error) {
 	// Qualify the entity name with namespace if present
 	name := e.Name
 	if rd.namespace != nil && rd.namespace.Name != "" {
 		name = types.EntityType(string(rd.namespace.Name) + "::" + string(e.Name))
 	}
 
-	resolved := EntityNode{
+	resolved := ResolvedEntity{
 		Name:        name,
 		Annotations: e.Annotations,
 	}
 
-	// Resolve MemberOf references
+	// Resolve and convert MemberOf references from []EntityTypeRef to []types.EntityType
 	if len(e.MemberOfVal) > 0 {
-		resolved.MemberOfVal = make([]EntityTypeRef, len(e.MemberOfVal))
+		resolved.MemberOf = make([]types.EntityType, len(e.MemberOfVal))
 		for i, ref := range e.MemberOfVal {
-			resolved.MemberOfVal[i] = ref.mustResolve(rd)
+			resolvedRef := ref.mustResolve(rd)
+			resolved.MemberOf[i] = resolvedRef.Name
 		}
 	}
 
@@ -223,19 +186,19 @@ func (e EntityNode) resolve(rd *resolveData) (EntityNode, error) {
 	if e.ShapeVal != nil {
 		resolvedShape, err := e.ShapeVal.resolve(rd)
 		if err != nil {
-			return EntityNode{}, err
+			return ResolvedEntity{}, err
 		}
 		recordType := resolvedShape.(RecordType)
-		resolved.ShapeVal = &recordType
+		resolved.Shape = &recordType
 	}
 
 	// Resolve Tags
 	if e.TagsVal != nil {
 		resolvedTags, err := e.TagsVal.resolve(rd)
 		if err != nil {
-			return EntityNode{}, err
+			return ResolvedEntity{}, err
 		}
-		resolved.TagsVal = resolvedTags
+		resolved.Tags = resolvedTags
 	}
 
 	return resolved, nil
@@ -277,14 +240,14 @@ func (e EnumNode) EntityUIDs() iter.Seq[types.EntityUID] {
 	}
 }
 
-// resolve returns the EnumNode with name fully qualified.
-func (e EnumNode) resolve(rd *resolveData) EnumNode {
+// resolve returns a ResolvedEnum with name fully qualified.
+func (e EnumNode) resolve(rd *resolveData) ResolvedEnum {
 	// Qualify the enum name with namespace if present
 	name := e.Name
 	if rd.namespace != nil && rd.namespace.Name != "" {
 		name = types.EntityType(string(rd.namespace.Name) + "::" + string(e.Name))
 	}
-	return EnumNode{
+	return ResolvedEnum{
 		Name:        name,
 		Annotations: e.Annotations,
 		Values:      e.Values,
@@ -375,48 +338,51 @@ func (a ActionNode) Annotate(key types.Ident, value types.String) ActionNode {
 	return a
 }
 
-// resolve returns a new ActionNode with all type references resolved.
-func (a ActionNode) resolve(rd *resolveData) (ActionNode, error) {
-	resolved := ActionNode{
+// resolve returns a ResolvedAction with all type references resolved and converted to types.EntityType and types.EntityUID.
+func (a ActionNode) resolve(rd *resolveData) (ResolvedAction, error) {
+	resolved := ResolvedAction{
 		Name:        a.Name,
 		Annotations: a.Annotations,
 	}
 
-	// Resolve MemberOf references
+	// Resolve and convert MemberOf references from []EntityRef to []types.EntityUID
 	if len(a.MemberOfVal) > 0 {
-		resolved.MemberOfVal = make([]EntityRef, len(a.MemberOfVal))
+		resolved.MemberOf = make([]types.EntityUID, len(a.MemberOfVal))
 		for i, ref := range a.MemberOfVal {
-			resolved.MemberOfVal[i] = EntityRef{
-				Type: ref.Type.mustResolve(rd),
-				ID:   ref.ID,
-			}
+			resolvedType := ref.Type.mustResolve(rd)
+			resolved.MemberOf[i] = types.NewEntityUID(resolvedType.Name, ref.ID)
 		}
 	}
 
-	// Resolve AppliesTo
+	// Resolve and convert AppliesTo
 	if a.AppliesToVal != nil {
-		resolved.AppliesToVal = &AppliesTo{}
+		resolved.AppliesTo = &ResolvedAppliesTo{}
 
+		// Convert PrincipalTypes from []EntityTypeRef to []types.EntityType
 		if len(a.AppliesToVal.PrincipalTypes) > 0 {
-			resolved.AppliesToVal.PrincipalTypes = make([]EntityTypeRef, len(a.AppliesToVal.PrincipalTypes))
+			resolved.AppliesTo.PrincipalTypes = make([]types.EntityType, len(a.AppliesToVal.PrincipalTypes))
 			for i, ref := range a.AppliesToVal.PrincipalTypes {
-				resolved.AppliesToVal.PrincipalTypes[i] = ref.mustResolve(rd)
+				resolvedRef := ref.mustResolve(rd)
+				resolved.AppliesTo.PrincipalTypes[i] = resolvedRef.Name
 			}
 		}
 
+		// Convert ResourceTypes from []EntityTypeRef to []types.EntityType
 		if len(a.AppliesToVal.ResourceTypes) > 0 {
-			resolved.AppliesToVal.ResourceTypes = make([]EntityTypeRef, len(a.AppliesToVal.ResourceTypes))
+			resolved.AppliesTo.ResourceTypes = make([]types.EntityType, len(a.AppliesToVal.ResourceTypes))
 			for i, ref := range a.AppliesToVal.ResourceTypes {
-				resolved.AppliesToVal.ResourceTypes[i] = ref.mustResolve(rd)
+				resolvedRef := ref.mustResolve(rd)
+				resolved.AppliesTo.ResourceTypes[i] = resolvedRef.Name
 			}
 		}
 
+		// Resolve Context type
 		if a.AppliesToVal.Context != nil {
 			resolvedContext, err := a.AppliesToVal.Context.resolve(rd)
 			if err != nil {
-				return ActionNode{}, err
+				return ResolvedAction{}, err
 			}
-			resolved.AppliesToVal.Context = resolvedContext
+			resolved.AppliesTo.Context = resolvedContext
 		}
 	}
 
