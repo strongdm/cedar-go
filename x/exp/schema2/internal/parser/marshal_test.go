@@ -1,4 +1,4 @@
-package ast_test
+package parser_test
 
 import (
 	"testing"
@@ -6,6 +6,7 @@ import (
 	"github.com/cedar-policy/cedar-go/internal/testutil"
 	"github.com/cedar-policy/cedar-go/types"
 	"github.com/cedar-policy/cedar-go/x/exp/schema2/ast"
+	"github.com/cedar-policy/cedar-go/x/exp/schema2/internal/parser"
 )
 
 func TestSchemaMarshalCedar(t *testing.T) {
@@ -14,14 +15,14 @@ func TestSchemaMarshalCedar(t *testing.T) {
 	t.Run("empty schema", func(t *testing.T) {
 		t.Parallel()
 		s := ast.NewSchema()
-		result := s.MarshalCedar()
+		result := parser.MarshalSchema(s)
 		testutil.Equals(t, string(result), "")
 	})
 
 	t.Run("simple entity", func(t *testing.T) {
 		t.Parallel()
 		s := ast.NewSchema(ast.Entity("User"))
-		result := string(s.MarshalCedar())
+		result := string(parser.MarshalSchema(s))
 		testutil.Equals(t, result, "entity User;\n")
 	})
 
@@ -33,7 +34,7 @@ func TestSchemaMarshalCedar(t *testing.T) {
 				ast.Optional("email", ast.String()),
 			),
 		)
-		result := string(s.MarshalCedar())
+		result := string(parser.MarshalSchema(s))
 		expected := `entity User = {"name": String, "email?": String};
 `
 		testutil.Equals(t, result, expected)
@@ -44,7 +45,7 @@ func TestSchemaMarshalCedar(t *testing.T) {
 		s := ast.NewSchema(
 			ast.Entity("User").MemberOf(ast.EntityType("Group")),
 		)
-		result := string(s.MarshalCedar())
+		result := string(parser.MarshalSchema(s))
 		testutil.Equals(t, result, "entity User in Group;\n")
 	})
 
@@ -56,7 +57,7 @@ func TestSchemaMarshalCedar(t *testing.T) {
 				ast.EntityType("Team"),
 			),
 		)
-		result := string(s.MarshalCedar())
+		result := string(parser.MarshalSchema(s))
 		testutil.Equals(t, result, "entity User in [Group, Team];\n")
 	})
 
@@ -65,7 +66,7 @@ func TestSchemaMarshalCedar(t *testing.T) {
 		s := ast.NewSchema(
 			ast.Entity("Document").Tags(ast.String()),
 		)
-		result := string(s.MarshalCedar())
+		result := string(parser.MarshalSchema(s))
 		testutil.Equals(t, result, "entity Document tags String;\n")
 	})
 
@@ -74,7 +75,7 @@ func TestSchemaMarshalCedar(t *testing.T) {
 		s := ast.NewSchema(
 			ast.Enum("Status", "active", "inactive"),
 		)
-		result := string(s.MarshalCedar())
+		result := string(parser.MarshalSchema(s))
 		testutil.Equals(t, result, `entity Status enum ["active", "inactive"];
 `)
 	})
@@ -84,7 +85,7 @@ func TestSchemaMarshalCedar(t *testing.T) {
 		s := ast.NewSchema(
 			ast.CommonType("Name", ast.String()),
 		)
-		result := string(s.MarshalCedar())
+		result := string(parser.MarshalSchema(s))
 		testutil.Equals(t, result, "type Name = String;\n")
 	})
 
@@ -96,7 +97,7 @@ func TestSchemaMarshalCedar(t *testing.T) {
 				ast.Attribute("city", ast.String()),
 			)),
 		)
-		result := string(s.MarshalCedar())
+		result := string(parser.MarshalSchema(s))
 		expected := `type Address = {
   "street": String,
   "city": String,
@@ -110,7 +111,7 @@ func TestSchemaMarshalCedar(t *testing.T) {
 		s := ast.NewSchema(
 			ast.Action("view"),
 		)
-		result := string(s.MarshalCedar())
+		result := string(parser.MarshalSchema(s))
 		testutil.Equals(t, result, "action view;\n")
 	})
 
@@ -124,7 +125,7 @@ func TestSchemaMarshalCedar(t *testing.T) {
 					ast.Attribute("ip", ast.IPAddr()),
 				)),
 		)
-		result := string(s.MarshalCedar())
+		result := string(parser.MarshalSchema(s))
 		expected := `action view appliesTo {
   principal: User,
   resource: Document,
@@ -141,7 +142,7 @@ func TestSchemaMarshalCedar(t *testing.T) {
 		s := ast.NewSchema(
 			ast.Action("view").MemberOf(ast.UID("readActions")),
 		)
-		result := string(s.MarshalCedar())
+		result := string(parser.MarshalSchema(s))
 		testutil.Equals(t, result, `action view in "readActions";
 `)
 	})
@@ -151,7 +152,7 @@ func TestSchemaMarshalCedar(t *testing.T) {
 		s := ast.NewSchema(
 			ast.Action("view document"),
 		)
-		result := string(s.MarshalCedar())
+		result := string(parser.MarshalSchema(s))
 		testutil.Equals(t, result, `action "view document";
 `)
 	})
@@ -164,7 +165,7 @@ func TestSchemaMarshalCedar(t *testing.T) {
 				ast.Entity("Document"),
 			),
 		)
-		result := string(s.MarshalCedar())
+		result := string(parser.MarshalSchema(s))
 		expected := `namespace MyApp {
   entity User;
 
@@ -179,7 +180,7 @@ func TestSchemaMarshalCedar(t *testing.T) {
 		s := ast.NewSchema(
 			ast.Entity("User").Annotate("doc", "A user entity"),
 		)
-		result := string(s.MarshalCedar())
+		result := string(parser.MarshalSchema(s))
 		expected := `@doc("A user entity")
 entity User;
 `
@@ -191,7 +192,7 @@ entity User;
 		s := ast.NewSchema(
 			ast.Entity("User").Annotate("deprecated", ""),
 		)
-		result := string(s.MarshalCedar())
+		result := string(parser.MarshalSchema(s))
 		expected := `@deprecated
 entity User;
 `
@@ -203,7 +204,7 @@ entity User;
 		s := ast.NewSchema(
 			ast.CommonType("Tags", ast.Set(ast.String())),
 		)
-		result := string(s.MarshalCedar())
+		result := string(parser.MarshalSchema(s))
 		testutil.Equals(t, result, "type Tags = Set<String>;\n")
 	})
 
@@ -212,7 +213,7 @@ entity User;
 		s := ast.NewSchema(
 			ast.CommonType("IP", ast.IPAddr()),
 		)
-		result := string(s.MarshalCedar())
+		result := string(parser.MarshalSchema(s))
 		testutil.Equals(t, result, "type IP = __cedar::ipaddr;\n")
 	})
 
@@ -221,7 +222,7 @@ entity User;
 		s := ast.NewSchema(
 			ast.CommonType("UserRef", ast.EntityType("MyApp::User")),
 		)
-		result := string(s.MarshalCedar())
+		result := string(parser.MarshalSchema(s))
 		testutil.Equals(t, result, "type UserRef = MyApp::User;\n")
 	})
 
@@ -230,7 +231,7 @@ entity User;
 		s := ast.NewSchema(
 			ast.CommonType("AliasedName", ast.Type("Name")),
 		)
-		result := string(s.MarshalCedar())
+		result := string(parser.MarshalSchema(s))
 		testutil.Equals(t, result, "type AliasedName = Name;\n")
 	})
 
@@ -239,7 +240,7 @@ entity User;
 		s := ast.NewSchema(
 			ast.CommonType("Count", ast.Long()),
 		)
-		result := string(s.MarshalCedar())
+		result := string(parser.MarshalSchema(s))
 		testutil.Equals(t, result, "type Count = Long;\n")
 	})
 
@@ -248,7 +249,7 @@ entity User;
 		s := ast.NewSchema(
 			ast.CommonType("Flag", ast.Bool()),
 		)
-		result := string(s.MarshalCedar())
+		result := string(parser.MarshalSchema(s))
 		testutil.Equals(t, result, "type Flag = Bool;\n")
 	})
 
@@ -257,7 +258,7 @@ entity User;
 		s := ast.NewSchema(
 			ast.Action("view").MemberOf(ast.EntityUID("MyApp::Action", "allActions")),
 		)
-		result := string(s.MarshalCedar())
+		result := string(parser.MarshalSchema(s))
 		testutil.Equals(t, result, `action view in MyApp::Action::"allActions";
 `)
 	})
@@ -269,7 +270,7 @@ entity User;
 				ast.Attribute("special-key", ast.String()),
 			)),
 		)
-		result := string(s.MarshalCedar())
+		result := string(parser.MarshalSchema(s))
 		expected := `type Data = {
   "special-key": String,
 };
@@ -282,7 +283,7 @@ entity User;
 		s := ast.NewSchema(
 			ast.CommonType("Empty", ast.Record()),
 		)
-		result := string(s.MarshalCedar())
+		result := string(parser.MarshalSchema(s))
 		testutil.Equals(t, result, "type Empty = {};\n")
 	})
 
@@ -293,7 +294,7 @@ entity User;
 				ast.Attribute("inner", ast.Record()),
 			)),
 		)
-		result := string(s.MarshalCedar())
+		result := string(parser.MarshalSchema(s))
 		expected := `type Outer = {
   "inner": {},
 };
@@ -310,7 +311,7 @@ entity User;
 				)),
 			)),
 		)
-		result := string(s.MarshalCedar())
+		result := string(parser.MarshalSchema(s))
 		expected := `type Outer = {
   "inner": {
     "optField"?: String,
@@ -327,7 +328,7 @@ entity User;
 				Principal(ast.EntityType("User"), ast.EntityType("Admin")).
 				Resource(ast.EntityType("Document")),
 		)
-		result := string(s.MarshalCedar())
+		result := string(parser.MarshalSchema(s))
 		expected := `action view appliesTo {
   principal: [User, Admin],
   resource: Document,
@@ -345,7 +346,7 @@ entity User;
 				ast.UID("viewActions"),
 			),
 		)
-		result := string(s.MarshalCedar())
+		result := string(parser.MarshalSchema(s))
 		testutil.Equals(t, result, `action view in ["readActions", "viewActions"];
 `)
 	})
@@ -412,7 +413,7 @@ func TestSchemaMultipleTopLevelNodes(t *testing.T) {
 			ast.Entity("User"),
 			ast.Entity("Document"),
 		)
-		result := string(s.MarshalCedar())
+		result := string(parser.MarshalSchema(s))
 		expected := `entity User;
 
 entity Document;
@@ -427,7 +428,7 @@ entity Document;
 			ast.Action("view"),
 			ast.CommonType("Name", ast.String()),
 		)
-		result := string(s.MarshalCedar())
+		result := string(parser.MarshalSchema(s))
 		expected := `entity User;
 
 action view;
@@ -446,7 +447,7 @@ func TestNeedsQuotingEdgeCases(t *testing.T) {
 		s := ast.NewSchema(
 			ast.Action(""),
 		)
-		result := string(s.MarshalCedar())
+		result := string(parser.MarshalSchema(s))
 		testutil.Equals(t, result, `action "";
 `)
 	})
@@ -456,7 +457,7 @@ func TestNeedsQuotingEdgeCases(t *testing.T) {
 		s := ast.NewSchema(
 			ast.Action("123action"),
 		)
-		result := string(s.MarshalCedar())
+		result := string(parser.MarshalSchema(s))
 		testutil.Equals(t, result, `action "123action";
 `)
 	})
@@ -468,7 +469,7 @@ func TestNeedsQuotingEdgeCases(t *testing.T) {
 				ast.Attribute("123key", ast.String()),
 			)),
 		)
-		result := string(s.MarshalCedar())
+		result := string(parser.MarshalSchema(s))
 		expected := `type Data = {
   "123key": String,
 };
@@ -483,7 +484,7 @@ func TestNeedsQuotingEdgeCases(t *testing.T) {
 				ast.Attribute("", ast.String()),
 			)),
 		)
-		result := string(s.MarshalCedar())
+		result := string(parser.MarshalSchema(s))
 		expected := `type Data = {
   "": String,
 };

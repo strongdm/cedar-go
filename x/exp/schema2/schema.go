@@ -2,8 +2,6 @@
 package schema2
 
 import (
-	"bytes"
-
 	"github.com/cedar-policy/cedar-go/x/exp/schema2/ast"
 	"github.com/cedar-policy/cedar-go/x/exp/schema2/internal/json"
 	"github.com/cedar-policy/cedar-go/x/exp/schema2/internal/parser"
@@ -38,10 +36,7 @@ func (s *Schema) UnmarshalJSON(b []byte) error {
 
 // MarshalCedar encodes the Schema in the human-readable format specified by the Cedar documentation.
 func (s *Schema) MarshalCedar() ([]byte, error) {
-	var buf bytes.Buffer
-	cedarBytes := s.schema.MarshalCedar()
-	buf.Write(cedarBytes)
-	return buf.Bytes(), nil
+	return parser.MarshalSchema(&s.schema), nil
 }
 
 // UnmarshalCedar parses a Schema in the human-readable format specified by the Cedar documentation.

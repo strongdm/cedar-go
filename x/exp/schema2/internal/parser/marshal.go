@@ -1,14 +1,15 @@
-package ast
+package parser
 
 import (
 	"bytes"
 	"fmt"
 
 	"github.com/cedar-policy/cedar-go/types"
+	"github.com/cedar-policy/cedar-go/x/exp/schema2/ast"
 )
 
-// MarshalCedar converts the schema to Cedar human-readable format.
-func (s *Schema) MarshalCedar() []byte {
+// MarshalSchema converts the schema to Cedar human-readable format.
+func MarshalSchema(s *ast.Schema) []byte {
 	var buf bytes.Buffer
 	for i, node := range s.Nodes {
 		if i > 0 {
@@ -19,22 +20,22 @@ func (s *Schema) MarshalCedar() []byte {
 	return buf.Bytes()
 }
 
-func marshalNode(buf *bytes.Buffer, node IsNode, indent string) {
+func marshalNode(buf *bytes.Buffer, node ast.IsNode, indent string) {
 	switch n := node.(type) {
-	case NamespaceNode:
+	case ast.NamespaceNode:
 		marshalNamespace(buf, n, indent)
-	case CommonTypeNode:
+	case ast.CommonTypeNode:
 		marshalCommonType(buf, n, indent)
-	case EntityNode:
+	case ast.EntityNode:
 		marshalEntity(buf, n, indent)
-	case EnumNode:
+	case ast.EnumNode:
 		marshalEnum(buf, n, indent)
-	case ActionNode:
+	case ast.ActionNode:
 		marshalAction(buf, n, indent)
 	}
 }
 
-func marshalAnnotations(buf *bytes.Buffer, annotations []Annotation, indent string) {
+func marshalAnnotations(buf *bytes.Buffer, annotations []ast.Annotation, indent string) {
 	for _, ann := range annotations {
 		buf.WriteString(indent)
 		buf.WriteString("@")
@@ -48,7 +49,7 @@ func marshalAnnotations(buf *bytes.Buffer, annotations []Annotation, indent stri
 	}
 }
 
-func marshalNamespace(buf *bytes.Buffer, ns NamespaceNode, indent string) {
+func marshalNamespace(buf *bytes.Buffer, ns ast.NamespaceNode, indent string) {
 	marshalAnnotations(buf, ns.Annotations, indent)
 	buf.WriteString(indent)
 	buf.WriteString("namespace ")
@@ -67,7 +68,7 @@ func marshalNamespace(buf *bytes.Buffer, ns NamespaceNode, indent string) {
 	buf.WriteString("}\n")
 }
 
-func marshalCommonType(buf *bytes.Buffer, ct CommonTypeNode, indent string) {
+func marshalCommonType(buf *bytes.Buffer, ct ast.CommonTypeNode, indent string) {
 	marshalAnnotations(buf, ct.Annotations, indent)
 	buf.WriteString(indent)
 	buf.WriteString("type ")
@@ -77,7 +78,7 @@ func marshalCommonType(buf *bytes.Buffer, ct CommonTypeNode, indent string) {
 	buf.WriteString(";\n")
 }
 
-func marshalEntity(buf *bytes.Buffer, e EntityNode, indent string) {
+func marshalEntity(buf *bytes.Buffer, e ast.EntityNode, indent string) {
 	marshalAnnotations(buf, e.Annotations, indent)
 	buf.WriteString(indent)
 	buf.WriteString("entity ")
@@ -101,7 +102,7 @@ func marshalEntity(buf *bytes.Buffer, e EntityNode, indent string) {
 	buf.WriteString(";\n")
 }
 
-func marshalEnum(buf *bytes.Buffer, e EnumNode, indent string) {
+func marshalEnum(buf *bytes.Buffer, e ast.EnumNode, indent string) {
 	marshalAnnotations(buf, e.Annotations, indent)
 	buf.WriteString(indent)
 	buf.WriteString("entity ")
@@ -118,7 +119,7 @@ func marshalEnum(buf *bytes.Buffer, e EnumNode, indent string) {
 	buf.WriteString("];\n")
 }
 
-func marshalAction(buf *bytes.Buffer, a ActionNode, indent string) {
+func marshalAction(buf *bytes.Buffer, a ast.ActionNode, indent string) {
 	marshalAnnotations(buf, a.Annotations, indent)
 	buf.WriteString(indent)
 	buf.WriteString("action ")
@@ -171,7 +172,7 @@ func marshalActionName(buf *bytes.Buffer, name string) {
 	}
 }
 
-func marshalEntityTypeRefs(buf *bytes.Buffer, refs []EntityTypeRef) {
+func marshalEntityTypeRefs(buf *bytes.Buffer, refs []ast.EntityTypeRef) {
 	if len(refs) == 1 {
 		buf.WriteString(string(refs[0].Name))
 		return
@@ -187,7 +188,7 @@ func marshalEntityTypeRefs(buf *bytes.Buffer, refs []EntityTypeRef) {
 	buf.WriteString("]")
 }
 
-func marshalEntityRefs(buf *bytes.Buffer, refs []EntityRef) {
+func marshalEntityRefs(buf *bytes.Buffer, refs []ast.EntityRef) {
 	if len(refs) == 1 {
 		marshalEntityRef(buf, refs[0])
 		return
@@ -203,7 +204,7 @@ func marshalEntityRefs(buf *bytes.Buffer, refs []EntityRef) {
 	buf.WriteString("]")
 }
 
-func marshalEntityRef(buf *bytes.Buffer, ref EntityRef) {
+func marshalEntityRef(buf *bytes.Buffer, ref ast.EntityRef) {
 	if ref.Type.Name != types.EntityType("Action") {
 		buf.WriteString(string(ref.Type.Name))
 		buf.WriteString("::")
@@ -211,35 +212,35 @@ func marshalEntityRef(buf *bytes.Buffer, ref EntityRef) {
 	buf.WriteString(quoteString(string(ref.ID)))
 }
 
-func marshalType(buf *bytes.Buffer, t IsType) {
+func marshalType(buf *bytes.Buffer, t ast.IsType) {
 	marshalTypeIndented(buf, t, "")
 }
 
-func marshalTypeIndented(buf *bytes.Buffer, t IsType, indent string) {
+func marshalTypeIndented(buf *bytes.Buffer, t ast.IsType, indent string) {
 	switch v := t.(type) {
-	case StringType:
+	case ast.StringType:
 		buf.WriteString("String")
-	case LongType:
+	case ast.LongType:
 		buf.WriteString("Long")
-	case BoolType:
+	case ast.BoolType:
 		buf.WriteString("Bool")
-	case ExtensionType:
+	case ast.ExtensionType:
 		buf.WriteString("__cedar::")
 		buf.WriteString(string(v.Name))
-	case SetType:
+	case ast.SetType:
 		buf.WriteString("Set<")
 		marshalType(buf, v.Element)
 		buf.WriteString(">")
-	case RecordType:
+	case ast.RecordType:
 		marshalRecordType(buf, v, indent)
-	case EntityTypeRef:
+	case ast.EntityTypeRef:
 		buf.WriteString(string(v.Name))
-	case TypeRef:
+	case ast.TypeRef:
 		buf.WriteString(string(v.Name))
 	}
 }
 
-func marshalRecordType(buf *bytes.Buffer, r RecordType, indent string) {
+func marshalRecordType(buf *bytes.Buffer, r ast.RecordType, indent string) {
 	buf.WriteString("{")
 	if len(r.Pairs) == 0 {
 		buf.WriteString("}")
@@ -267,7 +268,7 @@ func marshalRecordType(buf *bytes.Buffer, r RecordType, indent string) {
 
 // marshalRecordTypeCompact marshals a record type in Rust format for entity shapes
 // e.g., {"name": String, "age": Long}
-func marshalRecordTypeCompact(buf *bytes.Buffer, r RecordType, indent string) {
+func marshalRecordTypeCompact(buf *bytes.Buffer, r ast.RecordType, indent string) {
 	buf.WriteString("{")
 	for i, pair := range r.Pairs {
 		if i > 0 {
