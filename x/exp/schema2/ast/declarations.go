@@ -13,7 +13,7 @@ type NamespaceNode struct {
 	Declarations []IsDeclaration
 }
 
-func (NamespaceNode) isNode() { _ = 0 }
+func (NamespaceNode) isNode() {}
 
 // Namespace creates a new NamespaceNode with the given path and declarations.
 func Namespace(path types.Path, decls ...IsDeclaration) NamespaceNode {
@@ -88,8 +88,8 @@ type CommonTypeNode struct {
 	Type        IsType
 }
 
-func (CommonTypeNode) isNode()        { _ = 0 }
-func (CommonTypeNode) isDeclaration() { _ = 0 }
+func (CommonTypeNode) isNode()        {}
+func (CommonTypeNode) isDeclaration() {}
 
 // CommonType creates a new CommonTypeNode with the given name and type.
 func CommonType(name types.Ident, t IsType) CommonTypeNode {
@@ -127,8 +127,8 @@ type EntityNode struct {
 	TagsVal     IsType
 }
 
-func (EntityNode) isNode()        { _ = 0 }
-func (EntityNode) isDeclaration() { _ = 0 }
+func (EntityNode) isNode()        {}
+func (EntityNode) isDeclaration() {}
 
 // Entity creates a new EntityNode with the given name.
 func Entity(name types.EntityType) EntityNode {
@@ -177,7 +177,7 @@ func (e EntityNode) resolve(rd *resolveData) (ResolvedEntity, error) {
 	if len(e.MemberOfVal) > 0 {
 		resolved.MemberOf = make([]types.EntityType, len(e.MemberOfVal))
 		for i, ref := range e.MemberOfVal {
-			resolvedRef := ref.mustResolve(rd)
+			resolvedRef := ref.willResolve(rd)
 			resolved.MemberOf[i] = resolvedRef.Name
 		}
 	}
@@ -211,8 +211,8 @@ type EnumNode struct {
 	Values      []types.String
 }
 
-func (EnumNode) isNode()        { _ = 0 }
-func (EnumNode) isDeclaration() { _ = 0 }
+func (EnumNode) isNode()        {}
+func (EnumNode) isDeclaration() {}
 
 // Enum creates a new EnumNode with the given name and values.
 func Enum(name types.EntityType, values ...types.String) EnumNode {
@@ -262,8 +262,8 @@ type ActionNode struct {
 	AppliesToVal *AppliesTo
 }
 
-func (ActionNode) isNode()        { _ = 0 }
-func (ActionNode) isDeclaration() { _ = 0 }
+func (ActionNode) isNode()        {}
+func (ActionNode) isDeclaration() {}
 
 // AppliesTo represents the principal, resource, and context types for an action.
 type AppliesTo struct {
@@ -349,7 +349,7 @@ func (a ActionNode) resolve(rd *resolveData) (ResolvedAction, error) {
 	if len(a.MemberOfVal) > 0 {
 		resolved.MemberOf = make([]types.EntityUID, len(a.MemberOfVal))
 		for i, ref := range a.MemberOfVal {
-			resolvedType := ref.Type.mustResolve(rd)
+			resolvedType := ref.Type.willResolve(rd)
 			resolved.MemberOf[i] = types.NewEntityUID(resolvedType.Name, ref.ID)
 		}
 	}
@@ -362,7 +362,7 @@ func (a ActionNode) resolve(rd *resolveData) (ResolvedAction, error) {
 		if len(a.AppliesToVal.PrincipalTypes) > 0 {
 			resolved.AppliesTo.PrincipalTypes = make([]types.EntityType, len(a.AppliesToVal.PrincipalTypes))
 			for i, ref := range a.AppliesToVal.PrincipalTypes {
-				resolvedRef := ref.mustResolve(rd)
+				resolvedRef := ref.willResolve(rd)
 				resolved.AppliesTo.PrincipalTypes[i] = resolvedRef.Name
 			}
 		}
@@ -371,7 +371,7 @@ func (a ActionNode) resolve(rd *resolveData) (ResolvedAction, error) {
 		if len(a.AppliesToVal.ResourceTypes) > 0 {
 			resolved.AppliesTo.ResourceTypes = make([]types.EntityType, len(a.AppliesToVal.ResourceTypes))
 			for i, ref := range a.AppliesToVal.ResourceTypes {
-				resolvedRef := ref.mustResolve(rd)
+				resolvedRef := ref.willResolve(rd)
 				resolved.AppliesTo.ResourceTypes[i] = resolvedRef.Name
 			}
 		}
