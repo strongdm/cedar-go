@@ -163,7 +163,64 @@ type ResolvedSchema struct {
 	Namespaces map[types.Path][]Annotation         // Namespace path -> Annotations
 }
 
-// convertResolvedEntityToNode converts a ResolvedEntity back to an EntityNode by converting
+// resolveDeclaration resolves a single declaration node and adds it to the resolved schema.
+// It handles common types, entities, enums, and actions.
+func resolveDeclaration(decl IsDeclaration, rd *resolveData, resolved *ResolvedSchema, namespaceName types.Path) error {
+	switch d := decl.(type) {
+	case CommonTypeNode:
+		// Common types are resolved but not added to the maps
+		_, err := d.resolve(rd)
+		if err != nil {
+			return err
+		}
+
+	case EntityNode:
+		resolvedEntity, err := d.resolve(rd)
+		if err != nil {
+			return err
+		}
+		// Check for conflicts with existing entities or enums
+		if _, exists := resolved.Entities[resolvedEntity.Name]; exists {
+			return fmt.Errorf("entity type %q is defined multiple times", resolvedEntity.Name)
+		}
+		if _, exists := resolved.Enums[resolvedEntity.Name]; exists {
+			return fmt.Errorf("type %q is defined as both an entity and an enum", resolvedEntity.Name)
+		}
+		resolved.Entities[resolvedEntity.Name] = resolvedEntity
+
+	case EnumNode:
+		resolvedEnum := d.resolve(rd)
+		// Check for conflicts with existing enums or entities
+		if _, exists := resolved.Enums[resolvedEnum.Name]; exists {
+			return fmt.Errorf("enum type %q is defined multiple times", resolvedEnum.Name)
+		}
+		if _, exists := resolved.Entities[resolvedEnum.Name]; exists {
+			return fmt.Errorf("type %q is defined as both an entity and an enum", resolvedEnum.Name)
+		}
+		resolved.Enums[resolvedEnum.Name] = resolvedEnum
+
+	case ActionNode:
+		resolvedAction, err := d.resolve(rd)
+		if err != nil {
+			return err
+		}
+		// Construct EntityUID from qualified action type
+		var actionType types.EntityType
+		if namespaceName == "" {
+			actionType = "Action"
+		} else {
+			actionType = types.EntityType(string(namespaceName) + "::Action")
+		}
+		actionUID := types.NewEntityUID(actionType, resolvedAction.Name)
+		// Check for duplicate actions
+		if _, exists := resolved.Actions[actionUID]; exists {
+			return fmt.Errorf("action %q is defined multiple times", actionUID)
+		}
+		resolved.Actions[actionUID] = resolvedAction
+	}
+	return nil
+}
+
 // Resolve returns a ResolvedSchema with all type references resolved and indexed.
 // Type references within namespaces are resolved relative to their namespace.
 // Top-level type references are resolved as-is.
@@ -191,103 +248,28 @@ func (s *Schema) Resolve() (*ResolvedSchema, error) {
 
 			// Resolve all declarations in the namespace
 			for _, decl := range n.Declarations {
-				switch d := decl.(type) {
-				case CommonTypeNode:
-					// Common types are resolved but not added to the maps
-					_, err := d.resolve(nsRd)
-					if err != nil {
-						return nil, err
-					}
-
-				case EntityNode:
-					resolvedEntity, err := d.resolve(nsRd)
-					if err != nil {
-						return nil, err
-					}
-					// Check for conflicts with existing entities or enums
-					if _, exists := resolved.Entities[resolvedEntity.Name]; exists {
-						return nil, fmt.Errorf("entity type %q is defined multiple times", resolvedEntity.Name)
-					}
-					if _, exists := resolved.Enums[resolvedEntity.Name]; exists {
-						return nil, fmt.Errorf("type %q is defined as both an entity and an enum", resolvedEntity.Name)
-					}
-					resolved.Entities[resolvedEntity.Name] = resolvedEntity
-
-				case EnumNode:
-					resolvedEnum := d.resolve(nsRd)
-					// Check for conflicts with existing enums or entities
-					if _, exists := resolved.Enums[resolvedEnum.Name]; exists {
-						return nil, fmt.Errorf("enum type %q is defined multiple times", resolvedEnum.Name)
-					}
-					if _, exists := resolved.Entities[resolvedEnum.Name]; exists {
-						return nil, fmt.Errorf("type %q is defined as both an entity and an enum", resolvedEnum.Name)
-					}
-					resolved.Enums[resolvedEnum.Name] = resolvedEnum
-
-				case ActionNode:
-					resolvedAction, err := d.resolve(nsRd)
-					if err != nil {
-						return nil, err
-					}
-					// Construct EntityUID from qualified action type
-					var actionType types.EntityType
-					if n.Name == "" {
-						actionType = "Action"
-					} else {
-						actionType = types.EntityType(string(n.Name) + "::Action")
-					}
-					actionUID := types.NewEntityUID(actionType, resolvedAction.Name)
-					// Check for duplicate actions
-					if _, exists := resolved.Actions[actionUID]; exists {
-						return nil, fmt.Errorf("action %q is defined multiple times", actionUID)
-					}
-					resolved.Actions[actionUID] = resolvedAction
+				if err := resolveDeclaration(decl, nsRd, resolved, n.Name); err != nil {
+					return nil, err
 				}
 			}
 
 		case EntityNode:
-			resolvedEntity, err := n.resolve(rd)
-			if err != nil {
+			if err := resolveDeclaration(n, rd, resolved, ""); err != nil {
 				return nil, err
 			}
-			// Check for conflicts
-			if _, exists := resolved.Entities[resolvedEntity.Name]; exists {
-				return nil, fmt.Errorf("entity type %q is defined multiple times", resolvedEntity.Name)
-			}
-			if _, exists := resolved.Enums[resolvedEntity.Name]; exists {
-				return nil, fmt.Errorf("type %q is defined as both an entity and an enum", resolvedEntity.Name)
-			}
-			resolved.Entities[resolvedEntity.Name] = resolvedEntity
 
 		case EnumNode:
-			resolvedEnum := n.resolve(rd)
-			// Check for conflicts
-			if _, exists := resolved.Enums[resolvedEnum.Name]; exists {
-				return nil, fmt.Errorf("enum type %q is defined multiple times", resolvedEnum.Name)
-			}
-			if _, exists := resolved.Entities[resolvedEnum.Name]; exists {
-				return nil, fmt.Errorf("type %q is defined as both an entity and an enum", resolvedEnum.Name)
-			}
-			resolved.Enums[resolvedEnum.Name] = resolvedEnum
-
-		case ActionNode:
-			resolvedAction, err := n.resolve(rd)
-			if err != nil {
+			if err := resolveDeclaration(n, rd, resolved, ""); err != nil {
 				return nil, err
 			}
-			// Top-level actions use "Action" as the type
-			actionUID := types.NewEntityUID("Action", resolvedAction.Name)
-			// Check for duplicate actions
-			if _, exists := resolved.Actions[actionUID]; exists {
-				return nil, fmt.Errorf("action %q is defined multiple times", actionUID)
+
+		case ActionNode:
+			if err := resolveDeclaration(n, rd, resolved, ""); err != nil {
+				return nil, err
 			}
-			resolved.Actions[actionUID] = resolvedAction
 
 		case CommonTypeNode:
-			// Common types are resolved but not added to the maps
-			// They are used during resolution via the cache
-			_, err := n.resolve(rd)
-			if err != nil {
+			if err := resolveDeclaration(n, rd, resolved, ""); err != nil {
 				return nil, err
 			}
 		}
