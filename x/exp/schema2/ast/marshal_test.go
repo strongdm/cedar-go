@@ -286,6 +286,40 @@ entity User;
 		testutil.Equals(t, result, "type Empty = {};\n")
 	})
 
+	t.Run("nested empty record", func(t *testing.T) {
+		t.Parallel()
+		s := ast.NewSchema(
+			ast.CommonType("Outer", ast.Record(
+				ast.Attribute("inner", ast.Record()),
+			)),
+		)
+		result := string(s.MarshalCedar())
+		expected := `type Outer = {
+  "inner": {},
+};
+`
+		testutil.Equals(t, result, expected)
+	})
+
+	t.Run("nested record with optional field", func(t *testing.T) {
+		t.Parallel()
+		s := ast.NewSchema(
+			ast.CommonType("Outer", ast.Record(
+				ast.Attribute("inner", ast.Record(
+					ast.Optional("optField", ast.String()),
+				)),
+			)),
+		)
+		result := string(s.MarshalCedar())
+		expected := `type Outer = {
+  "inner": {
+    "optField"?: String,
+  },
+};
+`
+		testutil.Equals(t, result, expected)
+	})
+
 	t.Run("action with multiple principals", func(t *testing.T) {
 		t.Parallel()
 		s := ast.NewSchema(

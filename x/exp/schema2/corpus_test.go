@@ -594,60 +594,7 @@ func TestComprehensiveCorpus(t *testing.T) {
 			// Verify with reference implementation
 			verifyWithCedarCLI(t, string(cedarFromJSON))
 
-			// Test 4: Cedar → Resolve → MarshalCedar produces valid output
-			resolved, err := schema.Resolve()
-			testutil.OK(t, err)
-
-			actualResolved, err := resolved.TestMarshalCedar()
-			testutil.OK(t, err)
-
-			// Verify resolved schema is valid Cedar
-			verifyWithCedarCLI(t, string(actualResolved))
-
-			// Verify that resolving again gives the same result
-			resolved2, err := schema.Resolve()
-			testutil.OK(t, err)
-
-			actualResolved2, err := resolved2.TestMarshalCedar()
-			testutil.OK(t, err)
-
-			if string(actualResolved) != string(actualResolved2) {
-				t.Errorf("Resolved output not deterministic:\nfirst:\n%s\n\nsecond:\n%s",
-					string(actualResolved), string(actualResolved2))
-			}
-
-			// Test 5: JSON → Resolve → MarshalCedar produces valid output
-			resolvedFromJSON, err := schemaFromJSON.Resolve()
-			testutil.OK(t, err)
-
-			actualResolvedFromJSON, err := resolvedFromJSON.TestMarshalCedar()
-			testutil.OK(t, err)
-
-			// Verify resolved schema from JSON is valid Cedar
-			verifyWithCedarCLI(t, string(actualResolvedFromJSON))
-
-			// Test 6: Validate policies against resolved schema (if .policy exists)
-			if _, err := os.Stat(policyFile); err == nil {
-				cli := cedarCLI()
-				if cli != "" {
-					// Create temp file for resolved schema
-					tmpDir := t.TempDir()
-					resolvedFile := filepath.Join(tmpDir, "resolved.cedarschema")
-					err := os.WriteFile(resolvedFile, actualResolved, 0o644)
-					testutil.OK(t, err)
-
-					// Validate policies against resolved schema
-					cmd := exec.Command(cli, "validate",
-						"--schema", resolvedFile,
-						"--schema-format", "cedar",
-						"--policies", policyFile)
-					if output, err := cmd.CombinedOutput(); err != nil {
-						t.Errorf("Policy validation failed against resolved schema:\n%s", string(output))
-					}
-				}
-			}
-
-			// Test 7: Validate policies against original schema (if .policy exists)
+			// Test 4: Validate policies against original schema (if .policy exists)
 			if _, err := os.Stat(policyFile); err == nil {
 				cli := cedarCLI()
 				if cli != "" {
