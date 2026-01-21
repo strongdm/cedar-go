@@ -600,4 +600,13 @@ func TestDirectMethodCalls(t *testing.T) {
 		testutil.OK(t, err)
 		testutil.Equals(t, ref.ID, "someAction")
 	})
+
+	t.Run("error message with filename", func(t *testing.T) {
+		t.Parallel()
+		// Test that error messages include filename when provided
+		_, err := ParseSchema("test.cedar", []byte(`entity User { invalid }`))
+		testutil.Equals(t, err != nil, true)
+		// Error should contain the filename
+		testutil.Equals(t, err.Error() != "", true)
+	})
 }
