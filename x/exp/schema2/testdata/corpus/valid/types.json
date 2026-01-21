@@ -5,22 +5,27 @@
                 "type": "Record",
                 "attributes": {
                     "city": {
-                        "type": "String"
+                        "type": "EntityOrCommon",
+                        "name": "String"
                     },
                     "street": {
-                        "type": "String"
+                        "type": "EntityOrCommon",
+                        "name": "String"
                     },
                     "zip": {
-                        "type": "String",
+                        "type": "EntityOrCommon",
+                        "name": "String",
                         "required": false
                     }
                 }
             },
             "Count": {
-                "type": "Long"
+                "type": "EntityOrCommon",
+                "name": "Long"
             },
             "Flag": {
-                "type": "Boolean"
+                "type": "EntityOrCommon",
+                "name": "Bool"
             },
             "IP": {
                 "type": "Extension",
@@ -31,12 +36,14 @@
                 "element": {
                     "type": "Set",
                     "element": {
-                        "type": "Long"
+                        "type": "EntityOrCommon",
+                        "name": "Long"
                     }
                 }
             },
             "Name": {
-                "type": "String"
+                "type": "EntityOrCommon",
+                "name": "String"
             },
             "Nested": {
                 "type": "Record",
@@ -48,7 +55,8 @@
                                 "type": "Record",
                                 "attributes": {
                                     "value": {
-                                        "type": "String"
+                                        "type": "EntityOrCommon",
+                                        "name": "String"
                                     }
                                 }
                             }
@@ -63,7 +71,8 @@
             "Tags": {
                 "type": "Set",
                 "element": {
-                    "type": "String"
+                    "type": "EntityOrCommon",
+                    "name": "String"
                 }
             },
             "Timeout": {

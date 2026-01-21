@@ -323,11 +323,11 @@ func addCommonTypeToNamespace(ns *Namespace, ct ast.CommonTypeNode, entityNames 
 func typeToJSON(t ast.IsType, entityNames map[string]bool) *Type {
 	switch v := t.(type) {
 	case ast.StringType:
-		return &Type{TypeName: "String"}
+		return &Type{TypeName: "EntityOrCommon", Name: "String"}
 	case ast.LongType:
-		return &Type{TypeName: "Long"}
+		return &Type{TypeName: "EntityOrCommon", Name: "Long"}
 	case ast.BoolType:
-		return &Type{TypeName: "Boolean"}
+		return &Type{TypeName: "EntityOrCommon", Name: "Bool"}
 	case ast.ExtensionType:
 		return &Type{TypeName: "Extension", Name: string(v.Name)}
 	case ast.SetType:
@@ -354,7 +354,8 @@ func typeToJSON(t ast.IsType, entityNames map[string]bool) *Type {
 		if entityNames[name] {
 			return &Type{TypeName: "Entity", Name: name}
 		}
-		return &Type{TypeName: name}
+		// Common type reference - use EntityOrCommon format
+		return &Type{TypeName: "EntityOrCommon", Name: name}
 	default:
 		return nil
 	}
@@ -363,11 +364,11 @@ func typeToJSON(t ast.IsType, entityNames map[string]bool) *Type {
 func attrToJSON(t ast.IsType, entityNames map[string]bool) *Attr {
 	switch v := t.(type) {
 	case ast.StringType:
-		return &Attr{TypeName: "String"}
+		return &Attr{TypeName: "EntityOrCommon", Name: "String"}
 	case ast.LongType:
-		return &Attr{TypeName: "Long"}
+		return &Attr{TypeName: "EntityOrCommon", Name: "Long"}
 	case ast.BoolType:
-		return &Attr{TypeName: "Boolean"}
+		return &Attr{TypeName: "EntityOrCommon", Name: "Bool"}
 	case ast.ExtensionType:
 		return &Attr{TypeName: "Extension", Name: string(v.Name)}
 	case ast.SetType:
@@ -394,7 +395,8 @@ func attrToJSON(t ast.IsType, entityNames map[string]bool) *Attr {
 		if entityNames[name] {
 			return &Attr{TypeName: "Entity", Name: name}
 		}
-		return &Attr{TypeName: name}
+		// Common type reference - use EntityOrCommon format
+		return &Attr{TypeName: "EntityOrCommon", Name: name}
 	default:
 		return nil
 	}
@@ -560,7 +562,7 @@ func jsonToType(jt *Type) (ast.IsType, error) {
 		return ast.StringType{}, nil
 	case "Long":
 		return ast.LongType{}, nil
-	case "Boolean":
+	case "Bool":
 		return ast.BoolType{}, nil
 	case "Extension":
 		return ast.ExtensionType{Name: types.Ident(jt.Name)}, nil
@@ -623,7 +625,7 @@ func resolveEntityOrCommon(name string) (ast.IsType, error) {
 			return ast.StringType{}, nil
 		case "Long":
 			return ast.LongType{}, nil
-		case "Bool", "Boolean":
+		case "Bool":
 			return ast.BoolType{}, nil
 		default:
 			// It's a real extension type (ipaddr, datetime, decimal, duration)
@@ -637,7 +639,7 @@ func resolveEntityOrCommon(name string) (ast.IsType, error) {
 		return ast.StringType{}, nil
 	case "Long":
 		return ast.LongType{}, nil
-	case "Bool", "Boolean":
+	case "Bool":
 		return ast.BoolType{}, nil
 	default:
 		// Otherwise it's a type reference (could be entity or common type)
@@ -651,7 +653,7 @@ func jsonAttrToType(ja *Attr) (ast.IsType, error) {
 		return ast.StringType{}, nil
 	case "Long":
 		return ast.LongType{}, nil
-	case "Boolean":
+	case "Bool":
 		return ast.BoolType{}, nil
 	case "Extension":
 		return ast.ExtensionType{Name: types.Ident(ja.Name)}, nil

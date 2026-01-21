@@ -12,7 +12,8 @@
                                     "type": "Record",
                                     "attributes": {
                                         "value": {
-                                            "type": "String"
+                                            "type": "EntityOrCommon",
+                                            "name": "String"
                                         }
                                     }
                                 }
@@ -32,11 +33,13 @@
                         "tags": {
                             "type": "Set",
                             "element": {
-                                "type": "String"
+                                "type": "EntityOrCommon",
+                                "name": "String"
                             }
                         },
                         "title": {
-                            "type": "String"
+                            "type": "EntityOrCommon",
+                            "name": "String"
                         }
                     }
                 }
@@ -46,17 +49,21 @@
                     "type": "Record",
                     "attributes": {
                         "active": {
-                            "type": "Boolean"
+                            "type": "EntityOrCommon",
+                            "name": "Bool"
                         },
                         "age": {
-                            "type": "Long"
+                            "type": "EntityOrCommon",
+                            "name": "Long"
                         },
                         "email": {
-                            "type": "String",
+                            "type": "EntityOrCommon",
+                            "name": "String",
                             "required": false
                         },
                         "name": {
-                            "type": "String"
+                            "type": "EntityOrCommon",
+                            "name": "String"
                         }
                     }
                 }

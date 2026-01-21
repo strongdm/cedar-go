@@ -97,53 +97,52 @@ action GlobalView appliesTo {
 
 entity OrgA::Team in OrgA::Group;
 
-entity OrgA::User {
-	info: {
-		name: String,
-		office: {
-			building: String,
-			floor: Long,
-		},
-	},
-};
+entity OrgA::User = {"info": {
+  "name": String,
+  "office": {
+    "building": String,
+    "floor": Long,
+  },
+}};
 
 entity OrgB::Member;
 
-entity Place {
-	location: {
-		position: {
-			x: Long,
-			y: Long,
-		},
-		name: String,
-	},
-};
+entity Place = {"location": {
+  "position": {
+    "x": Long,
+    "y": Long,
+  },
+  "name": String,
+}};
 
 entity GlobalStatus enum ["active", "inactive", "pending"];
 
 entity OrgA::Role enum ["admin", "member", "guest"];
 
 action GlobalView appliesTo {
-	principal: [OrgA::User, OrgB::Member],
-	resource: Place,
+  principal: [OrgA::User, OrgB::Member],
+  resource: Place,
+  context: {},
 };
 
 action Edit appliesTo {
-	principal: OrgA::User,
-	resource: Place,
+  principal: OrgA::User,
+  resource: Place,
+  context: {},
 };
 
 action View appliesTo {
-	principal: [OrgA::User, OrgA::Team],
-	resource: Place,
-	context: {
-		reason: String,
-	},
+  principal: [OrgA::User, OrgA::Team],
+  resource: Place,
+  context: {
+    "reason": String,
+  },
 };
 
 action Access appliesTo {
-	principal: [OrgB::Member, OrgA::User],
-	resource: Place,
+  principal: [OrgB::Member, OrgA::User],
+  resource: Place,
+  context: {},
 };
 `
 
@@ -194,8 +193,9 @@ namespace MyNamespace {
 entity MyNamespace::LocalEntity;
 
 action MyAction appliesTo {
-	principal: MyNamespace::LocalEntity,
-	resource: GlobalEntity,
+  principal: MyNamespace::LocalEntity,
+  resource: GlobalEntity,
+  context: {},
 };
 `
 

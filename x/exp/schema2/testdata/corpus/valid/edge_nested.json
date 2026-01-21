@@ -1,0 +1,69 @@
+{
+    "": {
+        "commonTypes": {
+            "Deep": {
+                "type": "Record",
+                "attributes": {
+                    "l1": {
+                        "type": "Record",
+                        "attributes": {
+                            "l2": {
+                                "type": "Record",
+                                "attributes": {
+                                    "l3": {
+                                        "type": "Record",
+                                        "attributes": {
+                                            "l4": {
+                                                "type": "Record",
+                                                "attributes": {
+                                                    "value": {
+                                                        "type": "EntityOrCommon",
+                                                        "name": "String"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "Matrix": {
+                "type": "Set",
+                "element": {
+                    "type": "Set",
+                    "element": {
+                        "type": "EntityOrCommon",
+                        "name": "Long"
+                    }
+                }
+            }
+        },
+        "entityTypes": {
+            "Config": {
+                "shape": {
+                    "type": "Record",
+                    "attributes": {
+                        "settings": {
+                            "type": "Record",
+                            "attributes": {
+                                "level1": {
+                                    "type": "Record",
+                                    "attributes": {
+                                        "level2": {
+                                            "type": "EntityOrCommon",
+                                            "name": "String"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "actions": {}
+    }
+}

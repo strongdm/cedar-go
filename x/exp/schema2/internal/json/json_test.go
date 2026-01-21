@@ -545,7 +545,7 @@ func TestCommonTypePrimitives(t *testing.T) {
 		jsonType string
 	}{
 		{"long", ast.LongType{}, "Long"},
-		{"bool", ast.BoolType{}, "Boolean"},
+		{"bool", ast.BoolType{}, "Bool"},
 		{"extension", ast.ExtensionType{Name: "ipaddr"}, "Extension"},
 	}
 
@@ -1364,7 +1364,6 @@ func TestResolveEntityOrCommonDirectly(t *testing.T) {
 		{"__cedar::String", "__cedar::String", "StringType"},
 		{"__cedar::Long", "__cedar::Long", "LongType"},
 		{"__cedar::Bool", "__cedar::Bool", "BoolType"},
-		{"__cedar::Boolean", "__cedar::Boolean", "BoolType"},
 		// __cedar:: prefixed extension types
 		{"__cedar::ipaddr", "__cedar::ipaddr", "ExtensionType"},
 		{"__cedar::datetime", "__cedar::datetime", "ExtensionType"},
@@ -1374,8 +1373,8 @@ func TestResolveEntityOrCommonDirectly(t *testing.T) {
 		{"String", "String", "StringType"},
 		{"Long", "Long", "LongType"},
 		{"Bool", "Bool", "BoolType"},
-		{"Boolean", "Boolean", "BoolType"},
-		// Type references
+		// Type references (Boolean is not a valid primitive name, it would be a type reference)
+		{"Boolean", "Boolean", "TypeRef"},
 		{"MyType", "MyType", "TypeRef"},
 		{"User", "User", "TypeRef"},
 	}

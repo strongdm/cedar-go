@@ -34,10 +34,7 @@ func TestSchemaMarshalCedar(t *testing.T) {
 			),
 		)
 		result := string(s.MarshalCedar())
-		expected := `entity User {
-	name: String,
-	email?: String,
-};
+		expected := `entity User = {"name": String, "email?": String};
 `
 		testutil.Equals(t, result, expected)
 	})
@@ -101,8 +98,8 @@ func TestSchemaMarshalCedar(t *testing.T) {
 		)
 		result := string(s.MarshalCedar())
 		expected := `type Address = {
-	street: String,
-	city: String,
+  "street": String,
+  "city": String,
 };
 `
 		testutil.Equals(t, result, expected)
@@ -129,11 +126,11 @@ func TestSchemaMarshalCedar(t *testing.T) {
 		)
 		result := string(s.MarshalCedar())
 		expected := `action view appliesTo {
-	principal: User,
-	resource: Document,
-	context: {
-		ip: __cedar::ipaddr,
-	},
+  principal: User,
+  resource: Document,
+  context: {
+    "ip": __cedar::ipaddr,
+  },
 };
 `
 		testutil.Equals(t, result, expected)
@@ -169,9 +166,9 @@ func TestSchemaMarshalCedar(t *testing.T) {
 		)
 		result := string(s.MarshalCedar())
 		expected := `namespace MyApp {
-	entity User;
+  entity User;
 
-	entity Document;
+  entity Document;
 }
 `
 		testutil.Equals(t, result, expected)
@@ -274,7 +271,7 @@ entity User;
 		)
 		result := string(s.MarshalCedar())
 		expected := `type Data = {
-	"special-key": String,
+  "special-key": String,
 };
 `
 		testutil.Equals(t, result, expected)
@@ -298,8 +295,9 @@ entity User;
 		)
 		result := string(s.MarshalCedar())
 		expected := `action view appliesTo {
-	principal: [User, Admin],
-	resource: Document,
+  principal: [User, Admin],
+  resource: Document,
+  context: {},
 };
 `
 		testutil.Equals(t, result, expected)
@@ -438,7 +436,7 @@ func TestNeedsQuotingEdgeCases(t *testing.T) {
 		)
 		result := string(s.MarshalCedar())
 		expected := `type Data = {
-	"123key": String,
+  "123key": String,
 };
 `
 		testutil.Equals(t, result, expected)
@@ -453,7 +451,7 @@ func TestNeedsQuotingEdgeCases(t *testing.T) {
 		)
 		result := string(s.MarshalCedar())
 		expected := `type Data = {
-	"": String,
+  "": String,
 };
 `
 		testutil.Equals(t, result, expected)

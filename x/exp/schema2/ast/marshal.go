@@ -55,7 +55,7 @@ func marshalNamespace(buf *bytes.Buffer, ns NamespaceNode, indent string) {
 	buf.WriteString(string(ns.Name))
 	buf.WriteString(" {\n")
 
-	innerIndent := indent + "\t"
+	innerIndent := indent + "  "
 	for i, decl := range ns.Declarations {
 		if i > 0 {
 			buf.WriteString("\n")
@@ -89,8 +89,8 @@ func marshalEntity(buf *bytes.Buffer, e EntityNode, indent string) {
 	}
 
 	if e.ShapeVal != nil && len(e.ShapeVal.Pairs) > 0 {
-		buf.WriteString(" ")
-		marshalRecordType(buf, *e.ShapeVal, indent)
+		buf.WriteString(" = ")
+		marshalRecordTypeCompact(buf, *e.ShapeVal)
 	}
 
 	if e.TagsVal != nil {
@@ -131,7 +131,7 @@ func marshalAction(buf *bytes.Buffer, a ActionNode, indent string) {
 
 	if a.AppliesToVal != nil {
 		buf.WriteString(" appliesTo {\n")
-		innerIndent := indent + "\t"
+		innerIndent := indent + "  "
 
 		if len(a.AppliesToVal.PrincipalTypes) > 0 {
 			buf.WriteString(innerIndent)
@@ -147,12 +147,14 @@ func marshalAction(buf *bytes.Buffer, a ActionNode, indent string) {
 			buf.WriteString(",\n")
 		}
 
+		buf.WriteString(innerIndent)
+		buf.WriteString("context: ")
 		if a.AppliesToVal.Context != nil {
-			buf.WriteString(innerIndent)
-			buf.WriteString("context: ")
 			marshalTypeIndented(buf, a.AppliesToVal.Context, innerIndent)
-			buf.WriteString(",\n")
+		} else {
+			buf.WriteString("{}")
 		}
+		buf.WriteString(",\n")
 
 		buf.WriteString(indent)
 		buf.WriteString("}")
@@ -245,17 +247,13 @@ func marshalRecordType(buf *bytes.Buffer, r RecordType, indent string) {
 	}
 
 	buf.WriteString("\n")
-	innerIndent := indent + "\t"
+	innerIndent := indent + "  "
 	for i, pair := range r.Pairs {
 		if i > 0 {
 			buf.WriteString(",\n")
 		}
 		buf.WriteString(innerIndent)
-		if needsQuoting(string(pair.Key)) {
-			buf.WriteString(quoteString(string(pair.Key)))
-		} else {
-			buf.WriteString(string(pair.Key))
-		}
+		buf.WriteString(quoteString(string(pair.Key)))
 		if pair.Optional {
 			buf.WriteString("?")
 		}
@@ -264,6 +262,25 @@ func marshalRecordType(buf *bytes.Buffer, r RecordType, indent string) {
 	}
 	buf.WriteString(",\n")
 	buf.WriteString(indent)
+	buf.WriteString("}")
+}
+
+// marshalRecordTypeCompact marshals a record type in Rust format for entity shapes
+// e.g., {"name": String, "age": Long}
+func marshalRecordTypeCompact(buf *bytes.Buffer, r RecordType) {
+	buf.WriteString("{")
+	for i, pair := range r.Pairs {
+		if i > 0 {
+			buf.WriteString(", ")
+		}
+		key := string(pair.Key)
+		if pair.Optional {
+			key += "?"
+		}
+		buf.WriteString(quoteString(key))
+		buf.WriteString(": ")
+		marshalType(buf, pair.Type)
+	}
 	buf.WriteString("}")
 }
 

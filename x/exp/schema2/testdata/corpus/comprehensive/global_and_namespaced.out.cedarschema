@@ -1,0 +1,63 @@
+type Coordinate = {
+  "x": Long,
+  "y": Long,
+};
+
+type Location = {
+  "position": Coordinate,
+  "name": String,
+};
+
+entity Place = {"location": Location};
+
+entity GlobalStatus enum ["active", "inactive", "pending"];
+
+namespace OrgA {
+  type Office = {
+  "building": String,
+  "floor": Long,
+};
+
+  type Employee = {
+  "name": String,
+  "office": Office,
+};
+
+  entity User = {"info": Employee};
+
+  entity Role enum ["admin", "member", "guest"];
+
+  entity Group;
+
+  entity Team in Group;
+
+  action View appliesTo {
+    principal: [User, Team],
+    resource: Place,
+    context: {
+      "reason": String,
+    },
+  };
+
+  action Edit appliesTo {
+    principal: User,
+    resource: Place,
+    context: {},
+  };
+}
+
+namespace OrgB {
+  entity Member;
+
+  action Access appliesTo {
+    principal: [Member, OrgA::User],
+    resource: Place,
+    context: {},
+  };
+}
+
+action GlobalView appliesTo {
+  principal: [OrgA::User, OrgB::Member],
+  resource: Place,
+  context: {},
+};
