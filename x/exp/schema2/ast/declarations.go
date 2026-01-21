@@ -215,11 +215,7 @@ func (e EntityNode) resolve(rd *resolveData) (EntityNode, error) {
 	if len(e.MemberOfVal) > 0 {
 		resolved.MemberOfVal = make([]EntityTypeRef, len(e.MemberOfVal))
 		for i, ref := range e.MemberOfVal {
-			resolvedRef, err := ref.resolve(rd)
-			if err != nil {
-				return EntityNode{}, err
-			}
-			resolved.MemberOfVal[i] = resolvedRef.(EntityTypeRef)
+			resolved.MemberOfVal[i] = ref.mustResolve(rd)
 		}
 	}
 
@@ -390,12 +386,8 @@ func (a ActionNode) resolve(rd *resolveData) (ActionNode, error) {
 	if len(a.MemberOfVal) > 0 {
 		resolved.MemberOfVal = make([]EntityRef, len(a.MemberOfVal))
 		for i, ref := range a.MemberOfVal {
-			resolvedType, err := ref.Type.resolve(rd)
-			if err != nil {
-				return ActionNode{}, err
-			}
 			resolved.MemberOfVal[i] = EntityRef{
-				Type: resolvedType.(EntityTypeRef),
+				Type: ref.Type.mustResolve(rd),
 				ID:   ref.ID,
 			}
 		}
@@ -408,22 +400,14 @@ func (a ActionNode) resolve(rd *resolveData) (ActionNode, error) {
 		if len(a.AppliesToVal.PrincipalTypes) > 0 {
 			resolved.AppliesToVal.PrincipalTypes = make([]EntityTypeRef, len(a.AppliesToVal.PrincipalTypes))
 			for i, ref := range a.AppliesToVal.PrincipalTypes {
-				resolvedRef, err := ref.resolve(rd)
-				if err != nil {
-					return ActionNode{}, err
-				}
-				resolved.AppliesToVal.PrincipalTypes[i] = resolvedRef.(EntityTypeRef)
+				resolved.AppliesToVal.PrincipalTypes[i] = ref.mustResolve(rd)
 			}
 		}
 
 		if len(a.AppliesToVal.ResourceTypes) > 0 {
 			resolved.AppliesToVal.ResourceTypes = make([]EntityTypeRef, len(a.AppliesToVal.ResourceTypes))
 			for i, ref := range a.AppliesToVal.ResourceTypes {
-				resolvedRef, err := ref.resolve(rd)
-				if err != nil {
-					return ActionNode{}, err
-				}
-				resolved.AppliesToVal.ResourceTypes[i] = resolvedRef.(EntityTypeRef)
+				resolved.AppliesToVal.ResourceTypes[i] = ref.mustResolve(rd)
 			}
 		}
 

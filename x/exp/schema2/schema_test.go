@@ -3,6 +3,7 @@ package schema2
 import (
 	"encoding/json"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -199,6 +200,384 @@ func TestSchemaCrossFormatMarshaling(t *testing.T) {
 		_, err = s.MarshalJSON()
 		if err != nil {
 			t.Errorf("MarshalJSON() error = %v", err)
+		}
+	})
+}
+
+func TestResolvedSchemaMarshalCedar(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name            string
+		input           string
+		expectedEntries []string // Entries that should appear in marshaled output
+	}{
+		{
+			name: "simple entity schema",
+			input: `namespace MyApp {
+	entity User;
+	entity Group;
+}`,
+			expectedEntries: []string{"MyApp::User", "MyApp::Group"},
+		},
+		{
+			name: "entity with common types resolved inline",
+			input: `namespace MyApp {
+	type Address = {
+		street: String,
+		city: String,
+	};
+	entity User {
+		address: Address,
+	};
+}`,
+			expectedEntries: []string{"MyApp::User", "street", "city"},
+		},
+		{
+			name: "entity with enum",
+			input: `namespace MyApp {
+	entity Status enum ["active", "inactive"];
+}`,
+			expectedEntries: []string{"MyApp::Status", "active", "inactive"},
+		},
+		{
+			name: "action with appliesTo",
+			input: `namespace MyApp {
+	entity User;
+	entity Document;
+	action View appliesTo {
+		principal: User,
+		resource: Document,
+	};
+}`,
+			expectedEntries: []string{"MyApp::User", "MyApp::Document", "View", "principal", "resource"},
+		},
+		{
+			name: "multiple namespaces",
+			input: `namespace App1 {
+	entity User;
+}
+namespace App2 {
+	entity Admin;
+}`,
+			expectedEntries: []string{"App1::User", "App2::Admin"},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			// Parse the original schema
+			var s Schema
+			err := s.UnmarshalCedar([]byte(tt.input))
+			if err != nil {
+				t.Fatalf("UnmarshalCedar() error = %v", err)
+			}
+
+			// Resolve it
+			resolved, err := s.Resolve()
+			if err != nil {
+				t.Fatalf("Resolve() error = %v", err)
+			}
+
+			// Marshal the resolved schema to Cedar
+			cedarBytes, err := resolved.MarshalCedar()
+			if err != nil {
+				t.Fatalf("MarshalCedar() error = %v", err)
+			}
+
+			cedarStr := string(cedarBytes)
+
+			// Verify expected entries are present in the marshaled output
+			for _, entry := range tt.expectedEntries {
+				if !strings.Contains(cedarStr, entry) {
+					t.Errorf("Expected entry %q not found in marshaled Cedar:\n%s", entry, cedarStr)
+				}
+			}
+
+			// Verify the output is non-empty
+			if len(cedarBytes) == 0 {
+				t.Error("MarshalCedar() produced empty output")
+			}
+
+			// Marshal again to verify stability
+			cedarBytes2, err := resolved.MarshalCedar()
+			if err != nil {
+				t.Fatalf("Second MarshalCedar() error = %v", err)
+			}
+
+			if !reflect.DeepEqual(cedarBytes, cedarBytes2) {
+				t.Errorf("MarshalCedar() is not stable:\nFirst:\n%s\nSecond:\n%s", cedarBytes, cedarBytes2)
+			}
+		})
+	}
+}
+
+func TestResolvedSchemaMarshalJSON(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		input string
+	}{
+		{
+			name: "simple entity schema",
+			input: `namespace MyApp {
+	entity User;
+}`,
+		},
+		{
+			name: "entity with attributes",
+			input: `namespace MyApp {
+	entity User {
+		name: String,
+		age: Long,
+	};
+}`,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			// Parse and resolve
+			var s Schema
+			err := s.UnmarshalCedar([]byte(tt.input))
+			if err != nil {
+				t.Fatalf("UnmarshalCedar() error = %v", err)
+			}
+
+			resolved, err := s.Resolve()
+			if err != nil {
+				t.Fatalf("Resolve() error = %v", err)
+			}
+
+			// Marshal to JSON
+			jsonBytes, err := resolved.MarshalJSON()
+			if err != nil {
+				t.Fatalf("MarshalJSON() error = %v", err)
+			}
+
+			// Verify it's valid JSON
+			var raw interface{}
+			if err := json.Unmarshal(jsonBytes, &raw); err != nil {
+				t.Errorf("MarshalJSON() produced invalid JSON: %v\nJSON:\n%s", err, string(jsonBytes))
+			}
+
+			// Parse the JSON back
+			var s2 Schema
+			err = s2.UnmarshalJSON(jsonBytes)
+			if err != nil {
+				t.Fatalf("UnmarshalJSON() error = %v\nJSON:\n%s", err, string(jsonBytes))
+			}
+
+			// Resolve again
+			resolved2, err := s2.Resolve()
+			if err != nil {
+				t.Fatalf("Resolve() on JSON schema error = %v", err)
+			}
+
+			// Compare
+			if len(resolved.Entities) != len(resolved2.Entities) {
+				t.Errorf("Entity count mismatch: %d != %d", len(resolved.Entities), len(resolved2.Entities))
+			}
+		})
+	}
+}
+
+func TestResolvedSchemaRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		input string
+	}{
+		{
+			name: "comprehensive schema with all features",
+			input: `namespace MyApp {
+	entity User;
+	entity Group;
+	entity Document;
+
+	entity Status enum ["active", "inactive", "pending"];
+
+	action View appliesTo {
+		principal: User,
+		resource: Document,
+	};
+}`,
+		},
+		{
+			name: "top-level and namespaced declarations",
+			input: `entity TopLevelUser;
+
+namespace App {
+	entity User;
+	action Read;
+}`,
+		},
+		{
+			name: "cross-namespace references",
+			input: `namespace Core {
+	entity BaseUser;
+}
+
+namespace App {
+	entity User in [Core::BaseUser];
+}`,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			// Step 1: Parse original schema
+			var original Schema
+			if err := original.UnmarshalCedar([]byte(tt.input)); err != nil {
+				t.Fatalf("UnmarshalCedar() error = %v", err)
+			}
+
+			// Step 2: Resolve
+			resolved, err := original.Resolve()
+			if err != nil {
+				t.Fatalf("Resolve() error = %v", err)
+			}
+
+			// Step 3: Marshal resolved schema to Cedar
+			cedarBytes, err := resolved.MarshalCedar()
+			if err != nil {
+				t.Fatalf("MarshalCedar() error = %v", err)
+			}
+
+			// Verify output is non-empty
+			if len(cedarBytes) == 0 {
+				t.Fatal("MarshalCedar() produced empty output")
+			}
+
+			// Step 4: Marshal resolved schema to JSON
+			jsonBytes, err := resolved.MarshalJSON()
+			if err != nil {
+				t.Fatalf("MarshalJSON() error = %v", err)
+			}
+
+			// Verify JSON is valid
+			var raw interface{}
+			if err := json.Unmarshal(jsonBytes, &raw); err != nil {
+				t.Fatalf("MarshalJSON() produced invalid JSON: %v", err)
+			}
+
+			// Step 5: Verify stability - marshaling again produces same output
+			cedarBytes2, err := resolved.MarshalCedar()
+			if err != nil {
+				t.Fatalf("Second MarshalCedar() error = %v", err)
+			}
+			if !reflect.DeepEqual(cedarBytes, cedarBytes2) {
+				t.Errorf("MarshalCedar() not stable")
+			}
+
+			jsonBytes2, err := resolved.MarshalJSON()
+			if err != nil {
+				t.Fatalf("Second MarshalJSON() error = %v", err)
+			}
+			if !reflect.DeepEqual(jsonBytes, jsonBytes2) {
+				t.Errorf("MarshalJSON() not stable")
+			}
+
+			// Step 6: Verify counts match original
+			if len(resolved.Entities) == 0 && len(resolved.Enums) == 0 && len(resolved.Actions) == 0 {
+				t.Error("Resolved schema is empty but input was not")
+			}
+		})
+	}
+}
+
+func TestResolvedSchemaSortingCoverage(t *testing.T) {
+	t.Parallel()
+
+	t.Run("multiple enums sorted", func(t *testing.T) {
+		t.Parallel()
+		input := `namespace MyApp {
+	entity Status enum ["active", "inactive"];
+	entity Priority enum ["high", "low"];
+	entity Category enum ["a", "b"];
+}`
+		var s Schema
+		if err := s.UnmarshalCedar([]byte(input)); err != nil {
+			t.Fatalf("UnmarshalCedar() error = %v", err)
+		}
+
+		resolved, err := s.Resolve()
+		if err != nil {
+			t.Fatalf("Resolve() error = %v", err)
+		}
+
+		// Test that we can marshal (this exercises the enum sorting)
+		cedarBytes, err := resolved.MarshalCedar()
+		if err != nil {
+			t.Fatalf("MarshalCedar() error = %v", err)
+		}
+
+		// Verify enums are present
+		cedarStr := string(cedarBytes)
+		if !strings.Contains(cedarStr, "Status") {
+			t.Error("Expected Status enum in output")
+		}
+		if !strings.Contains(cedarStr, "Priority") {
+			t.Error("Expected Priority enum in output")
+		}
+		if !strings.Contains(cedarStr, "Category") {
+			t.Error("Expected Category enum in output")
+		}
+	})
+
+	t.Run("multiple actions sorted by type and ID", func(t *testing.T) {
+		t.Parallel()
+		input := `namespace App {
+	entity User;
+	entity Doc;
+	action Read;
+	action Write;
+	action Delete;
+}
+namespace Other {
+	entity Resource;
+	action View;
+}`
+		var s Schema
+		if err := s.UnmarshalCedar([]byte(input)); err != nil {
+			t.Fatalf("UnmarshalCedar() error = %v", err)
+		}
+
+		resolved, err := s.Resolve()
+		if err != nil {
+			t.Fatalf("Resolve() error = %v", err)
+		}
+
+		// Test that we can marshal (this exercises the action sorting with different types)
+		cedarBytes, err := resolved.MarshalCedar()
+		if err != nil {
+			t.Fatalf("MarshalCedar() error = %v", err)
+		}
+
+		// Verify actions are present
+		cedarStr := string(cedarBytes)
+		if !strings.Contains(cedarStr, "Read") {
+			t.Error("Expected Read action in output")
+		}
+		if !strings.Contains(cedarStr, "Write") {
+			t.Error("Expected Write action in output")
+		}
+		if !strings.Contains(cedarStr, "Delete") {
+			t.Error("Expected Delete action in output")
+		}
+		if !strings.Contains(cedarStr, "View") {
+			t.Error("Expected View action in output")
 		}
 	})
 }

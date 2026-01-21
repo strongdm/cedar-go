@@ -15,9 +15,6 @@ type Schema struct {
 	schema   ast.Schema
 }
 
-// ResolvedSchema is an alias for ast.ResolvedSchema, providing efficient lookup maps
-// for entities, enums, and actions with fully qualified names.
-type ResolvedSchema = ast.ResolvedSchema
 
 // SetFilename sets the filename for this schema.
 func (s *Schema) SetFilename(filename string) {
@@ -63,5 +60,9 @@ func (s *Schema) UnmarshalCedar(b []byte) error {
 // Top-level type references are resolved as-is.
 // Returns an error if any type reference cannot be resolved.
 func (s *Schema) Resolve() (*ResolvedSchema, error) {
-	return s.schema.Resolve()
+	resolved, err := s.schema.Resolve()
+	if err != nil {
+		return nil, err
+	}
+	return &ResolvedSchema{ResolvedSchema: *resolved}, nil
 }

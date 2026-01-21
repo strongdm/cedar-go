@@ -31,7 +31,7 @@ type IsType interface {
 type commonTypeEntry struct {
 	resolved bool
 	typ      IsType
-	node     *CommonTypeNode
+	node     CommonTypeNode
 }
 
 // resolveData contains cached information for efficient type resolution.
@@ -79,7 +79,7 @@ func newResolveData(schema *Schema, namespace *NamespaceNode) *resolveData {
 		}
 		rd.schemaCommonTypes[fullName] = &commonTypeEntry{
 			resolved: false,
-			node:     &ctCopy,
+			node:     ctCopy,
 		}
 	}
 
@@ -90,7 +90,7 @@ func newResolveData(schema *Schema, namespace *NamespaceNode) *resolveData {
 			ctCopy := ct
 			rd.namespaceCommonTypes[string(ct.Name)] = &commonTypeEntry{
 				resolved: false,
-				node:     &ctCopy,
+				node:     ctCopy,
 			}
 		}
 	}
@@ -104,11 +104,23 @@ func (rd *resolveData) withNamespace(namespace *NamespaceNode) *resolveData {
 		return rd
 	}
 
+	// Create new namespace-local cache for the new namespace
+	namespaceCommonTypes := make(map[string]*commonTypeEntry)
+	if namespace != nil {
+		for ct := range namespace.CommonTypes() {
+			ctCopy := ct
+			namespaceCommonTypes[string(ct.Name)] = &commonTypeEntry{
+				resolved: false,
+				node:     ctCopy,
+			}
+		}
+	}
+
 	return &resolveData{
 		schema:               rd.schema,
 		namespace:            namespace,
 		schemaCommonTypes:    rd.schemaCommonTypes,    // Reuse schema-wide cache
-		namespaceCommonTypes: rd.namespaceCommonTypes, // Reuse namespace cache (will be lazily populated)
+		namespaceCommonTypes: namespaceCommonTypes,     // New namespace-specific cache
 	}
 }
 

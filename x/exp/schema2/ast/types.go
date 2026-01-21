@@ -145,18 +145,24 @@ type EntityTypeRef struct {
 
 func (EntityTypeRef) isType() { _ = 0 }
 
-// resolve resolves the entity type reference relative to the given namespace.
+// mustResolve resolves the entity type reference relative to the given namespace.
 // If the name is unqualified and namespace is provided, it is qualified with the namespace.
-func (e EntityTypeRef) resolve(rd *resolveData) (IsType, error) {
+// This method never returns an error.
+func (e EntityTypeRef) mustResolve(rd *resolveData) EntityTypeRef {
 	if rd.namespace == nil {
-		return e, nil
+		return e
 	}
 	// If the name doesn't contain "::", qualify it with the namespace
 	name := string(e.Name)
 	if len(name) > 0 && name[0] != ':' && !containsDoubleColon(name) {
-		return EntityTypeRef{Name: types.EntityType(string(rd.namespace.Name) + "::" + name)}, nil
+		return EntityTypeRef{Name: types.EntityType(string(rd.namespace.Name) + "::" + name)}
 	}
-	return e, nil
+	return e
+}
+
+// resolve implements the IsType interface by calling mustResolve.
+func (e EntityTypeRef) resolve(rd *resolveData) (IsType, error) {
+	return e.mustResolve(rd), nil
 }
 
 func containsDoubleColon(s string) bool {
@@ -221,26 +227,21 @@ func (t TypeRef) resolve(rd *resolveData) (IsType, error) {
 			return entry.typ, nil
 		}
 		// Resolve lazily with the common type's namespace context
-		var ctRd *resolveData
-		if entry.node != nil {
-			// Find the namespace for this common type by checking where it's declared
-			var ns *NamespaceNode
-			for nsNode, ct := range rd.schema.CommonTypes() {
-				var fullName string
-				if nsNode == nil {
-					fullName = string(ct.Name)
-				} else {
-					fullName = string(nsNode.Name) + "::" + string(ct.Name)
-				}
-				if fullName == name {
-					ns = nsNode
-					break
-				}
+		// Find the namespace for this common type by checking where it's declared
+		var ns *NamespaceNode
+		for nsNode, ct := range rd.schema.CommonTypes() {
+			var fullName string
+			if nsNode == nil {
+				fullName = string(ct.Name)
+			} else {
+				fullName = string(nsNode.Name) + "::" + string(ct.Name)
 			}
-			ctRd = rd.withNamespace(ns)
-		} else {
-			ctRd = rd
+			if fullName == name {
+				ns = nsNode
+				break
+			}
 		}
+		ctRd := rd.withNamespace(ns)
 
 		resolved, err := entry.node.Type.resolve(ctRd)
 		if err != nil {
