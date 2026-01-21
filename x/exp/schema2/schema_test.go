@@ -283,10 +283,10 @@ namespace App2 {
 			}
 
 			// Convert to Schema and marshal to Cedar
-			// Use MarshalCedar directly
-			cedarBytes, err := resolved.MarshalCedar()
+			// Use marshalCedar directly
+			cedarBytes, err := resolved.marshalCedar()
 			if err != nil {
-				t.Fatalf("MarshalCedar() error = %v", err)
+				t.Fatalf("marshalCedar() error = %v", err)
 			}
 
 			cedarStr := string(cedarBytes)
@@ -300,18 +300,18 @@ namespace App2 {
 
 			// Verify the output is non-empty
 			if len(cedarBytes) == 0 {
-				t.Error("MarshalCedar() produced empty output")
+				t.Error("marshalCedar() produced empty output")
 			}
 
 			// Marshal again to verify stability
-			// Use MarshalCedar directly
-			cedarBytes2, err := resolved.MarshalCedar()
+			// Use marshalCedar directly
+			cedarBytes2, err := resolved.marshalCedar()
 			if err != nil {
-				t.Fatalf("Second MarshalCedar() error = %v", err)
+				t.Fatalf("Second marshalCedar() error = %v", err)
 			}
 
 			if !reflect.DeepEqual(cedarBytes, cedarBytes2) {
-				t.Errorf("MarshalCedar() is not stable:\nFirst:\n%s\nSecond:\n%s", cedarBytes, cedarBytes2)
+				t.Errorf("marshalCedar() is not stable:\nFirst:\n%s\nSecond:\n%s", cedarBytes, cedarBytes2)
 			}
 		})
 	}
@@ -359,10 +359,10 @@ func TestResolvedSchemaMarshalJSON(t *testing.T) {
 			}
 
 			// Convert to Schema and marshal to JSON
-			// Use MarshalCedar directly
-			jsonBytes, err := resolved.MarshalJSON()
+			// Use marshalJSON directly
+			jsonBytes, err := resolved.marshalJSON()
 			if err != nil {
-				t.Fatalf("MarshalJSON() error = %v", err)
+				t.Fatalf("marshalJSON() error = %v", err)
 			}
 
 			// Verify it's valid JSON
@@ -453,45 +453,45 @@ namespace App {
 			}
 
 			// Step 3: Convert to Schema and marshal to Cedar
-			// Use MarshalCedar directly
-			cedarBytes, err := resolved.MarshalCedar()
+			// Use marshalCedar directly
+			cedarBytes, err := resolved.marshalCedar()
 			if err != nil {
-				t.Fatalf("MarshalCedar() error = %v", err)
+				t.Fatalf("marshalCedar() error = %v", err)
 			}
 
 			// Verify output is non-empty
 			if len(cedarBytes) == 0 {
-				t.Fatal("MarshalCedar() produced empty output")
+				t.Fatal("marshalCedar() produced empty output")
 			}
 
 			// Step 4: Marshal resolved schema to JSON
-			jsonBytes, err := resolved.MarshalJSON()
+			jsonBytes, err := resolved.marshalJSON()
 			if err != nil {
-				t.Fatalf("MarshalJSON() error = %v", err)
+				t.Fatalf("marshalJSON() error = %v", err)
 			}
 
 			// Verify JSON is valid
 			var raw interface{}
 			if err := json.Unmarshal(jsonBytes, &raw); err != nil {
-				t.Fatalf("MarshalJSON() produced invalid JSON: %v", err)
+				t.Fatalf("marshalJSON() produced invalid JSON: %v", err)
 			}
 
 			// Step 5: Verify stability - marshaling again produces same output
-			// Use MarshalCedar directly
-			cedarBytes2, err := resolved.MarshalCedar()
+			// Use marshalCedar directly
+			cedarBytes2, err := resolved.marshalCedar()
 			if err != nil {
-				t.Fatalf("Second MarshalCedar() error = %v", err)
+				t.Fatalf("Second marshalCedar() error = %v", err)
 			}
 			if !reflect.DeepEqual(cedarBytes, cedarBytes2) {
-				t.Errorf("MarshalCedar() not stable")
+				t.Errorf("marshalCedar() not stable")
 			}
 
-			jsonBytes2, err := resolved.MarshalJSON()
+			jsonBytes2, err := resolved.marshalJSON()
 			if err != nil {
-				t.Fatalf("Second MarshalJSON() error = %v", err)
+				t.Fatalf("Second marshalJSON() error = %v", err)
 			}
 			if !reflect.DeepEqual(jsonBytes, jsonBytes2) {
-				t.Errorf("MarshalJSON() not stable")
+				t.Errorf("marshalJSON() not stable")
 			}
 
 			// Step 6: Verify counts match original
@@ -523,10 +523,10 @@ func TestResolvedSchemaSortingCoverage(t *testing.T) {
 		}
 
 		// Test that we can marshal (this exercises the enum sorting)
-		// Use MarshalCedar directly
-		cedarBytes, err := resolved.MarshalCedar()
+		// Use marshalCedar directly
+		cedarBytes, err := resolved.marshalCedar()
 		if err != nil {
-			t.Fatalf("MarshalCedar() error = %v", err)
+			t.Fatalf("marshalCedar() error = %v", err)
 		}
 
 		// Verify enums are present
@@ -566,10 +566,10 @@ namespace Other {
 		}
 
 		// Test that we can marshal (this exercises the action sorting with different types)
-		// Use MarshalCedar directly
-		cedarBytes, err := resolved.MarshalCedar()
+		// Use marshalCedar directly
+		cedarBytes, err := resolved.marshalCedar()
 		if err != nil {
-			t.Fatalf("MarshalCedar() error = %v", err)
+			t.Fatalf("marshalCedar() error = %v", err)
 		}
 
 		// Verify actions are present

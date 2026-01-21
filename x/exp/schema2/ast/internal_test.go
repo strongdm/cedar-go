@@ -1374,3 +1374,182 @@ func TestGlobalEntityResolution(t *testing.T) {
 		}
 	})
 }
+
+// TestNamingConflicts tests that naming conflicts are detected during schema resolution
+func TestNamingConflicts(t *testing.T) {
+	t.Parallel()
+
+	t.Run("entity conflict - nested namespace vs qualified name", func(t *testing.T) {
+		// Scenario: namespace Goat::Gorilla with entity Cows
+		// vs namespace Goat with entity Gorilla::Cows
+		// Both resolve to Goat::Gorilla::Cows - CONFLICT!
+		ns1 := Namespace("Goat::Gorilla", Entity("Cows"))
+		ns2 := Namespace("Goat", Entity("Gorilla::Cows"))
+		schema := NewSchema(ns1, ns2)
+
+		_, err := schema.Resolve()
+		if err == nil {
+			t.Fatal("expected error due to naming conflict, got nil")
+		}
+		// Check error message mentions conflict
+		if err.Error() == "" {
+			t.Error("expected non-empty error message")
+		}
+	})
+
+	t.Run("enum conflict - nested namespace vs qualified name", func(t *testing.T) {
+		// Similar to entity conflict but with enums
+		ns1 := Namespace("Goat::Gorilla", Enum("Status", "active"))
+		ns2 := Namespace("Goat", Enum("Gorilla::Status", "active"))
+		schema := NewSchema(ns1, ns2)
+
+		_, err := schema.Resolve()
+		if err == nil {
+			t.Fatal("expected error due to naming conflict, got nil")
+		}
+	})
+
+	t.Run("entity vs enum conflict - entity first in namespace", func(t *testing.T) {
+		// An entity and enum with the same fully qualified name in namespace
+		// Entity processed first, then enum
+		ns1 := Namespace("App", Entity("Thing"))
+		ns2 := Namespace("App", Enum("Thing", "value"))
+		schema := NewSchema(ns1, ns2)
+
+		_, err := schema.Resolve()
+		if err == nil {
+			t.Fatal("expected error due to entity/enum conflict, got nil")
+		}
+	})
+
+	t.Run("entity vs enum conflict - enum first in namespace", func(t *testing.T) {
+		// An enum and entity with the same fully qualified name in namespace
+		// Enum processed first, then entity (covers line 355)
+		ns1 := Namespace("App", Enum("Thing", "value"))
+		ns2 := Namespace("App", Entity("Thing"))
+		schema := NewSchema(ns1, ns2)
+
+		_, err := schema.Resolve()
+		if err == nil {
+			t.Fatal("expected error due to enum/entity conflict, got nil")
+		}
+	})
+
+	t.Run("top-level entity vs enum conflict - enum first", func(t *testing.T) {
+		// Top-level enum defined first, then entity with same name (covers line 398)
+		enum1 := Enum("Status", "active")
+		entity1 := Entity("Status")
+		schema := NewSchema(enum1, entity1)
+
+		_, err := schema.Resolve()
+		if err == nil {
+			t.Fatal("expected error due to top-level enum/entity conflict, got nil")
+		}
+	})
+
+	t.Run("top-level enum vs entity conflict - entity first", func(t *testing.T) {
+		// Top-level entity defined first, then enum with same name (covers line 410)
+		entity1 := Entity("Status")
+		enum1 := Enum("Status", "active")
+		schema := NewSchema(entity1, enum1)
+
+		_, err := schema.Resolve()
+		if err == nil {
+			t.Fatal("expected error due to top-level entity/enum conflict, got nil")
+		}
+	})
+
+	t.Run("top-level vs namespaced entity conflict", func(t *testing.T) {
+		// Top-level entity A::B conflicts with namespace A, entity B
+		topLevel := Entity("A::B")
+		ns := Namespace("A", Entity("B"))
+		schema := NewSchema(topLevel, ns)
+
+		_, err := schema.Resolve()
+		if err == nil {
+			t.Fatal("expected error due to top-level vs namespace conflict, got nil")
+		}
+	})
+
+	t.Run("action conflict - nested namespace vs qualified name", func(t *testing.T) {
+		// Actions have EntityUIDs like Goat::Gorilla::Action::"foo"
+		// If namespace Goat has action "Gorilla::Action::\"foo\"", that seems pathological
+		// but let's test a more realistic scenario:
+		// Two namespaces with actions that could have the same UID
+		ns1 := Namespace("Goat::Gorilla", Action("view"))
+		ns2 := Namespace("Goat::Gorilla", Action("view"))
+		schema := NewSchema(ns1, ns2)
+
+		_, err := schema.Resolve()
+		if err == nil {
+			t.Fatal("expected error due to duplicate action, got nil")
+		}
+	})
+
+	t.Run("no conflict - different namespaces", func(t *testing.T) {
+		// This should NOT conflict - different fully qualified names
+		ns1 := Namespace("Goat", Entity("Cows"))
+		ns2 := Namespace("Sheep", Entity("Cows"))
+		schema := NewSchema(ns1, ns2)
+
+		resolved, err := schema.Resolve()
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		// Both entities should exist with different qualified names
+		if _, found := resolved.Entities["Goat::Cows"]; !found {
+			t.Error("expected 'Goat::Cows' entity")
+		}
+		if _, found := resolved.Entities["Sheep::Cows"]; !found {
+			t.Error("expected 'Sheep::Cows' entity")
+		}
+	})
+
+	t.Run("top-level duplicate entity", func(t *testing.T) {
+		// Two top-level entities with the same name
+		e1 := Entity("User")
+		e2 := Entity("User")
+		schema := NewSchema(e1, e2)
+
+		_, err := schema.Resolve()
+		if err == nil {
+			t.Fatal("expected error due to duplicate entity, got nil")
+		}
+	})
+
+	t.Run("top-level duplicate enum", func(t *testing.T) {
+		// Two top-level enums with the same name
+		enum1 := Enum("Status", "active")
+		enum2 := Enum("Status", "inactive")
+		schema := NewSchema(enum1, enum2)
+
+		_, err := schema.Resolve()
+		if err == nil {
+			t.Fatal("expected error due to duplicate enum, got nil")
+		}
+	})
+
+	t.Run("top-level duplicate action", func(t *testing.T) {
+		// Two top-level actions with the same name
+		a1 := Action("view")
+		a2 := Action("view")
+		schema := NewSchema(a1, a2)
+
+		_, err := schema.Resolve()
+		if err == nil {
+			t.Fatal("expected error due to duplicate action, got nil")
+		}
+	})
+
+	t.Run("namespace duplicate entity", func(t *testing.T) {
+		// Two entities with the same name in the same namespace
+		ns := Namespace("App", Entity("User"), Entity("User"))
+		schema := NewSchema(ns)
+
+		_, err := schema.Resolve()
+		if err == nil {
+			t.Fatal("expected error due to duplicate entity in namespace, got nil")
+		}
+	})
+}

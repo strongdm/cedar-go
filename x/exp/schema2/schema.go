@@ -54,6 +54,11 @@ func (s *Schema) UnmarshalCedar(b []byte) error {
 	return nil
 }
 
+// AST returns the underlying AST schema.
+func (s *Schema) AST() *ast.Schema {
+	return &s.schema
+}
+
 // Resolve returns a ResolvedSchema with all type references resolved and indexed for efficient lookup.
 // Type references within namespaces are resolved relative to their namespace.
 // Top-level type references are resolved as-is.

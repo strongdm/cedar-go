@@ -598,7 +598,7 @@ func TestComprehensiveCorpus(t *testing.T) {
 			resolved, err := schema.Resolve()
 			testutil.OK(t, err)
 
-			actualResolved, err := resolved.MarshalCedar()
+			actualResolved, err := resolved.TestMarshalCedar()
 			testutil.OK(t, err)
 
 			// Verify resolved schema is valid Cedar
@@ -608,7 +608,7 @@ func TestComprehensiveCorpus(t *testing.T) {
 			resolved2, err := schema.Resolve()
 			testutil.OK(t, err)
 
-			actualResolved2, err := resolved2.MarshalCedar()
+			actualResolved2, err := resolved2.TestMarshalCedar()
 			testutil.OK(t, err)
 
 			if string(actualResolved) != string(actualResolved2) {
@@ -620,7 +620,7 @@ func TestComprehensiveCorpus(t *testing.T) {
 			resolvedFromJSON, err := schemaFromJSON.Resolve()
 			testutil.OK(t, err)
 
-			actualResolvedFromJSON, err := resolvedFromJSON.MarshalCedar()
+			actualResolvedFromJSON, err := resolvedFromJSON.TestMarshalCedar()
 			testutil.OK(t, err)
 
 			// Verify resolved schema from JSON is valid Cedar

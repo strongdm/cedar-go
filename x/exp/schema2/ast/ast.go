@@ -3,6 +3,7 @@ package ast
 
 import (
 	"cmp"
+	"fmt"
 	"iter"
 	"slices"
 	"strings"
@@ -317,7 +318,7 @@ func nodeName(n IsNode) string {
 // Resolve returns a ResolvedSchema with all type references resolved and indexed.
 // Type references within namespaces are resolved relative to their namespace.
 // Top-level type references are resolved as-is.
-// Returns an error if any type reference cannot be resolved.
+// Returns an error if any type reference cannot be resolved or if there are naming conflicts.
 func (s *Schema) Resolve() (*ResolvedSchema, error) {
 	resolved := &ResolvedSchema{
 		Entities:   make(map[types.EntityType]EntityNode),
@@ -347,9 +348,23 @@ func (s *Schema) Resolve() (*ResolvedSchema, error) {
 				switch d := decl.(type) {
 				case EntityNode:
 					// Name is already fully qualified by Resolve
+					// Check for conflicts with existing entities or enums
+					if _, exists := resolved.Entities[d.Name]; exists {
+						return nil, fmt.Errorf("entity type %q is defined multiple times", d.Name)
+					}
+					if _, exists := resolved.Enums[d.Name]; exists {
+						return nil, fmt.Errorf("type %q is defined as both an entity and an enum", d.Name)
+					}
 					resolved.Entities[d.Name] = d
 				case EnumNode:
 					// Name is already fully qualified by Resolve
+					// Check for conflicts with existing enums or entities
+					if _, exists := resolved.Enums[d.Name]; exists {
+						return nil, fmt.Errorf("enum type %q is defined multiple times", d.Name)
+					}
+					if _, exists := resolved.Entities[d.Name]; exists {
+						return nil, fmt.Errorf("type %q is defined as both an entity and an enum", d.Name)
+					}
 					resolved.Enums[d.Name] = d
 				case ActionNode:
 					// Construct EntityUID from qualified action type
@@ -362,6 +377,10 @@ func (s *Schema) Resolve() (*ResolvedSchema, error) {
 						actionType = types.EntityType(string(n.Name) + "::Action")
 					}
 					actionUID := types.NewEntityUID(actionType, d.Name)
+					// Check for duplicate actions
+					if _, exists := resolved.Actions[actionUID]; exists {
+						return nil, fmt.Errorf("action %q is defined multiple times", actionUID)
+					}
 					resolved.Actions[actionUID] = d
 				}
 			}
@@ -372,11 +391,25 @@ func (s *Schema) Resolve() (*ResolvedSchema, error) {
 				return nil, err
 			}
 			// Name is already fully qualified by resolve (or stays unqualified for top-level)
+			// Check for conflicts
+			if _, exists := resolved.Entities[resolvedEntity.Name]; exists {
+				return nil, fmt.Errorf("entity type %q is defined multiple times", resolvedEntity.Name)
+			}
+			if _, exists := resolved.Enums[resolvedEntity.Name]; exists {
+				return nil, fmt.Errorf("type %q is defined as both an entity and an enum", resolvedEntity.Name)
+			}
 			resolved.Entities[resolvedEntity.Name] = resolvedEntity
 
 		case EnumNode:
 			resolvedEnum := n.resolve(rd)
 			// Name is already fully qualified by resolve (or stays unqualified for top-level)
+			// Check for conflicts
+			if _, exists := resolved.Enums[resolvedEnum.Name]; exists {
+				return nil, fmt.Errorf("enum type %q is defined multiple times", resolvedEnum.Name)
+			}
+			if _, exists := resolved.Entities[resolvedEnum.Name]; exists {
+				return nil, fmt.Errorf("type %q is defined as both an entity and an enum", resolvedEnum.Name)
+			}
 			resolved.Enums[resolvedEnum.Name] = resolvedEnum
 
 		case ActionNode:
@@ -386,6 +419,10 @@ func (s *Schema) Resolve() (*ResolvedSchema, error) {
 			}
 			// Top-level actions use "Action" as the type
 			actionUID := types.NewEntityUID("Action", resolvedAction.Name)
+			// Check for duplicate actions
+			if _, exists := resolved.Actions[actionUID]; exists {
+				return nil, fmt.Errorf("action %q is defined multiple times", actionUID)
+			}
 			resolved.Actions[actionUID] = resolvedAction
 
 		case CommonTypeNode:

@@ -163,10 +163,10 @@ namespace OrgB {
 	}
 
 	// Convert to Schema and marshal to Cedar format
-	// Use MarshalCedar directly
-	marshaled, err := resolved.MarshalCedar()
+	// Use marshalCedar directly
+	marshaled, err := resolved.marshalCedar()
 	if err != nil {
-		t.Fatalf("MarshalCedar() failed: %v", err)
+		t.Fatalf("marshalCedar() failed: %v", err)
 	}
 
 	// Verify exact output match
@@ -216,14 +216,14 @@ namespace MyNamespace {
 		t.Fatalf("Resolve() failed: %v", err)
 	}
 
-	// Use MarshalCedar directly
-	marshaled, err := resolved.MarshalCedar()
+	// Use marshalCedar directly
+	marshaled, err := resolved.marshalCedar()
 	if err != nil {
-		t.Fatalf("MarshalCedar() failed: %v", err)
+		t.Fatalf("marshalCedar() failed: %v", err)
 	}
 
 	// Verify exact output match
 	if string(marshaled) != expected {
-		t.Errorf("MarshalCedar() output mismatch\n\nGot:\n%s\n\nExpected:\n%s", string(marshaled), expected)
+		t.Errorf("marshalCedar() output mismatch\n\nGot:\n%s\n\nExpected:\n%s", string(marshaled), expected)
 	}
 }
