@@ -17,8 +17,8 @@ type Parser struct {
 }
 
 // New creates a new parser for the given source.
-func New(src []byte, filename string) (*Parser, error) {
-	tokens, err := Tokenize(src, filename)
+func New(filename string, src []byte) (*Parser, error) {
+	tokens, err := Tokenize(filename, src)
 	if err != nil {
 		return nil, err
 	}
@@ -26,8 +26,8 @@ func New(src []byte, filename string) (*Parser, error) {
 }
 
 // NewFromReader creates a new parser from an io.Reader.
-func NewFromReader(r io.Reader, filename string) (*Parser, error) {
-	tokens, err := TokenizeReader(r, filename)
+func NewFromReader(filename string, r io.Reader) (*Parser, error) {
+	tokens, err := TokenizeReader(filename, r)
 	if err != nil {
 		return nil, err
 	}
@@ -766,8 +766,8 @@ func (p *Parser) parsePath() (string, error) {
 }
 
 // ParseSchema parses Cedar schema from the given source bytes.
-func ParseSchema(src []byte, filename string) (*ast.Schema, error) {
-	p, err := New(src, filename)
+func ParseSchema(filename string, src []byte) (*ast.Schema, error) {
+	p, err := New(filename, src)
 	if err != nil {
 		return nil, err
 	}

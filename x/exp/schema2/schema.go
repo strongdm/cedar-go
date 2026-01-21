@@ -50,7 +50,7 @@ func (s *Schema) MarshalCedar() ([]byte, error) {
 
 // UnmarshalCedar parses a Schema in the human-readable format specified by the Cedar documentation.
 func (s *Schema) UnmarshalCedar(b []byte) error {
-	schema, err := parser.ParseSchema(b, s.filename)
+	schema, err := parser.ParseSchema(s.filename, b)
 	if err != nil {
 		return err
 	}

@@ -20,7 +20,7 @@ func TestParserInternals(t *testing.T) {
 
 	t.Run("consumeString", func(t *testing.T) {
 		t.Parallel()
-		p, err := New([]byte(`"hello"`))
+		p, err := New("", []byte(`"hello"`))
 		testutil.OK(t, err)
 		val := p.consumeString()
 		testutil.Equals(t, val, "hello")
@@ -43,7 +43,7 @@ func TestParserInternals(t *testing.T) {
 
 	t.Run("parseAnnotation without @", func(t *testing.T) {
 		t.Parallel()
-		p, err := New([]byte("foo"))
+		p, err := New("", []byte("foo"))
 		testutil.OK(t, err)
 		_, err = p.parseAnnotation()
 		testutil.Equals(t, err != nil, true)
@@ -51,7 +51,7 @@ func TestParserInternals(t *testing.T) {
 
 	t.Run("parseEntityRef with identifier only", func(t *testing.T) {
 		t.Parallel()
-		p, err := New([]byte("someActionName"))
+		p, err := New("", []byte("someActionName"))
 		testutil.OK(t, err)
 		ref, err := p.parseEntityRef()
 		testutil.OK(t, err)
@@ -66,7 +66,7 @@ func TestScannerInternals(t *testing.T) {
 		t.Parallel()
 		// Create a string longer than buffer to test buffer handling
 		longStr := strings.Repeat("a", 2000)
-		tokens, err := Tokenize([]byte(longStr))
+		tokens, err := Tokenize("", []byte(longStr))
 		testutil.OK(t, err)
 		testutil.Equals(t, tokens[0].Text, longStr)
 	})
@@ -74,7 +74,7 @@ func TestScannerInternals(t *testing.T) {
 	t.Run("tokenText with tokPos negative", func(t *testing.T) {
 		t.Parallel()
 		// Create scanner and call tokenText before any token is started
-		s, err := newScanner(strings.NewReader("test"))
+		s, err := newScanner("", strings.NewReader("test"))
 		testutil.OK(t, err)
 		// tokPos is -1 initially, so tokenText should return ""
 		text := s.tokenText()
@@ -85,7 +85,7 @@ func TestScannerInternals(t *testing.T) {
 		t.Parallel()
 		// Create input that will use tokBuf
 		longStr := strings.Repeat("x", 2000)
-		tokens, err := Tokenize([]byte(longStr))
+		tokens, err := Tokenize("", []byte(longStr))
 		testutil.OK(t, err)
 		testutil.Equals(t, len(tokens[0].Text), 2000)
 	})
@@ -97,7 +97,7 @@ func TestNewParserWithInvalidInput(t *testing.T) {
 	t.Run("tokenization error", func(t *testing.T) {
 		t.Parallel()
 		// Input that causes tokenization error
-		_, err := New([]byte("\"unclosed"))
+		_, err := New("", []byte("\"unclosed"))
 		testutil.Equals(t, err != nil, true)
 	})
 }
@@ -107,7 +107,7 @@ func TestParseSchemaWithTokenizationError(t *testing.T) {
 
 	t.Run("tokenization error", func(t *testing.T) {
 		t.Parallel()
-		_, err := ParseSchema([]byte("\"unclosed"))
+		_, err := ParseSchema("", []byte("\"unclosed"))
 		testutil.Equals(t, err != nil, true)
 	})
 }
@@ -117,31 +117,31 @@ func TestMoreErrorPaths(t *testing.T) {
 
 	t.Run("namespace entity error", func(t *testing.T) {
 		t.Parallel()
-		_, err := ParseSchema([]byte(`namespace MyApp { entity; }`))
+		_, err := ParseSchema("", []byte(`namespace MyApp { entity; }`))
 		testutil.Equals(t, err != nil, true)
 	})
 
 	t.Run("namespace entity shape error", func(t *testing.T) {
 		t.Parallel()
-		_, err := ParseSchema([]byte(`namespace MyApp { entity User { 123 }; }`))
+		_, err := ParseSchema("", []byte(`namespace MyApp { entity User { 123 }; }`))
 		testutil.Equals(t, err != nil, true)
 	})
 
 	t.Run("action appliesTo principal list close error", func(t *testing.T) {
 		t.Parallel()
-		_, err := ParseSchema([]byte(`action view appliesTo { principal: [User };`))
+		_, err := ParseSchema("", []byte(`action view appliesTo { principal: [User };`))
 		testutil.Equals(t, err != nil, true)
 	})
 
 	t.Run("action appliesTo resource list close error", func(t *testing.T) {
 		t.Parallel()
-		_, err := ParseSchema([]byte(`action view appliesTo { resource: [Doc };`))
+		_, err := ParseSchema("", []byte(`action view appliesTo { resource: [Doc };`))
 		testutil.Equals(t, err != nil, true)
 	})
 
 	t.Run("parseEntityRef error on path ident", func(t *testing.T) {
 		t.Parallel()
-		p, err := New([]byte("123"))
+		p, err := New("", []byte("123"))
 		testutil.OK(t, err)
 		_, err = p.parseEntityRef()
 		testutil.Equals(t, err != nil, true)
@@ -149,7 +149,7 @@ func TestMoreErrorPaths(t *testing.T) {
 
 	t.Run("parseCommonType type parse error", func(t *testing.T) {
 		t.Parallel()
-		p, err := New([]byte("type Foo = 123"))
+		p, err := New("", []byte("type Foo = 123"))
 		testutil.OK(t, err)
 		_, err = p.parseCommonType(nil)
 		testutil.Equals(t, err != nil, true)
@@ -157,7 +157,7 @@ func TestMoreErrorPaths(t *testing.T) {
 
 	t.Run("parseRecordPairs error in pair", func(t *testing.T) {
 		t.Parallel()
-		p, err := New([]byte("{ 123 }"))
+		p, err := New("", []byte("{ 123 }"))
 		testutil.OK(t, err)
 		_, err = p.parseRecordPairs()
 		testutil.Equals(t, err != nil, true)
@@ -165,7 +165,7 @@ func TestMoreErrorPaths(t *testing.T) {
 
 	t.Run("parseRecordPairs unterminated", func(t *testing.T) {
 		t.Parallel()
-		p, err := New([]byte("{ name: String"))
+		p, err := New("", []byte("{ name: String"))
 		testutil.OK(t, err)
 		_, err = p.parseRecordPairs()
 		testutil.Equals(t, err != nil, true)
@@ -178,7 +178,7 @@ func TestScannerUTF8(t *testing.T) {
 	t.Run("utf8 characters in input", func(t *testing.T) {
 		t.Parallel()
 		// UTF-8 characters that need buffer refilling
-		tokens, err := Tokenize([]byte("foo_世界"))
+		tokens, err := Tokenize("", []byte("foo_世界"))
 		// The scanner may produce unexpected tokens but shouldn't crash
 		testutil.Equals(t, err == nil || err != nil, true)
 		_ = tokens
@@ -188,7 +188,7 @@ func TestScannerUTF8(t *testing.T) {
 		t.Parallel()
 		// Test with long input that might span buffer boundaries
 		input := strings.Repeat("a", 1020) + "β" + strings.Repeat("b", 100)
-		tokens, err := Tokenize([]byte(input))
+		tokens, err := Tokenize("", []byte(input))
 		testutil.OK(t, err)
 		_ = tokens
 	})
@@ -197,7 +197,7 @@ func TestScannerUTF8(t *testing.T) {
 		t.Parallel()
 		// Invalid UTF-8 byte sequence
 		input := []byte{0x80, 0x81, 0x82}
-		_, err := Tokenize(input)
+		_, err := Tokenize("", input)
 		// Should produce error for invalid UTF-8
 		testutil.Equals(t, err != nil, true)
 	})
@@ -206,7 +206,7 @@ func TestScannerUTF8(t *testing.T) {
 		t.Parallel()
 		// NUL character in input
 		input := []byte("foo\x00bar")
-		_, err := Tokenize(input)
+		_, err := Tokenize("", input)
 		testutil.Equals(t, err != nil, true)
 	})
 
@@ -218,7 +218,7 @@ func TestScannerUTF8(t *testing.T) {
 			errAt:   3,
 			readErr: io.ErrUnexpectedEOF,
 		}
-		_, err := TokenizeReader(reader)
+		_, err := TokenizeReader("", reader)
 		testutil.Equals(t, err != nil, true)
 	})
 
@@ -229,7 +229,7 @@ func TestScannerUTF8(t *testing.T) {
 		// Buffer is 1024 bytes, so put a multi-byte char right there
 		input := strings.Repeat("x", 1023) + "β" + "y"
 		reader := &chunkedReader{data: []byte(input), chunkSize: 512}
-		tokens, err := TokenizeReader(reader)
+		tokens, err := TokenizeReader("", reader)
 		testutil.OK(t, err)
 		_ = tokens
 	})
@@ -244,7 +244,7 @@ func TestTokenTextBuffer(t *testing.T) {
 		// The buffer is 1024 bytes, so a long string should trigger tokBuf usage
 		longContent := strings.Repeat("x", 2000)
 		input := `"` + longContent + `"`
-		tokens, err := Tokenize([]byte(input))
+		tokens, err := Tokenize("", []byte(input))
 		testutil.OK(t, err)
 		testutil.Equals(t, len(tokens), 2) // string + EOF
 		val, err := tokens[0].stringValue()
@@ -257,7 +257,7 @@ func TestTokenTextBuffer(t *testing.T) {
 		// Create a chunked reader that returns data slowly
 		longIdent := strings.Repeat("a", 2000)
 		reader := &chunkedReader{data: []byte(longIdent), chunkSize: 100}
-		tokens, err := TokenizeReader(reader)
+		tokens, err := TokenizeReader("", reader)
 		testutil.OK(t, err)
 		testutil.Equals(t, tokens[0].Text, longIdent)
 	})
@@ -284,7 +284,7 @@ func TestTokenTextBuffer(t *testing.T) {
 				data[1023:], // rest of € + y
 			},
 		}
-		tokens, err := TokenizeReader(reader)
+		tokens, err := TokenizeReader("", reader)
 		// May error or succeed, we're testing the code path
 		_ = err
 		_ = tokens
@@ -310,7 +310,7 @@ func TestTokenTextBuffer(t *testing.T) {
 		reader := &splitReader{
 			chunks: [][]byte{chunk1, chunk2},
 		}
-		tokens, err := TokenizeReader(reader)
+		tokens, err := TokenizeReader("", reader)
 		// Just exercise the code path
 		_ = err
 		_ = tokens
@@ -346,7 +346,7 @@ func TestTokenTextBuffer(t *testing.T) {
 		reader := &splitReader{
 			chunks: [][]byte{chunk1, chunk2},
 		}
-		tokens, err := TokenizeReader(reader)
+		tokens, err := TokenizeReader("", reader)
 		testutil.OK(t, err)
 		// Verify we got a string token with the right length
 		testutil.Equals(t, tokens[0].Type, TokenString)
@@ -423,100 +423,100 @@ func TestCommaSeparatedDeclarations(t *testing.T) {
 
 	t.Run("multiple entities", func(t *testing.T) {
 		t.Parallel()
-		schema, err := ParseSchema([]byte(`entity User, Admin, Guest;`))
+		schema, err := ParseSchema("", []byte(`entity User, Admin, Guest;`))
 		testutil.OK(t, err)
 		testutil.Equals(t, len(schema.Nodes), 3)
 	})
 
 	t.Run("multiple entities with shared in clause", func(t *testing.T) {
 		t.Parallel()
-		schema, err := ParseSchema([]byte(`entity Group; entity User, Admin in [Group];`))
+		schema, err := ParseSchema("", []byte(`entity Group; entity User, Admin in [Group];`))
 		testutil.OK(t, err)
 		testutil.Equals(t, len(schema.Nodes), 3)
 	})
 
 	t.Run("multiple entities with shared shape", func(t *testing.T) {
 		t.Parallel()
-		schema, err := ParseSchema([]byte(`entity User, Admin { name: String };`))
+		schema, err := ParseSchema("", []byte(`entity User, Admin { name: String };`))
 		testutil.OK(t, err)
 		testutil.Equals(t, len(schema.Nodes), 2)
 	})
 
 	t.Run("multiple actions", func(t *testing.T) {
 		t.Parallel()
-		schema, err := ParseSchema([]byte(`action read, write, delete;`))
+		schema, err := ParseSchema("", []byte(`action read, write, delete;`))
 		testutil.OK(t, err)
 		testutil.Equals(t, len(schema.Nodes), 3)
 	})
 
 	t.Run("multiple actions with shared appliesTo", func(t *testing.T) {
 		t.Parallel()
-		schema, err := ParseSchema([]byte(`entity User; entity Doc; action read, write appliesTo { principal: User, resource: Doc };`))
+		schema, err := ParseSchema("", []byte(`entity User; entity Doc; action read, write appliesTo { principal: User, resource: Doc };`))
 		testutil.OK(t, err)
 		testutil.Equals(t, len(schema.Nodes), 4)
 	})
 
 	t.Run("multiple actions with shared memberOf", func(t *testing.T) {
 		t.Parallel()
-		schema, err := ParseSchema([]byte(`action baseAction; action read, write in ["baseAction"];`))
+		schema, err := ParseSchema("", []byte(`action baseAction; action read, write in ["baseAction"];`))
 		testutil.OK(t, err)
 		testutil.Equals(t, len(schema.Nodes), 3)
 	})
 
 	t.Run("multiple quoted action names", func(t *testing.T) {
 		t.Parallel()
-		schema, err := ParseSchema([]byte(`action "view doc", "edit doc", "delete doc";`))
+		schema, err := ParseSchema("", []byte(`action "view doc", "edit doc", "delete doc";`))
 		testutil.OK(t, err)
 		testutil.Equals(t, len(schema.Nodes), 3)
 	})
 
 	t.Run("enum cannot have multiple names", func(t *testing.T) {
 		t.Parallel()
-		_, err := ParseSchema([]byte(`entity Status, OtherStatus enum ["a", "b"];`))
+		_, err := ParseSchema("", []byte(`entity Status, OtherStatus enum ["a", "b"];`))
 		testutil.Equals(t, err != nil, true)
 	})
 
 	t.Run("entity comma followed by invalid token", func(t *testing.T) {
 		t.Parallel()
-		_, err := ParseSchema([]byte(`entity User, 123;`))
+		_, err := ParseSchema("", []byte(`entity User, 123;`))
 		testutil.Equals(t, err != nil, true)
 	})
 
 	t.Run("action comma followed by invalid token", func(t *testing.T) {
 		t.Parallel()
-		_, err := ParseSchema([]byte(`action read, 123;`))
+		_, err := ParseSchema("", []byte(`action read, 123;`))
 		testutil.Equals(t, err != nil, true)
 	})
 
 	t.Run("namespace with comma-separated entities", func(t *testing.T) {
 		t.Parallel()
-		schema, err := ParseSchema([]byte(`namespace App { entity User, Admin; }`))
+		schema, err := ParseSchema("", []byte(`namespace App { entity User, Admin; }`))
 		testutil.OK(t, err)
 		testutil.Equals(t, len(schema.Nodes), 1)
 	})
 
 	t.Run("namespace with comma-separated actions", func(t *testing.T) {
 		t.Parallel()
-		schema, err := ParseSchema([]byte(`namespace App { action read, write; }`))
+		schema, err := ParseSchema("", []byte(`namespace App { action read, write; }`))
 		testutil.OK(t, err)
 		testutil.Equals(t, len(schema.Nodes), 1)
 	})
 
 	t.Run("trailing comma in memberOf list", func(t *testing.T) {
 		t.Parallel()
-		_, err := ParseSchema([]byte(`entity Group; entity User in [Group,];`))
+		_, err := ParseSchema("", []byte(`entity Group; entity User in [Group,];`))
 		testutil.Equals(t, err != nil, true)
 	})
 
 	t.Run("trailing comma in action memberOf list", func(t *testing.T) {
 		t.Parallel()
-		_, err := ParseSchema([]byte(`action parent; action view in ["parent",];`))
+		_, err := ParseSchema("", []byte(`action parent; action view in ["parent",];`))
 		testutil.Equals(t, err != nil, true)
 	})
 
 	t.Run("reserved identifier 'in' as entity name", func(t *testing.T) {
 		t.Parallel()
-		_, err := ParseSchema([]byte(`entity in;`))
+		_, err := ParseSchema("", []byte(`entity in;`))
 		testutil.Equals(t, err != nil, true)
 	})
 }
@@ -526,7 +526,7 @@ func TestDirectMethodCalls(t *testing.T) {
 
 	t.Run("parseNamespace directly without namespace keyword", func(t *testing.T) {
 		t.Parallel()
-		p, err := New([]byte("foo { entity User; }"))
+		p, err := New("", []byte("foo { entity User; }"))
 		testutil.OK(t, err)
 		_, err = p.parseNamespace(nil)
 		testutil.Equals(t, err != nil, true)
@@ -534,7 +534,7 @@ func TestDirectMethodCalls(t *testing.T) {
 
 	t.Run("parseEntity directly without entity keyword", func(t *testing.T) {
 		t.Parallel()
-		p, err := New([]byte("foo;"))
+		p, err := New("", []byte("foo;"))
 		testutil.OK(t, err)
 		_, err = p.parseEntity(nil)
 		testutil.Equals(t, err != nil, true)
@@ -542,7 +542,7 @@ func TestDirectMethodCalls(t *testing.T) {
 
 	t.Run("parseAction directly without action keyword", func(t *testing.T) {
 		t.Parallel()
-		p, err := New([]byte("foo;"))
+		p, err := New("", []byte("foo;"))
 		testutil.OK(t, err)
 		_, err = p.parseAction(nil)
 		testutil.Equals(t, err != nil, true)
@@ -550,26 +550,26 @@ func TestDirectMethodCalls(t *testing.T) {
 
 	t.Run("enum entity missing semicolon", func(t *testing.T) {
 		t.Parallel()
-		_, err := ParseSchema([]byte(`entity Status enum ["a"]`))
+		_, err := ParseSchema("", []byte(`entity Status enum ["a"]`))
 		testutil.Equals(t, err != nil, true)
 	})
 
 	t.Run("action missing final semicolon", func(t *testing.T) {
 		t.Parallel()
-		_, err := ParseSchema([]byte(`action view`))
+		_, err := ParseSchema("", []byte(`action view`))
 		testutil.Equals(t, err != nil, true)
 	})
 
 	t.Run("action appliesTo missing closing brace", func(t *testing.T) {
 		t.Parallel()
-		_, err := ParseSchema([]byte(`action view appliesTo { principal: User`))
+		_, err := ParseSchema("", []byte(`action view appliesTo { principal: User`))
 		testutil.Equals(t, err != nil, true)
 	})
 
 	t.Run("parseEntityRef error on expectString", func(t *testing.T) {
 		t.Parallel()
 		// Create parser where we get to the point of trying to read a string ID
-		p, err := New([]byte(`Action::`))
+		p, err := New("", []byte(`Action::`))
 		testutil.OK(t, err)
 		_, err = p.parseEntityRef()
 		// Should error because there's no string after ::
@@ -578,7 +578,7 @@ func TestDirectMethodCalls(t *testing.T) {
 
 	t.Run("parseCommonType directly without type keyword", func(t *testing.T) {
 		t.Parallel()
-		p, err := New([]byte("foo = String;"))
+		p, err := New("", []byte("foo = String;"))
 		testutil.OK(t, err)
 		_, err = p.parseCommonType(nil)
 		testutil.Equals(t, err != nil, true)
@@ -586,7 +586,7 @@ func TestDirectMethodCalls(t *testing.T) {
 
 	t.Run("parseRecordPairs without opening brace", func(t *testing.T) {
 		t.Parallel()
-		p, err := New([]byte("name: String"))
+		p, err := New("", []byte("name: String"))
 		testutil.OK(t, err)
 		_, err = p.parseRecordPairs()
 		testutil.Equals(t, err != nil, true)
@@ -594,7 +594,7 @@ func TestDirectMethodCalls(t *testing.T) {
 
 	t.Run("parseEntityRef with string token", func(t *testing.T) {
 		t.Parallel()
-		p, err := New([]byte(`"someAction"`))
+		p, err := New("", []byte(`"someAction"`))
 		testutil.OK(t, err)
 		ref, err := p.parseEntityRef()
 		testutil.OK(t, err)

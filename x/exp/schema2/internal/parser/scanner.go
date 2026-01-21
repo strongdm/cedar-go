@@ -46,7 +46,7 @@ type scanner struct {
 	position Position
 }
 
-func newScanner(src io.Reader, filename string) (*scanner, error) {
+func newScanner(filename string, src io.Reader) (*scanner, error) {
 	if src == nil {
 		return nil, fmt.Errorf("nil reader")
 	}
@@ -299,13 +299,13 @@ func (s *scanner) tokenText() string {
 }
 
 // Tokenize tokenizes the given source bytes.
-func Tokenize(src []byte, filename string) ([]Token, error) {
-	return TokenizeReader(bytes.NewBuffer(src), filename)
+func Tokenize(filename string, src []byte) ([]Token, error) {
+	return TokenizeReader(filename, bytes.NewBuffer(src))
 }
 
 // TokenizeReader tokenizes from an io.Reader.
-func TokenizeReader(r io.Reader, filename string) ([]Token, error) {
-	s, err := newScanner(r, filename)
+func TokenizeReader(filename string, r io.Reader) ([]Token, error) {
+	s, err := newScanner(filename, r)
 	if err != nil {
 		return nil, err
 	}

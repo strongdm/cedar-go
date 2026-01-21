@@ -29,41 +29,38 @@ func (n NamespaceNode) Annotate(key types.Ident, value types.String) NamespaceNo
 	return n
 }
 
-// Resolve returns a new NamespaceNode with all type references in its declarations resolved.
-func (n NamespaceNode) Resolve(rd *resolveData) (NamespaceNode, error) {
-	resolved := NamespaceNode{
-		Name:        n.Name,
-		Annotations: n.Annotations,
-	}
-
+// resolve returns a slice of resolved declarations with all type references and names fully resolved.
+func (n NamespaceNode) resolve(rd *resolveData) ([]IsDeclaration, error) {
 	// Create resolve data with this namespace
 	nsRd := rd.withNamespace(&n)
 
-	if len(n.Declarations) > 0 {
-		resolved.Declarations = make([]IsDeclaration, len(n.Declarations))
-		for i, decl := range n.Declarations {
-			switch d := decl.(type) {
-			case CommonTypeNode:
-				resolvedDecl, err := d.Resolve(nsRd)
-				if err != nil {
-					return NamespaceNode{}, err
-				}
-				resolved.Declarations[i] = resolvedDecl
-			case EntityNode:
-				resolvedDecl, err := d.Resolve(nsRd)
-				if err != nil {
-					return NamespaceNode{}, err
-				}
-				resolved.Declarations[i] = resolvedDecl
-			case EnumNode:
-				resolved.Declarations[i] = d.Resolve(nsRd)
-			case ActionNode:
-				resolvedDecl, err := d.Resolve(nsRd)
-				if err != nil {
-					return NamespaceNode{}, err
-				}
-				resolved.Declarations[i] = resolvedDecl
+	if len(n.Declarations) == 0 {
+		return nil, nil
+	}
+
+	resolved := make([]IsDeclaration, len(n.Declarations))
+	for i, decl := range n.Declarations {
+		switch d := decl.(type) {
+		case CommonTypeNode:
+			resolvedDecl, err := d.resolve(nsRd)
+			if err != nil {
+				return nil, err
 			}
+			resolved[i] = resolvedDecl
+		case EntityNode:
+			resolvedDecl, err := d.resolve(nsRd)
+			if err != nil {
+				return nil, err
+			}
+			resolved[i] = resolvedDecl
+		case EnumNode:
+			resolved[i] = d.resolve(nsRd)
+		case ActionNode:
+			resolvedDecl, err := d.resolve(nsRd)
+			if err != nil {
+				return nil, err
+			}
+			resolved[i] = resolvedDecl
 		}
 	}
 
@@ -156,8 +153,8 @@ func (c CommonTypeNode) FullName(namespace *NamespaceNode) types.Path {
 	return types.Path(string(namespace.Name) + "::" + string(c.Name))
 }
 
-// Resolve returns a new CommonTypeNode with all type references resolved.
-func (c CommonTypeNode) Resolve(rd *resolveData) (CommonTypeNode, error) {
+// resolve returns a new CommonTypeNode with all type references resolved.
+func (c CommonTypeNode) resolve(rd *resolveData) (CommonTypeNode, error) {
 	resolvedType, err := c.Type.resolve(rd)
 	if err != nil {
 		return CommonTypeNode{}, err
@@ -211,20 +208,16 @@ func (e EntityNode) Annotate(key types.Ident, value types.String) EntityNode {
 	return e
 }
 
-// EntityType returns the fully qualified entity type name for this entity.
-// If namespace is nil, the entity name is used as-is (top-level).
-// If namespace is provided (e.g., "MyApp"), the type is "MyApp::EntityName".
-func (e EntityNode) EntityType(namespace *NamespaceNode) types.EntityType {
-	if namespace == nil {
-		return e.Name
+// resolve returns a new EntityNode with all type references resolved and name fully qualified.
+func (e EntityNode) resolve(rd *resolveData) (EntityNode, error) {
+	// Qualify the entity name with namespace if present
+	name := e.Name
+	if rd.namespace != nil && rd.namespace.Name != "" {
+		name = types.EntityType(string(rd.namespace.Name) + "::" + string(e.Name))
 	}
-	return types.EntityType(string(namespace.Name) + "::" + string(e.Name))
-}
 
-// Resolve returns a new EntityNode with all type references resolved.
-func (e EntityNode) Resolve(rd *resolveData) (EntityNode, error) {
 	resolved := EntityNode{
-		Name:        e.Name,
+		Name:        name,
 		Annotations: e.Annotations,
 	}
 
@@ -287,27 +280,29 @@ func (e EnumNode) Annotate(key types.Ident, value types.String) EnumNode {
 }
 
 // EntityUIDs returns an iterator over EntityUID values for each enum value.
-// If namespace is nil, the entity type is used as-is (top-level).
-// If namespace is provided (e.g., "MyApp"), the type is "MyApp::EnumName".
-func (e EnumNode) EntityUIDs(namespace *NamespaceNode) iter.Seq[types.EntityUID] {
+// The Name field should already be fully qualified after calling Resolve().
+func (e EnumNode) EntityUIDs() iter.Seq[types.EntityUID] {
 	return func(yield func(types.EntityUID) bool) {
-		var entityType types.EntityType
-		if namespace == nil {
-			entityType = e.Name
-		} else {
-			entityType = types.EntityType(string(namespace.Name) + "::" + string(e.Name))
-		}
 		for _, v := range e.Values {
-			if !yield(types.NewEntityUID(entityType, v)) {
+			if !yield(types.NewEntityUID(e.Name, v)) {
 				return
 			}
 		}
 	}
 }
 
-// Resolve returns the EnumNode unchanged (enums have no type references to resolve).
-func (e EnumNode) Resolve(rd *resolveData) EnumNode {
-	return e
+// resolve returns the EnumNode with name fully qualified.
+func (e EnumNode) resolve(rd *resolveData) EnumNode {
+	// Qualify the enum name with namespace if present
+	name := e.Name
+	if rd.namespace != nil && rd.namespace.Name != "" {
+		name = types.EntityType(string(rd.namespace.Name) + "::" + string(e.Name))
+	}
+	return EnumNode{
+		Name:        name,
+		Annotations: e.Annotations,
+		Values:      e.Values,
+	}
 }
 
 // ActionNode represents a Cedar action declaration.
@@ -394,21 +389,8 @@ func (a ActionNode) Annotate(key types.Ident, value types.String) ActionNode {
 	return a
 }
 
-// EntityUID returns the fully qualified EntityUID for this action.
-// If namespace is nil, the type is "Action" (top-level).
-// If namespace is provided (e.g., "Bananas"), the type is "Bananas::Action".
-func (a ActionNode) EntityUID(namespace *NamespaceNode) types.EntityUID {
-	var entityType types.EntityType
-	if namespace == nil {
-		entityType = "Action"
-	} else {
-		entityType = types.EntityType(string(namespace.Name) + "::Action")
-	}
-	return types.NewEntityUID(entityType, a.Name)
-}
-
-// Resolve returns a new ActionNode with all type references resolved.
-func (a ActionNode) Resolve(rd *resolveData) (ActionNode, error) {
+// resolve returns a new ActionNode with all type references resolved.
+func (a ActionNode) resolve(rd *resolveData) (ActionNode, error) {
 	resolved := ActionNode{
 		Name:        a.Name,
 		Annotations: a.Annotations,

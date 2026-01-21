@@ -673,7 +673,7 @@ func TestEnum(t *testing.T) {
 		t.Parallel()
 		e := ast.Enum("Status", "active", "inactive")
 		var uids []types.EntityUID
-		for uid := range e.EntityUIDs(nil) {
+		for uid := range e.EntityUIDs() {
 			uids = append(uids, uid)
 		}
 		testutil.Equals(t, len(uids), 2)

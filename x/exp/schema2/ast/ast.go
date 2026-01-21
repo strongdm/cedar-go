@@ -31,8 +31,8 @@ type IsType interface {
 type resolveData struct {
 	schema               *Schema
 	namespace            *NamespaceNode
-	schemaCommonTypes    map[string]IsType         // Fully qualified name -> resolved Type
-	namespaceCommonTypes map[string]IsType         // Unqualified name -> resolved Type
+	schemaCommonTypes    map[string]IsType // Fully qualified name -> resolved Type
+	namespaceCommonTypes map[string]IsType // Unqualified name -> resolved Type
 }
 
 // Annotation represents a Cedar annotation (@key("value")).
@@ -101,64 +101,69 @@ func (s *Schema) Resolve() (*ResolvedSchema, error) {
 		Actions:  make(map[types.EntityUID]ActionNode),
 	}
 
-	if len(s.Nodes) > 0 {
-		rd := newResolveData(s, nil)
+	rd := newResolveData(s, nil)
 
-		for _, node := range s.Nodes {
-			switch n := node.(type) {
-			case NamespaceNode:
-				resolvedNS, err := n.Resolve(rd)
-				if err != nil {
-					return nil, err
-				}
+	for _, node := range s.Nodes {
+		switch n := node.(type) {
+		case NamespaceNode:
+			// Resolve all declarations in the namespace
+			resolvedDecls, err := n.resolve(rd)
+			if err != nil {
+				return nil, err
+			}
 
-				// Add all entities from the namespace
-				for entity := range resolvedNS.entities() {
-					entityType := entity.EntityType(&resolvedNS)
-					resolved.Entities[entityType] = entity
-				}
-				// Add all enums from the namespace
-				for enum := range resolvedNS.enums() {
-					var entityType types.EntityType
-					if resolvedNS.Name == "" {
-						entityType = enum.Name
+			// Iterate over resolved declarations
+			for _, decl := range resolvedDecls {
+				switch d := decl.(type) {
+				case EntityNode:
+					// Name is already fully qualified by Resolve
+					resolved.Entities[d.Name] = d
+				case EnumNode:
+					// Name is already fully qualified by Resolve
+					resolved.Enums[d.Name] = d
+				case ActionNode:
+					// Construct EntityUID from qualified action type
+					// Extract namespace from a fully qualified entity in this namespace's declarations
+					// Or build it from the namespace name
+					var actionType types.EntityType
+					if n.Name == "" {
+						actionType = "Action"
 					} else {
-						entityType = types.EntityType(string(resolvedNS.Name) + "::" + string(enum.Name))
+						actionType = types.EntityType(string(n.Name) + "::Action")
 					}
-					resolved.Enums[entityType] = enum
+					actionUID := types.NewEntityUID(actionType, d.Name)
+					resolved.Actions[actionUID] = d
 				}
-				// Add all actions from the namespace
-				for action := range resolvedNS.actions() {
-					actionUID := action.EntityUID(&resolvedNS)
-					resolved.Actions[actionUID] = action
-				}
+			}
 
-			case EntityNode:
-				resolvedEntity, err := n.Resolve(rd)
-				if err != nil {
-					return nil, err
-				}
-				resolved.Entities[resolvedEntity.Name] = resolvedEntity
+		case EntityNode:
+			resolvedEntity, err := n.resolve(rd)
+			if err != nil {
+				return nil, err
+			}
+			// Name is already fully qualified by resolve (or stays unqualified for top-level)
+			resolved.Entities[resolvedEntity.Name] = resolvedEntity
 
-			case EnumNode:
-				resolvedEnum := n.Resolve(rd)
-				resolved.Enums[resolvedEnum.Name] = resolvedEnum
+		case EnumNode:
+			resolvedEnum := n.resolve(rd)
+			// Name is already fully qualified by resolve (or stays unqualified for top-level)
+			resolved.Enums[resolvedEnum.Name] = resolvedEnum
 
-			case ActionNode:
-				resolvedAction, err := n.Resolve(rd)
-				if err != nil {
-					return nil, err
-				}
-				actionUID := resolvedAction.EntityUID(nil)
-				resolved.Actions[actionUID] = resolvedAction
+		case ActionNode:
+			resolvedAction, err := n.resolve(rd)
+			if err != nil {
+				return nil, err
+			}
+			// Top-level actions use "Action" as the type
+			actionUID := types.NewEntityUID("Action", resolvedAction.Name)
+			resolved.Actions[actionUID] = resolvedAction
 
-			case CommonTypeNode:
-				// Common types are resolved but not added to the maps
-				// They are used during resolution via the cache
-				_, err := n.Resolve(rd)
-				if err != nil {
-					return nil, err
-				}
+		case CommonTypeNode:
+			// Common types are resolved but not added to the maps
+			// They are used during resolution via the cache
+			_, err := n.resolve(rd)
+			if err != nil {
+				return nil, err
 			}
 		}
 	}
@@ -279,4 +284,3 @@ func (s *Schema) actions() iter.Seq2[*NamespaceNode, ActionNode] {
 		}
 	}
 }
-

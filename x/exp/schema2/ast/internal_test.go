@@ -293,28 +293,41 @@ func TestCommonTypeFullName(t *testing.T) {
 func TestEntityEntityType(t *testing.T) {
 	t.Parallel()
 
-	entity := Entity("User")
-
-	t.Run("EntityType with nil namespace", func(t *testing.T) {
-		entityType := entity.EntityType(nil)
-		if entityType != "User" {
-			t.Errorf("expected 'User', got '%s'", entityType)
+	t.Run("EntityType without namespace", func(t *testing.T) {
+		entity := Entity("User")
+		schema := NewSchema(entity)
+		resolved, err := schema.Resolve()
+		if err != nil {
+			t.Fatalf("Resolve() error = %v", err)
+		}
+		if _, found := resolved.Entities["User"]; !found {
+			t.Error("expected 'User' entity in resolved schema")
 		}
 	})
 
 	t.Run("EntityType with namespace", func(t *testing.T) {
-		ns := Namespace("MyApp")
-		entityType := entity.EntityType(&ns)
-		if entityType != "MyApp::User" {
-			t.Errorf("expected 'MyApp::User', got '%s'", entityType)
+		entity := Entity("User")
+		ns := Namespace("MyApp", entity)
+		schema := NewSchema(ns)
+		resolved, err := schema.Resolve()
+		if err != nil {
+			t.Fatalf("Resolve() error = %v", err)
+		}
+		if _, found := resolved.Entities["MyApp::User"]; !found {
+			t.Error("expected 'MyApp::User' entity in resolved schema")
 		}
 	})
 
 	t.Run("EntityType with nested namespace", func(t *testing.T) {
-		ns := Namespace("MyApp::Models")
-		entityType := entity.EntityType(&ns)
-		if entityType != "MyApp::Models::User" {
-			t.Errorf("expected 'MyApp::Models::User', got '%s'", entityType)
+		entity := Entity("User")
+		ns := Namespace("MyApp::Models", entity)
+		schema := NewSchema(ns)
+		resolved, err := schema.Resolve()
+		if err != nil {
+			t.Fatalf("Resolve() error = %v", err)
+		}
+		if _, found := resolved.Entities["MyApp::Models::User"]; !found {
+			t.Error("expected 'MyApp::Models::User' entity in resolved schema")
 		}
 	})
 }
@@ -323,11 +336,17 @@ func TestEntityEntityType(t *testing.T) {
 func TestEnumEntityUIDs(t *testing.T) {
 	t.Parallel()
 
-	enum := Enum("Status", "active", "inactive", "pending")
+	t.Run("EntityUIDs without namespace", func(t *testing.T) {
+		enum := Enum("Status", "active", "inactive", "pending")
+		schema := NewSchema(enum)
+		resolved, err := schema.Resolve()
+		if err != nil {
+			t.Fatalf("Resolve() error = %v", err)
+		}
+		resolvedEnum := resolved.Enums["Status"]
 
-	t.Run("EntityUIDs with nil namespace", func(t *testing.T) {
 		var uids []types.EntityUID
-		for uid := range enum.EntityUIDs(nil) {
+		for uid := range resolvedEnum.EntityUIDs() {
 			uids = append(uids, uid)
 		}
 		if len(uids) != 3 {
@@ -348,9 +367,17 @@ func TestEnumEntityUIDs(t *testing.T) {
 	})
 
 	t.Run("EntityUIDs with namespace", func(t *testing.T) {
-		ns := Namespace("MyApp")
+		enum := Enum("Status", "active", "inactive", "pending")
+		ns := Namespace("MyApp", enum)
+		schema := NewSchema(ns)
+		resolved, err := schema.Resolve()
+		if err != nil {
+			t.Fatalf("Resolve() error = %v", err)
+		}
+		resolvedEnum := resolved.Enums["MyApp::Status"]
+
 		var uids []types.EntityUID
-		for uid := range enum.EntityUIDs(&ns) {
+		for uid := range resolvedEnum.EntityUIDs() {
 			uids = append(uids, uid)
 		}
 		if len(uids) != 3 {
@@ -365,9 +392,17 @@ func TestEnumEntityUIDs(t *testing.T) {
 	})
 
 	t.Run("EntityUIDs with nested namespace", func(t *testing.T) {
-		ns := Namespace("MyApp::Models")
+		enum := Enum("Status", "active", "inactive", "pending")
+		ns := Namespace("MyApp::Models", enum)
+		schema := NewSchema(ns)
+		resolved, err := schema.Resolve()
+		if err != nil {
+			t.Fatalf("Resolve() error = %v", err)
+		}
+		resolvedEnum := resolved.Enums["MyApp::Models::Status"]
+
 		var uids []types.EntityUID
-		for uid := range enum.EntityUIDs(&ns) {
+		for uid := range resolvedEnum.EntityUIDs() {
 			uids = append(uids, uid)
 		}
 		if len(uids) != 3 {
@@ -379,8 +414,16 @@ func TestEnumEntityUIDs(t *testing.T) {
 	})
 
 	t.Run("EntityUIDs early break", func(t *testing.T) {
+		enum := Enum("Status", "active", "inactive", "pending")
+		schema := NewSchema(enum)
+		resolved, err := schema.Resolve()
+		if err != nil {
+			t.Fatalf("Resolve() error = %v", err)
+		}
+		resolvedEnum := resolved.Enums["Status"]
+
 		count := 0
-		for range enum.EntityUIDs(nil) {
+		for range resolvedEnum.EntityUIDs() {
 			count++
 			if count == 1 {
 				break
@@ -396,37 +439,44 @@ func TestEnumEntityUIDs(t *testing.T) {
 func TestActionEntityUID(t *testing.T) {
 	t.Parallel()
 
-	a := Action("view")
-
-	t.Run("EntityUID with nil namespace", func(t *testing.T) {
-		uid := a.EntityUID(nil)
-		if uid.Type != "Action" {
-			t.Errorf("expected type 'Action', got '%s'", uid.Type)
+	t.Run("EntityUID without namespace", func(t *testing.T) {
+		a := Action("view")
+		schema := NewSchema(a)
+		resolved, err := schema.Resolve()
+		if err != nil {
+			t.Fatalf("Resolve() error = %v", err)
 		}
-		if uid.ID != "view" {
-			t.Errorf("expected id 'view', got '%s'", uid.ID)
+		uid := types.NewEntityUID("Action", "view")
+		if _, found := resolved.Actions[uid]; !found {
+			t.Error("expected Action::view in resolved schema")
 		}
 	})
 
 	t.Run("EntityUID with namespace", func(t *testing.T) {
-		ns := Namespace("Bananas")
-		uid := a.EntityUID(&ns)
-		if uid.Type != "Bananas::Action" {
-			t.Errorf("expected type 'Bananas::Action', got '%s'", uid.Type)
+		a := Action("view")
+		ns := Namespace("Bananas", a)
+		schema := NewSchema(ns)
+		resolved, err := schema.Resolve()
+		if err != nil {
+			t.Fatalf("Resolve() error = %v", err)
 		}
-		if uid.ID != "view" {
-			t.Errorf("expected id 'view', got '%s'", uid.ID)
+		uid := types.NewEntityUID("Bananas::Action", "view")
+		if _, found := resolved.Actions[uid]; !found {
+			t.Error("expected Bananas::Action::view in resolved schema")
 		}
 	})
 
 	t.Run("EntityUID with nested namespace", func(t *testing.T) {
-		ns := Namespace("MyApp::Resources")
-		uid := a.EntityUID(&ns)
-		if uid.Type != "MyApp::Resources::Action" {
-			t.Errorf("expected type 'MyApp::Resources::Action', got '%s'", uid.Type)
+		a := Action("view")
+		ns := Namespace("MyApp::Resources", a)
+		schema := NewSchema(ns)
+		resolved, err := schema.Resolve()
+		if err != nil {
+			t.Fatalf("Resolve() error = %v", err)
 		}
-		if uid.ID != "view" {
-			t.Errorf("expected id 'view', got '%s'", uid.ID)
+		uid := types.NewEntityUID("MyApp::Resources::Action", "view")
+		if _, found := resolved.Actions[uid]; !found {
+			t.Error("expected MyApp::Resources::Action::view in resolved schema")
 		}
 	})
 }
