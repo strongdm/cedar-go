@@ -2,7 +2,10 @@
 package ast
 
 import (
+	"cmp"
 	"iter"
+	"slices"
+	"strings"
 
 	"github.com/cedar-policy/cedar-go/types"
 )
@@ -151,6 +154,164 @@ type ResolvedSchema struct {
 	Enums      map[types.EntityType]EnumNode   // Fully qualified entity type -> EnumNode
 	Actions    map[types.EntityUID]ActionNode  // Fully qualified action UID -> ActionNode
 	Namespaces map[types.Path][]Annotation     // Namespace path -> Annotations
+}
+
+// Schema converts the resolved schema back to a Schema with proper namespace structure.
+// All types remain fully resolved (common types are inlined).
+// Entity, enum, and action names are unqualified within their namespaces.
+func (r *ResolvedSchema) Schema() *Schema {
+	// Group entities, enums, and actions by namespace
+	namespaceDecls := make(map[types.Path][]IsDeclaration)
+	var topLevelDecls []IsNode
+
+	// Helper to extract namespace prefix from a fully qualified name
+	extractNamespace := func(name string) (types.Path, string) {
+		if idx := strings.LastIndex(name, "::"); idx != -1 {
+			return types.Path(name[:idx]), name[idx+2:]
+		}
+		return "", name
+	}
+
+	// Process entities
+	for qualifiedName, entity := range r.Entities {
+		ns, localName := extractNamespace(string(qualifiedName))
+		unqualifiedEntity := entity
+		unqualifiedEntity.Name = types.EntityType(localName)
+
+		if ns == "" {
+			topLevelDecls = append(topLevelDecls, unqualifiedEntity)
+		} else {
+			namespaceDecls[ns] = append(namespaceDecls[ns], unqualifiedEntity)
+		}
+	}
+
+	// Process enums
+	for qualifiedName, enum := range r.Enums {
+		ns, localName := extractNamespace(string(qualifiedName))
+		unqualifiedEnum := enum
+		unqualifiedEnum.Name = types.EntityType(localName)
+
+		if ns == "" {
+			topLevelDecls = append(topLevelDecls, unqualifiedEnum)
+		} else {
+			namespaceDecls[ns] = append(namespaceDecls[ns], unqualifiedEnum)
+		}
+	}
+
+	// Process actions
+	for uid, action := range r.Actions {
+		// Extract namespace from action type
+		// Action types are either "Action" or "Namespace::Action"
+		actionType := string(uid.Type)
+		var ns types.Path
+
+		if actionType != "Action" && strings.HasSuffix(actionType, "::Action") {
+			ns = types.Path(actionType[:len(actionType)-8]) // Remove "::Action"
+		}
+
+		unqualifiedAction := action
+		// Action name is already local (not qualified)
+
+		if ns == "" {
+			topLevelDecls = append(topLevelDecls, unqualifiedAction)
+		} else {
+			namespaceDecls[ns] = append(namespaceDecls[ns], unqualifiedAction)
+		}
+	}
+
+	// Build the schema
+	var nodes []IsNode
+
+	// Add top-level declarations (sorted for determinism)
+	sortNodes(topLevelDecls)
+	nodes = append(nodes, topLevelDecls...)
+
+	// Add namespaces (sorted by name for determinism)
+	namespaceNames := make([]types.Path, 0, len(namespaceDecls))
+	for ns := range namespaceDecls {
+		namespaceNames = append(namespaceNames, ns)
+	}
+	slices.SortFunc(namespaceNames, func(a, b types.Path) int {
+		return cmp.Compare(string(a), string(b))
+	})
+
+	for _, ns := range namespaceNames {
+		decls := namespaceDecls[ns]
+		sortDeclarations(decls)
+
+		nsNode := NamespaceNode{
+			Name:         ns,
+			Declarations: decls,
+			Annotations:  r.Namespaces[ns],
+		}
+		nodes = append(nodes, nsNode)
+	}
+
+	return &Schema{Nodes: nodes}
+}
+
+// sortNodes sorts a slice of nodes for deterministic output.
+// Order: entities, enums, actions (each group sorted by name).
+func sortNodes(nodes []IsNode) {
+	slices.SortFunc(nodes, func(a, b IsNode) int {
+		// First sort by node type
+		typeA := nodeTypePriority(a)
+		typeB := nodeTypePriority(b)
+		if typeA != typeB {
+			return cmp.Compare(typeA, typeB)
+		}
+
+		// Then sort by name within type
+		nameA := nodeName(a)
+		nameB := nodeName(b)
+		return cmp.Compare(nameA, nameB)
+	})
+}
+
+// sortDeclarations sorts a slice of declarations for deterministic output.
+// Order: entities, enums, actions (each group sorted by name).
+func sortDeclarations(decls []IsDeclaration) {
+	slices.SortFunc(decls, func(a, b IsDeclaration) int {
+		// First sort by node type
+		typeA := nodeTypePriority(a)
+		typeB := nodeTypePriority(b)
+		if typeA != typeB {
+			return cmp.Compare(typeA, typeB)
+		}
+
+		// Then sort by name within type
+		nameA := nodeName(a)
+		nameB := nodeName(b)
+		return cmp.Compare(nameA, nameB)
+	})
+}
+
+// nodeTypePriority returns a priority for sorting node types.
+func nodeTypePriority(n IsNode) int {
+	switch n.(type) {
+	case EntityNode:
+		return 1
+	case EnumNode:
+		return 2
+	case ActionNode:
+		return 3
+	default:
+		return 99
+	}
+}
+
+// nodeName returns the name of a node for sorting.
+func nodeName(n IsNode) string {
+	switch node := n.(type) {
+	case EntityNode:
+		return string(node.Name)
+	case EnumNode:
+		return string(node.Name)
+	case ActionNode:
+		return string(node.Name)
+	default:
+		return ""
+	}
 }
 
 // Resolve returns a ResolvedSchema with all type references resolved and indexed.

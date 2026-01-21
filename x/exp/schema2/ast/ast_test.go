@@ -1,6 +1,7 @@
 package ast_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/cedar-policy/cedar-go/internal/testutil"
@@ -754,5 +755,139 @@ func TestAction(t *testing.T) {
 		testutil.Equals(t, len(a.AppliesToVal.ResourceTypes), 1)
 		testutil.Equals(t, a.AppliesToVal.Context != nil, true)
 		testutil.Equals(t, len(a.Annotations), 1)
+	})
+}
+
+func TestResolvedSchemaToSchema(t *testing.T) {
+	t.Parallel()
+
+	t.Run("converts resolved schema with mixed types and sorting", func(t *testing.T) {
+		t.Parallel()
+
+		// Create a schema with:
+		// - Multiple entities, enums, and actions at top level (out of order to test sorting)
+		// - Multiple namespaces with multiple entities, enums, and actions (out of order)
+		// - Common types that get inlined
+		input := ast.NewSchema(
+			// Common types
+			ast.CommonType("Coordinate", ast.Record(
+				ast.Attribute("x", ast.Long()),
+				ast.Attribute("y", ast.Long()),
+			)),
+			// Top-level nodes in reverse alphabetical order to test sorting
+			ast.Action("ZAction"),
+			ast.Enum("YStatus", "active", "inactive"),
+			ast.Entity("XPlace"),
+			ast.Action("BAction"),
+			ast.Enum("AStatus", "on", "off"),
+			// Namespaces out of alphabetical order
+			ast.Namespace("ZNamespace",
+				// Mixed types out of order
+				ast.Action("ZAction"),
+				ast.Entity("YEntity"),
+				ast.Enum("XEnum", "a", "b"),
+				ast.Action("AAction"),
+				ast.Entity("BEntity"),
+			),
+			ast.Namespace("ANamespace",
+				// Mixed types out of order
+				ast.Enum("ZEnum", "x", "y"),
+				ast.Action("YAction"),
+				ast.Entity("XEntity"),
+			),
+		)
+
+		// Resolve it
+		resolved, err := input.Resolve()
+		testutil.OK(t, err)
+
+		// Convert back to Schema
+		schema := resolved.Schema()
+		if schema == nil {
+			t.Fatal("Schema() returned nil")
+		}
+		if len(schema.Nodes) == 0 {
+			t.Fatal("Schema() returned empty nodes")
+		}
+
+		// Marshal to verify it's valid and sorted
+		cedarBytes := schema.MarshalCedar()
+		if len(cedarBytes) == 0 {
+			t.Fatal("MarshalCedar() returned empty bytes")
+		}
+
+		cedarStr := string(cedarBytes)
+		if len(cedarStr) == 0 {
+			t.Fatal("MarshalCedar() returned empty string")
+		}
+
+		// Verify sorting: top-level entities should come before enums, which come before actions
+		// And within each type, they should be alphabetically sorted
+		xPlaceIdx := strings.Index(cedarStr, "entity XPlace")
+		aStatusIdx := strings.Index(cedarStr, "entity AStatus")
+		bActionIdx := strings.Index(cedarStr, "action BAction")
+
+		if xPlaceIdx == -1 || aStatusIdx == -1 || bActionIdx == -1 {
+			t.Fatal("Expected entities, enums, and actions not found in output")
+		}
+
+		// Entities before enums before actions
+		if xPlaceIdx >= aStatusIdx || aStatusIdx >= bActionIdx {
+			t.Errorf("Top-level nodes not sorted correctly: entity at %d, enum at %d, action at %d",
+				xPlaceIdx, aStatusIdx, bActionIdx)
+		}
+
+		// Verify namespace order (ANamespace before ZNamespace)
+		aNamespaceIdx := strings.Index(cedarStr, "namespace ANamespace")
+		zNamespaceIdx := strings.Index(cedarStr, "namespace ZNamespace")
+
+		if aNamespaceIdx == -1 || zNamespaceIdx == -1 {
+			t.Fatal("Expected namespaces not found in output")
+		}
+
+		if aNamespaceIdx >= zNamespaceIdx {
+			t.Errorf("Namespaces not sorted correctly: ANamespace at %d, ZNamespace at %d",
+				aNamespaceIdx, zNamespaceIdx)
+		}
+	})
+
+	t.Run("handles optional attributes in marshaling", func(t *testing.T) {
+		t.Parallel()
+
+		// Create a schema with:
+		// - An entity with optional attributes (uses compact marshaling)
+		// - An action with optional context fields (uses non-compact marshaling)
+		input := ast.NewSchema(
+			ast.Entity("User").Shape(
+				ast.Attribute("name", ast.String()),
+				ast.Optional("email", ast.String()),
+			),
+			ast.Entity("Resource"),
+			ast.Action("TestAction").
+				Principal(ast.EntityType("User")).
+				Resource(ast.EntityType("Resource")).
+				Context(ast.Record(
+					ast.Attribute("required", ast.String()),
+					ast.Optional("optionalField", ast.Long()),
+				)),
+		)
+
+		// Resolve and convert back
+		resolved, err := input.Resolve()
+		testutil.OK(t, err)
+
+		schema := resolved.Schema()
+		cedarBytes := schema.MarshalCedar()
+		cedarStr := string(cedarBytes)
+
+		// Verify optional attributes in entity shape (compact format: "email?": String)
+		if !strings.Contains(cedarStr, `"email?":`) {
+			t.Errorf("Expected optional email field with '?', got: %s", cedarStr)
+		}
+
+		// Verify optional attributes in action context (non-compact format: "optionalField"?: Long)
+		if !strings.Contains(cedarStr, `"optionalField"?:`) {
+			t.Errorf("Expected optional context field with '?:', got: %s", cedarStr)
+		}
 	})
 }

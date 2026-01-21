@@ -1410,3 +1410,44 @@ func getTypeName(t ast.IsType) string {
 		return "Unknown"
 	}
 }
+
+// TestUnmarshalBoolType tests unmarshalling Bool type directly
+func TestUnmarshalBoolType(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		json string
+	}{
+		{
+			name: "Bool in commonTypes",
+			json: `{"": {"commonTypes": {"X": {"type": "Bool"}}, "entityTypes": {}, "actions": {}}}`,
+		},
+		{
+			name: "Bool in entity shape attribute",
+			json: `{"": {"entityTypes": {"E": {"shape": {"type": "Record", "attributes": {"active": {"type": "Bool"}}}}}, "actions": {}}}`,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var s Schema
+			err := s.UnmarshalJSON([]byte(tt.json))
+			testutil.OK(t, err)
+			schema := (*ast.Schema)(&s)
+
+			// Re-marshal and verify
+			s2 := (*Schema)(schema)
+			jsonData, err := s2.MarshalJSON()
+			testutil.OK(t, err)
+
+			// Round-trip
+			var s3 Schema
+			err = s3.UnmarshalJSON(jsonData)
+			testutil.OK(t, err)
+		})
+	}
+}

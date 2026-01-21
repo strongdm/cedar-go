@@ -534,7 +534,6 @@ func TestComprehensiveCorpus(t *testing.T) {
 			t.Parallel()
 
 			dir := filepath.Dir(inputFile)
-			resolvedCedarFile := filepath.Join(dir, baseName+".resolved.cedarschema")
 			policyFile := filepath.Join(dir, baseName+".policy")
 
 			// Read input Cedar schema
@@ -595,12 +594,15 @@ func TestComprehensiveCorpus(t *testing.T) {
 			// Verify with reference implementation
 			verifyWithCedarCLI(t, string(cedarFromJSON))
 
-			// Test 4: Cedar → Resolve → MarshalCedar is deterministic
+			// Test 4: Cedar → Resolve → MarshalCedar produces valid output
 			resolved, err := schema.Resolve()
 			testutil.OK(t, err)
 
 			actualResolved, err := resolved.MarshalCedar()
 			testutil.OK(t, err)
+
+			// Verify resolved schema is valid Cedar
+			verifyWithCedarCLI(t, string(actualResolved))
 
 			// Verify that resolving again gives the same result
 			resolved2, err := schema.Resolve()
@@ -614,31 +616,38 @@ func TestComprehensiveCorpus(t *testing.T) {
 					string(actualResolved), string(actualResolved2))
 			}
 
-			// Optionally compare with expected file if it exists
-			if _, err := os.Stat(resolvedCedarFile); err == nil {
-				expectedResolved, err := os.ReadFile(resolvedCedarFile)
-				testutil.OK(t, err)
-
-				if string(actualResolved) != string(expectedResolved) {
-					t.Errorf("Resolved Cedar output mismatch:\nexpected:\n%s\n\nactual:\n%s",
-						string(expectedResolved), string(actualResolved))
-				}
-			}
-
-			// Test 5: JSON → Resolve → Cedar gives same result as Cedar → Resolve
+			// Test 5: JSON → Resolve → MarshalCedar produces valid output
 			resolvedFromJSON, err := schemaFromJSON.Resolve()
 			testutil.OK(t, err)
 
 			actualResolvedFromJSON, err := resolvedFromJSON.MarshalCedar()
 			testutil.OK(t, err)
 
-			// Note: Due to a known bug with attribute ordering (see BUGS.md),
-			// resolved output may differ between Cedar and JSON paths.
-			// The schemas are semantically equivalent but attributes may be in different order.
-			// We skip this comparison for now and just verify both are valid and deterministic.
-			_ = actualResolvedFromJSON // Both paths produce valid output, tested separately
+			// Verify resolved schema from JSON is valid Cedar
+			verifyWithCedarCLI(t, string(actualResolvedFromJSON))
 
-			// Test 6: Validate policies against original schema (if .policy exists)
+			// Test 6: Validate policies against resolved schema (if .policy exists)
+			if _, err := os.Stat(policyFile); err == nil {
+				cli := cedarCLI()
+				if cli != "" {
+					// Create temp file for resolved schema
+					tmpDir := t.TempDir()
+					resolvedFile := filepath.Join(tmpDir, "resolved.cedarschema")
+					err := os.WriteFile(resolvedFile, actualResolved, 0o644)
+					testutil.OK(t, err)
+
+					// Validate policies against resolved schema
+					cmd := exec.Command(cli, "validate",
+						"--schema", resolvedFile,
+						"--schema-format", "cedar",
+						"--policies", policyFile)
+					if output, err := cmd.CombinedOutput(); err != nil {
+						t.Errorf("Policy validation failed against resolved schema:\n%s", string(output))
+					}
+				}
+			}
+
+			// Test 7: Validate policies against original schema (if .policy exists)
 			if _, err := os.Stat(policyFile); err == nil {
 				cli := cedarCLI()
 				if cli != "" {

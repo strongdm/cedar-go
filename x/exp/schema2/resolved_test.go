@@ -89,25 +89,11 @@ action GlobalView appliesTo {
 };
 `
 
-	// Expected output after resolution - all types are fully qualified and inlined
+	// Expected output after resolution - all types are fully resolved and inlined
 	// Common types are NOT declared separately - they're inlined where used
-	// Namespaces are NOT present - everything is top-level with qualified names
-	// Output order: entities (sorted), then enums (sorted), then actions (sorted)
-	expected := `entity OrgA::Group;
-
-entity OrgA::Team in OrgA::Group;
-
-entity OrgA::User = {"info": {
-  "name": String,
-  "office": {
-    "building": String,
-    "floor": Long,
-  },
-}};
-
-entity OrgB::Member;
-
-entity Place = {"location": {
+	// Namespaces ARE present with unqualified names within them
+	// Top-level entities/enums/actions come first, then namespaces (sorted)
+	expected := `entity Place = {"location": {
   "position": {
     "x": Long,
     "y": Long,
@@ -117,33 +103,51 @@ entity Place = {"location": {
 
 entity GlobalStatus enum ["active", "inactive", "pending"];
 
-entity OrgA::Role enum ["admin", "member", "guest"];
-
 action GlobalView appliesTo {
   principal: [OrgA::User, OrgB::Member],
   resource: Place,
   context: {},
 };
 
-action Edit appliesTo {
-  principal: OrgA::User,
-  resource: Place,
-  context: {},
-};
+namespace OrgA {
+  entity Group;
 
-action View appliesTo {
-  principal: [OrgA::User, OrgA::Team],
-  resource: Place,
-  context: {
-    "reason": String,
-  },
-};
+  entity Team in OrgA::Group;
 
-action Access appliesTo {
-  principal: [OrgB::Member, OrgA::User],
-  resource: Place,
-  context: {},
-};
+  entity User = {"info": {
+    "name": String,
+    "office": {
+      "building": String,
+      "floor": Long,
+    },
+  }};
+
+  entity Role enum ["admin", "member", "guest"];
+
+  action Edit appliesTo {
+    principal: OrgA::User,
+    resource: Place,
+    context: {},
+  };
+
+  action View appliesTo {
+    principal: [OrgA::User, OrgA::Team],
+    resource: Place,
+    context: {
+      "reason": String,
+    },
+  };
+}
+
+namespace OrgB {
+  entity Member;
+
+  action Access appliesTo {
+    principal: [OrgB::Member, OrgA::User],
+    resource: Place,
+    context: {},
+  };
+}
 `
 
 	// Parse the input schema
@@ -158,7 +162,8 @@ action Access appliesTo {
 		t.Fatalf("Resolve() failed: %v", err)
 	}
 
-	// Marshal to Cedar format
+	// Convert to Schema and marshal to Cedar format
+	// Use MarshalCedar directly
 	marshaled, err := resolved.MarshalCedar()
 	if err != nil {
 		t.Fatalf("MarshalCedar() failed: %v", err)
@@ -190,13 +195,15 @@ namespace MyNamespace {
 
 	expected := `entity GlobalEntity;
 
-entity MyNamespace::LocalEntity;
+namespace MyNamespace {
+  entity LocalEntity;
 
-action MyAction appliesTo {
-  principal: MyNamespace::LocalEntity,
-  resource: GlobalEntity,
-  context: {},
-};
+  action MyAction appliesTo {
+    principal: MyNamespace::LocalEntity,
+    resource: GlobalEntity,
+    context: {},
+  };
+}
 `
 
 	var s Schema
@@ -209,6 +216,7 @@ action MyAction appliesTo {
 		t.Fatalf("Resolve() failed: %v", err)
 	}
 
+	// Use MarshalCedar directly
 	marshaled, err := resolved.MarshalCedar()
 	if err != nil {
 		t.Fatalf("MarshalCedar() failed: %v", err)

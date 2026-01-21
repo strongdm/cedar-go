@@ -90,7 +90,7 @@ func marshalEntity(buf *bytes.Buffer, e EntityNode, indent string) {
 
 	if e.ShapeVal != nil && len(e.ShapeVal.Pairs) > 0 {
 		buf.WriteString(" = ")
-		marshalRecordTypeCompact(buf, *e.ShapeVal)
+		marshalRecordTypeCompact(buf, *e.ShapeVal, indent)
 	}
 
 	if e.TagsVal != nil {
@@ -267,7 +267,7 @@ func marshalRecordType(buf *bytes.Buffer, r RecordType, indent string) {
 
 // marshalRecordTypeCompact marshals a record type in Rust format for entity shapes
 // e.g., {"name": String, "age": Long}
-func marshalRecordTypeCompact(buf *bytes.Buffer, r RecordType) {
+func marshalRecordTypeCompact(buf *bytes.Buffer, r RecordType, indent string) {
 	buf.WriteString("{")
 	for i, pair := range r.Pairs {
 		if i > 0 {
@@ -279,7 +279,7 @@ func marshalRecordTypeCompact(buf *bytes.Buffer, r RecordType) {
 		}
 		buf.WriteString(quoteString(key))
 		buf.WriteString(": ")
-		marshalType(buf, pair.Type)
+		marshalTypeIndented(buf, pair.Type, indent)
 	}
 	buf.WriteString("}")
 }

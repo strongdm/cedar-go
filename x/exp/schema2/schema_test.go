@@ -218,7 +218,7 @@ func TestResolvedSchemaMarshalCedar(t *testing.T) {
 	entity User;
 	entity Group;
 }`,
-			expectedEntries: []string{"MyApp::User", "MyApp::Group"},
+			expectedEntries: []string{"namespace MyApp", "entity User", "entity Group"},
 		},
 		{
 			name: "entity with common types resolved inline",
@@ -231,14 +231,14 @@ func TestResolvedSchemaMarshalCedar(t *testing.T) {
 		address: Address,
 	};
 }`,
-			expectedEntries: []string{"MyApp::User", "street", "city"},
+			expectedEntries: []string{"namespace MyApp", "entity User", "street", "city"},
 		},
 		{
 			name: "entity with enum",
 			input: `namespace MyApp {
 	entity Status enum ["active", "inactive"];
 }`,
-			expectedEntries: []string{"MyApp::Status", "active", "inactive"},
+			expectedEntries: []string{"namespace MyApp", "entity Status enum", "active", "inactive"},
 		},
 		{
 			name: "action with appliesTo",
@@ -250,7 +250,7 @@ func TestResolvedSchemaMarshalCedar(t *testing.T) {
 		resource: Document,
 	};
 }`,
-			expectedEntries: []string{"MyApp::User", "MyApp::Document", "View", "principal", "resource"},
+			expectedEntries: []string{"namespace MyApp", "entity User", "entity Document", "action View", "principal", "resource"},
 		},
 		{
 			name: "multiple namespaces",
@@ -260,7 +260,7 @@ func TestResolvedSchemaMarshalCedar(t *testing.T) {
 namespace App2 {
 	entity Admin;
 }`,
-			expectedEntries: []string{"App1::User", "App2::Admin"},
+			expectedEntries: []string{"namespace App1", "entity User", "namespace App2", "entity Admin"},
 		},
 	}
 
@@ -282,7 +282,8 @@ namespace App2 {
 				t.Fatalf("Resolve() error = %v", err)
 			}
 
-			// Marshal the resolved schema to Cedar
+			// Convert to Schema and marshal to Cedar
+			// Use MarshalCedar directly
 			cedarBytes, err := resolved.MarshalCedar()
 			if err != nil {
 				t.Fatalf("MarshalCedar() error = %v", err)
@@ -303,6 +304,7 @@ namespace App2 {
 			}
 
 			// Marshal again to verify stability
+			// Use MarshalCedar directly
 			cedarBytes2, err := resolved.MarshalCedar()
 			if err != nil {
 				t.Fatalf("Second MarshalCedar() error = %v", err)
@@ -356,7 +358,8 @@ func TestResolvedSchemaMarshalJSON(t *testing.T) {
 				t.Fatalf("Resolve() error = %v", err)
 			}
 
-			// Marshal to JSON
+			// Convert to Schema and marshal to JSON
+			// Use MarshalCedar directly
 			jsonBytes, err := resolved.MarshalJSON()
 			if err != nil {
 				t.Fatalf("MarshalJSON() error = %v", err)
@@ -449,7 +452,8 @@ namespace App {
 				t.Fatalf("Resolve() error = %v", err)
 			}
 
-			// Step 3: Marshal resolved schema to Cedar
+			// Step 3: Convert to Schema and marshal to Cedar
+			// Use MarshalCedar directly
 			cedarBytes, err := resolved.MarshalCedar()
 			if err != nil {
 				t.Fatalf("MarshalCedar() error = %v", err)
@@ -473,6 +477,7 @@ namespace App {
 			}
 
 			// Step 5: Verify stability - marshaling again produces same output
+			// Use MarshalCedar directly
 			cedarBytes2, err := resolved.MarshalCedar()
 			if err != nil {
 				t.Fatalf("Second MarshalCedar() error = %v", err)
@@ -518,6 +523,7 @@ func TestResolvedSchemaSortingCoverage(t *testing.T) {
 		}
 
 		// Test that we can marshal (this exercises the enum sorting)
+		// Use MarshalCedar directly
 		cedarBytes, err := resolved.MarshalCedar()
 		if err != nil {
 			t.Fatalf("MarshalCedar() error = %v", err)
@@ -560,6 +566,7 @@ namespace Other {
 		}
 
 		// Test that we can marshal (this exercises the action sorting with different types)
+		// Use MarshalCedar directly
 		cedarBytes, err := resolved.MarshalCedar()
 		if err != nil {
 			t.Fatalf("MarshalCedar() error = %v", err)
