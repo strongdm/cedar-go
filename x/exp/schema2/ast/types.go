@@ -223,8 +223,14 @@ func (t TypeRef) resolve(rd *resolveData) (IsType, error) {
 	// Search the entire schema for a matching CommonType
 	if rd.schema != nil {
 		for ns, ct := range rd.schema.CommonTypes() {
-			fullName := ct.FullName(ns)
-			if string(fullName) == name {
+			// Compute fully qualified name
+			var fullName string
+			if ns == nil {
+				fullName = string(ct.Name)
+			} else {
+				fullName = string(ns.Name) + "::" + string(ct.Name)
+			}
+			if fullName == name {
 				// Found it, resolve with the common type's namespace and cache it
 				ctRd := rd.withNamespace(ns)
 				resolved, err := ct.Type.resolve(ctRd)

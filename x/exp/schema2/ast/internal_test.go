@@ -259,36 +259,6 @@ func TestNamespaceIteratorsEarlyBreak(t *testing.T) {
 	})
 }
 
-// TestCommonTypeFullName tests the FullName method on CommonTypeNode
-func TestCommonTypeFullName(t *testing.T) {
-	t.Parallel()
-
-	ct := CommonType("MyType", StringType{})
-
-	t.Run("FullName with nil namespace", func(t *testing.T) {
-		fullName := ct.FullName(nil)
-		if fullName != "MyType" {
-			t.Errorf("expected 'MyType', got '%s'", fullName)
-		}
-	})
-
-	t.Run("FullName with namespace", func(t *testing.T) {
-		ns := Namespace("MyApp")
-		fullName := ct.FullName(&ns)
-		if fullName != "MyApp::MyType" {
-			t.Errorf("expected 'MyApp::MyType', got '%s'", fullName)
-		}
-	})
-
-	t.Run("FullName with nested namespace", func(t *testing.T) {
-		ns := Namespace("MyApp::Types")
-		fullName := ct.FullName(&ns)
-		if fullName != "MyApp::Types::MyType" {
-			t.Errorf("expected 'MyApp::Types::MyType', got '%s'", fullName)
-		}
-	})
-}
-
 // TestEntityEntityType tests the EntityType method on EntityNode
 func TestEntityEntityType(t *testing.T) {
 	t.Parallel()

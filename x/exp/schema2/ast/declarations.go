@@ -143,16 +143,6 @@ func (c CommonTypeNode) Annotate(key types.Ident, value types.String) CommonType
 	return c
 }
 
-// FullName returns the fully qualified name for this common type.
-// If namespace is nil, the type name is used as-is (top-level).
-// If namespace is provided (e.g., "MyApp"), the name is "MyApp::TypeName".
-func (c CommonTypeNode) FullName(namespace *NamespaceNode) types.Path {
-	if namespace == nil {
-		return types.Path(c.Name)
-	}
-	return types.Path(string(namespace.Name) + "::" + string(c.Name))
-}
-
 // resolve returns a new CommonTypeNode with all type references resolved.
 func (c CommonTypeNode) resolve(rd *resolveData) (CommonTypeNode, error) {
 	resolvedType, err := c.Type.resolve(rd)
