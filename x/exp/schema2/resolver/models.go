@@ -1,6 +1,8 @@
 package resolver
 
 import (
+	"iter"
+
 	"github.com/cedar-policy/cedar-go/types"
 	"github.com/cedar-policy/cedar-go/x/exp/schema2/ast"
 )
@@ -35,6 +37,18 @@ type ResolvedEnum struct {
 	Name        types.EntityType // Fully qualified enum type
 	Annotations []ast.Annotation // Enum annotations
 	Values      []types.String   // Enum values
+}
+
+// EntityUIDs returns an iterator over EntityUID values for each enum value.
+// The Name field should already be fully qualified.
+func (e ResolvedEnum) EntityUIDs() iter.Seq[types.EntityUID] {
+	return func(yield func(types.EntityUID) bool) {
+		for _, v := range e.Values {
+			if !yield(types.NewEntityUID(e.Name, v)) {
+				return
+			}
+		}
+	}
 }
 
 // ResolvedAppliesTo represents the appliesTo clause with all type references fully resolved.

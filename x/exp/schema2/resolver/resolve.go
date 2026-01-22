@@ -2,7 +2,6 @@ package resolver
 
 import (
 	"fmt"
-	"iter"
 
 	"github.com/cedar-policy/cedar-go/types"
 	"github.com/cedar-policy/cedar-go/x/exp/schema2/ast"
@@ -107,18 +106,6 @@ func (rd *resolveData) withNamespace(namespace *ast.NamespaceNode) *resolveData 
 		namespace:            namespace,
 		schemaCommonTypes:    rd.schemaCommonTypes, // Reuse schema-wide cache
 		namespaceCommonTypes: namespaceCommonTypes, // New namespace-specific cache
-	}
-}
-
-// EntityUIDs returns an iterator over EntityUID values for each enum value.
-// The Name field should already be fully qualified.
-func (e ResolvedEnum) EntityUIDs() iter.Seq[types.EntityUID] {
-	return func(yield func(types.EntityUID) bool) {
-		for _, v := range e.Values {
-			if !yield(types.NewEntityUID(e.Name, v)) {
-				return
-			}
-		}
 	}
 }
 
