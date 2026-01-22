@@ -489,7 +489,9 @@ func TestTypeResolution(t *testing.T) {
 			},
 			false,
 		},
-		{"resolve entity with tags", func() *Schema { return NewSchema(Entity("Document").Tags(Record(Attribute("classification", String())))) }, false},
+		{"resolve entity with tags", func() *Schema {
+			return NewSchema(Entity("Document").Tags(Record(Attribute("classification", String()))))
+		}, false},
 		{
 			"resolve entity with MemberOf",
 			func() *Schema {
@@ -779,9 +781,9 @@ func TestAnnotations(t *testing.T) {
 			},
 			false,
 			func(t *testing.T, rs *ResolvedSchema) {
-				annotations := rs.Namespaces["App"]
-				if len(annotations) != 2 {
-					t.Errorf("expected 2 annotations, got %d", len(annotations))
+				ns := rs.Namespaces["App"]
+				if len(ns.Annotations) != 2 {
+					t.Errorf("expected 2 annotations, got %d", len(ns.Annotations))
 				}
 			},
 		},
@@ -815,10 +817,14 @@ func TestErrorPaths(t *testing.T) {
 	}{
 		{"top-level action with invalid type reference", func() *Schema { return NewSchema(Action("view").Context(Type("NonExistent"))) }, true},
 		{"top-level common type with invalid nested type", func() *Schema { return NewSchema(CommonType("MyType", Type("NonExistent"))) }, true},
-		{"common type with error in nested record", func() *Schema { return NewSchema(CommonType("MyType", Record(Attribute("field", Type("NonExistent"))))) }, true},
+		{"common type with error in nested record", func() *Schema {
+			return NewSchema(CommonType("MyType", Record(Attribute("field", Type("NonExistent")))))
+		}, true},
 		{"common type with error in set type", func() *Schema { return NewSchema(CommonType("MyType", Set(Type("NonExistent")))) }, true},
 		{"namespace common type with error", func() *Schema { return NewSchema(Namespace("App", CommonType("MyType", Type("NonExistent")))) }, true},
-		{"namespace entity with error", func() *Schema { return NewSchema(Namespace("App", Entity("User").Shape(Attribute("field", Type("NonExistent"))))) }, true},
+		{"namespace entity with error", func() *Schema {
+			return NewSchema(Namespace("App", Entity("User").Shape(Attribute("field", Type("NonExistent")))))
+		}, true},
 		{"namespace action with error", func() *Schema { return NewSchema(Namespace("App", Action("view").Context(Type("NonExistent")))) }, true},
 	}
 

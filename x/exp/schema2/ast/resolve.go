@@ -109,6 +109,13 @@ func (rd *resolveData) withNamespace(namespace *NamespaceNode) *resolveData {
 	}
 }
 
+// ResolvedNamespace represents a namespace without the declarations included.
+// All declarations have been moved into the other maps.
+type ResolvedNamespace struct {
+	Name        types.Path
+	Annotations []Annotation
+}
+
 // ResolvedEntity represents an entity type with all type references fully resolved.
 // All EntityTypeRef references have been converted to types.EntityType.
 type ResolvedEntity struct {
@@ -157,10 +164,10 @@ type ResolvedAction struct {
 
 // ResolvedSchema represents a schema with all type references resolved and indexed for efficient lookup.
 type ResolvedSchema struct {
+	Namespaces map[types.Path]ResolvedNamespace    // Namespace path -> ResolvedNamespace
 	Entities   map[types.EntityType]ResolvedEntity // Fully qualified entity type -> ResolvedEntity
 	Enums      map[types.EntityType]ResolvedEnum   // Fully qualified entity type -> ResolvedEnum
 	Actions    map[types.EntityUID]ResolvedAction  // Fully qualified action UID -> ResolvedAction
-	Namespaces map[types.Path][]Annotation         // Namespace path -> Annotations
 }
 
 // resolveDeclaration resolves a single declaration node and adds it to the resolved schema.
@@ -227,10 +234,10 @@ func resolveDeclaration(decl IsDeclaration, rd *resolveData, resolved *ResolvedS
 // Returns an error if any type reference cannot be resolved or if there are naming conflicts.
 func (s *Schema) Resolve() (*ResolvedSchema, error) {
 	resolved := &ResolvedSchema{
+		Namespaces: make(map[types.Path]ResolvedNamespace),
 		Entities:   make(map[types.EntityType]ResolvedEntity),
 		Enums:      make(map[types.EntityType]ResolvedEnum),
 		Actions:    make(map[types.EntityUID]ResolvedAction),
-		Namespaces: make(map[types.Path][]Annotation),
 	}
 
 	rd := newResolveData(s, nil)
@@ -240,7 +247,10 @@ func (s *Schema) Resolve() (*ResolvedSchema, error) {
 		case NamespaceNode:
 			// Store namespace annotations
 			if n.Name != "" {
-				resolved.Namespaces[n.Name] = n.Annotations
+				resolved.Namespaces[n.Name] = ResolvedNamespace{
+					Name:        n.Name,
+					Annotations: n.Annotations,
+				}
 			}
 
 			// Create resolve data with this namespace
