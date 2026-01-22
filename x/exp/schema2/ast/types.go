@@ -4,6 +4,11 @@ import (
 	"github.com/cedar-policy/cedar-go/types"
 )
 
+// IsType is the interface implemented by all type expressions.
+type IsType interface {
+	isType()
+}
+
 // Primitive types
 
 // StringType represents the Cedar String type.

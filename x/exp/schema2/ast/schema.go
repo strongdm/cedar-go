@@ -12,18 +12,6 @@ type IsNode interface {
 	isNode()
 }
 
-// IsDeclaration is the interface implemented by nodes that can be
-// declarations within a namespace (CommonType, Entity, Enum, Action).
-type IsDeclaration interface {
-	IsNode
-	isDeclaration()
-}
-
-// IsType is the interface implemented by all type expressions.
-type IsType interface {
-	isType()
-}
-
 // Annotation represents a Cedar annotation (@key("value")).
 type Annotation struct {
 	Key   types.Ident
@@ -123,6 +111,81 @@ func (s *Schema) Actions() iter.Seq2[*NamespaceNode, ActionNode] {
 					if !yield(&ns, a) {
 						return
 					}
+				}
+			}
+		}
+	}
+}
+
+// NamespaceNode represents a Cedar namespace declaration.
+type NamespaceNode struct {
+	Name         types.Path
+	Annotations  []Annotation
+	Declarations []IsDeclaration
+}
+
+func (NamespaceNode) isNode() {}
+
+// Namespace creates a new NamespaceNode with the given path and declarations.
+func Namespace(path types.Path, decls ...IsDeclaration) NamespaceNode {
+	return NamespaceNode{
+		Name:         path,
+		Declarations: decls,
+	}
+}
+
+// Annotate adds an annotation to the namespace and returns the node for chaining.
+func (n NamespaceNode) Annotate(key types.Ident, value types.String) NamespaceNode {
+	n.Annotations = append(n.Annotations, Annotation{Key: key, Value: value})
+	return n
+}
+
+// CommonTypes returns an iterator over all CommonTypeNode declarations in the namespace.
+func (n NamespaceNode) CommonTypes() iter.Seq[CommonTypeNode] {
+	return func(yield func(CommonTypeNode) bool) {
+		for _, decl := range n.Declarations {
+			if ct, ok := decl.(CommonTypeNode); ok {
+				if !yield(ct) {
+					return
+				}
+			}
+		}
+	}
+}
+
+// Entities returns an iterator over all EntityNode declarations in the namespace.
+func (n NamespaceNode) Entities() iter.Seq[EntityNode] {
+	return func(yield func(EntityNode) bool) {
+		for _, decl := range n.Declarations {
+			if e, ok := decl.(EntityNode); ok {
+				if !yield(e) {
+					return
+				}
+			}
+		}
+	}
+}
+
+// Enums returns an iterator over all EnumNode declarations in the namespace.
+func (n NamespaceNode) Enums() iter.Seq[EnumNode] {
+	return func(yield func(EnumNode) bool) {
+		for _, decl := range n.Declarations {
+			if e, ok := decl.(EnumNode); ok {
+				if !yield(e) {
+					return
+				}
+			}
+		}
+	}
+}
+
+// Actions returns an iterator over all ActionNode declarations in the namespace.
+func (n NamespaceNode) Actions() iter.Seq[ActionNode] {
+	return func(yield func(ActionNode) bool) {
+		for _, decl := range n.Declarations {
+			if a, ok := decl.(ActionNode); ok {
+				if !yield(a) {
+					return
 				}
 			}
 		}
