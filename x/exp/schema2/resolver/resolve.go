@@ -23,10 +23,6 @@ type resolveData struct {
 
 // entityExistsInEmptyNamespace checks if an entity with the given name exists in the empty namespace (global scope).
 func (rd *resolveData) entityExistsInEmptyNamespace(name types.EntityType) bool {
-	if rd.schema == nil {
-		return false
-	}
-
 	nameStr := string(name)
 	for _, node := range rd.schema.Nodes {
 		switch n := node.(type) {
@@ -44,10 +40,10 @@ func (rd *resolveData) entityExistsInEmptyNamespace(name types.EntityType) bool 
 }
 
 // newResolveData creates a new resolveData with cached common types from the schema.
-func newResolveData(schema *ast.Schema, namespace *ast.NamespaceNode) *resolveData {
+func newResolveData(schema *ast.Schema) *resolveData {
 	rd := &resolveData{
 		schema:               schema,
-		namespace:            namespace,
+		namespace:            nil,
 		schemaCommonTypes:    make(map[string]*commonTypeEntry),
 		namespaceCommonTypes: make(map[string]*commonTypeEntry),
 	}
@@ -65,18 +61,6 @@ func newResolveData(schema *ast.Schema, namespace *ast.NamespaceNode) *resolveDa
 		rd.schemaCommonTypes[fullName] = &commonTypeEntry{
 			resolved: false,
 			node:     ctCopy,
-		}
-	}
-
-	// Build namespace-local common types map (unqualified names)
-	// Populate with unresolved entries for the current namespace
-	if namespace != nil {
-		for ct := range namespace.CommonTypes() {
-			ctCopy := ct
-			rd.namespaceCommonTypes[string(ct.Name)] = &commonTypeEntry{
-				resolved: false,
-				node:     ctCopy,
-			}
 		}
 	}
 
@@ -179,7 +163,7 @@ func Resolve(s *ast.Schema) (*ResolvedSchema, error) {
 		Actions:    make(map[types.EntityUID]ResolvedAction),
 	}
 
-	rd := newResolveData(s, nil)
+	rd := newResolveData(s)
 
 	for _, node := range s.Nodes {
 		switch n := node.(type) {

@@ -366,7 +366,8 @@ func TestResolve(t *testing.T) {
 			in: `namespace App {
 				type MyType = String;
 				entity User = {
-					"field": MyType
+					"field1": MyType,
+					"field2": MyType
 				};
 			}`,
 			want: &resolver.ResolvedSchema{
@@ -378,7 +379,8 @@ func TestResolve(t *testing.T) {
 						Name: "App::User",
 						Shape: &ast.RecordType{
 							Pairs: []ast.Pair{
-								{Key: "field", Type: ast.StringType{}},
+								{Key: "field1", Type: ast.StringType{}},
+								{Key: "field2", Type: ast.StringType{}},
 							},
 						},
 					},
@@ -392,9 +394,7 @@ func TestResolve(t *testing.T) {
 			name: "common type reused (caching test)",
 			in: `type MyType = String;
 			entity User = {
-				"field1": MyType
-			};
-			entity Admin = {
+				"field1": MyType,
 				"field2": MyType
 			};`,
 			want: &resolver.ResolvedSchema{
@@ -405,13 +405,6 @@ func TestResolve(t *testing.T) {
 						Shape: &ast.RecordType{
 							Pairs: []ast.Pair{
 								{Key: "field1", Type: ast.StringType{}},
-							},
-						},
-					},
-					"Admin": {
-						Name: "Admin",
-						Shape: &ast.RecordType{
-							Pairs: []ast.Pair{
 								{Key: "field2", Type: ast.StringType{}},
 							},
 						},
@@ -428,7 +421,8 @@ func TestResolve(t *testing.T) {
 			type Type2 = Type1;
 			type Type3 = Type2;
 			entity User = {
-				"field": Type3
+				"field1": Type3,
+				"field2": Type3
 			};`,
 			want: &resolver.ResolvedSchema{
 				Namespaces: map[types.Path]resolver.ResolvedNamespace{},
@@ -437,7 +431,8 @@ func TestResolve(t *testing.T) {
 						Name: "User",
 						Shape: &ast.RecordType{
 							Pairs: []ast.Pair{
-								{Key: "field", Type: ast.StringType{}},
+								{Key: "field1", Type: ast.StringType{}},
+								{Key: "field2", Type: ast.StringType{}},
 							},
 						},
 					},
@@ -520,6 +515,76 @@ func TestResolve(t *testing.T) {
 					},
 				},
 				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
+				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+			},
+			errTest: testutil.OK,
+		},
+		{
+			name: "unqualified entity reference in same namespace",
+			in: `namespace App {
+				entity Group;
+				entity User in [Group];
+			}`,
+			want: &resolver.ResolvedSchema{
+				Namespaces: map[types.Path]resolver.ResolvedNamespace{
+					"App": {Name: "App"},
+				},
+				Entities: map[types.EntityType]resolver.ResolvedEntity{
+					"App::Group": {Name: "App::Group"},
+					"App::User": {
+						Name:     "App::User",
+						MemberOf: []types.EntityType{"App::Group"},
+					},
+				},
+				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
+				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+			},
+			errTest: testutil.OK,
+		},
+		{
+			name: "namespace entity references global entity",
+			in: `entity GlobalGroup;
+			namespace App {
+				entity User in [GlobalGroup];
+			}`,
+			want: &resolver.ResolvedSchema{
+				Namespaces: map[types.Path]resolver.ResolvedNamespace{
+					"App": {Name: "App"},
+				},
+				Entities: map[types.EntityType]resolver.ResolvedEntity{
+					"GlobalGroup": {Name: "GlobalGroup"},
+					"App::User": {
+						Name:     "App::User",
+						MemberOf: []types.EntityType{"GlobalGroup"},
+					},
+				},
+				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
+				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+			},
+			errTest: testutil.OK,
+		},
+		{
+			name: "namespace entity references global enum",
+			in: `entity Status enum ["active", "inactive"];
+			namespace App {
+				entity Document in [Status];
+			}`,
+			want: &resolver.ResolvedSchema{
+				Namespaces: map[types.Path]resolver.ResolvedNamespace{
+					"App": {Name: "App"},
+				},
+				Entities: map[types.EntityType]resolver.ResolvedEntity{
+					"App::Document": {
+						Name:     "App::Document",
+						MemberOf: []types.EntityType{"Status"},
+					},
+				},
+				Enums: map[types.EntityType]resolver.ResolvedEnum{
+					"Status": {
+						Name:   "Status",
+						Values: []types.String{"active", "inactive"},
+					},
+				},
 				Actions: map[types.EntityUID]resolver.ResolvedAction{},
 			},
 			errTest: testutil.OK,
