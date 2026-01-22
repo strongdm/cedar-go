@@ -587,6 +587,44 @@ func TestUnmarshalPrimitiveTypes(t *testing.T) {
 	}
 }
 
+func TestUnmarshalAttrLegacyBoolType(t *testing.T) {
+	t.Parallel()
+
+	// Test legacy "Bool" type format in record attributes
+	json := `{
+		"": {
+			"entityTypes": {
+				"User": {
+					"shape": {
+						"type": "Record",
+						"attributes": {
+							"active": {"type": "Bool"}
+						}
+					}
+				}
+			},
+			"actions": {}
+		}
+	}`
+
+	var s Schema
+	err := s.UnmarshalJSON([]byte(json))
+	testutil.OK(t, err)
+
+	// Verify the Bool type was parsed correctly
+	schema := (*ast.Schema)(&s)
+	testutil.FatalIf(t, len(schema.Nodes) == 0, "expected at least one node")
+
+	entity, ok := schema.Nodes[0].(ast.EntityNode)
+	testutil.FatalIf(t, !ok, "expected EntityNode")
+	testutil.FatalIf(t, entity.ShapeVal == nil, "expected shape")
+	testutil.FatalIf(t, len(entity.ShapeVal.Pairs) == 0, "expected at least one pair")
+
+	// Verify it's a BoolType
+	_, ok = entity.ShapeVal.Pairs[0].Type.(ast.BoolType)
+	testutil.FatalIf(t, !ok, "expected BoolType")
+}
+
 func TestUnmarshalRecordWithOptional(t *testing.T) {
 	t.Parallel()
 
@@ -1109,4 +1147,255 @@ func TestActionMemberOfEmptyTypeInSchema(t *testing.T) {
 	hasType := strings.Contains(string(jsonData), `"type":"Action"`) ||
 		strings.Contains(string(jsonData), `"type": "Action"`)
 	testutil.Equals(t, hasType, true)
+}
+
+func TestEntityAnnotations(t *testing.T) {
+	t.Parallel()
+
+	schema := &ast.Schema{
+		Nodes: []ast.IsNode{
+			ast.EntityNode{
+				Name: "User",
+				Annotations: []ast.Annotation{
+					{Key: "doc", Value: "A user entity"},
+					{Key: "author", Value: "Alice"},
+				},
+			},
+		},
+	}
+
+	testRoundTrip(t, schema)
+
+	s := (*Schema)(schema)
+	jsonData, err := s.MarshalJSON()
+	testutil.OK(t, err)
+
+	testutil.Equals(t, strings.Contains(string(jsonData), `"doc"`), true)
+	testutil.Equals(t, strings.Contains(string(jsonData), `"A user entity"`), true)
+	testutil.Equals(t, strings.Contains(string(jsonData), `"author"`), true)
+	testutil.Equals(t, strings.Contains(string(jsonData), `"Alice"`), true)
+}
+
+func TestEnumAnnotations(t *testing.T) {
+	t.Parallel()
+
+	schema := &ast.Schema{
+		Nodes: []ast.IsNode{
+			ast.EnumNode{
+				Name:   "Status",
+				Values: []types.String{"active", "inactive"},
+				Annotations: []ast.Annotation{
+					{Key: "doc", Value: "Status enum"},
+				},
+			},
+		},
+	}
+
+	testRoundTrip(t, schema)
+
+	s := (*Schema)(schema)
+	jsonData, err := s.MarshalJSON()
+	testutil.OK(t, err)
+
+	testutil.Equals(t, strings.Contains(string(jsonData), `"doc"`), true)
+	testutil.Equals(t, strings.Contains(string(jsonData), `"Status enum"`), true)
+}
+
+func TestActionAnnotations(t *testing.T) {
+	t.Parallel()
+
+	schema := &ast.Schema{
+		Nodes: []ast.IsNode{
+			ast.ActionNode{
+				Name: "view",
+				Annotations: []ast.Annotation{
+					{Key: "doc", Value: "View action"},
+					{Key: "version", Value: "1.0"},
+				},
+			},
+		},
+	}
+
+	testRoundTrip(t, schema)
+
+	s := (*Schema)(schema)
+	jsonData, err := s.MarshalJSON()
+	testutil.OK(t, err)
+
+	testutil.Equals(t, strings.Contains(string(jsonData), `"doc"`), true)
+	testutil.Equals(t, strings.Contains(string(jsonData), `"View action"`), true)
+	testutil.Equals(t, strings.Contains(string(jsonData), `"version"`), true)
+	testutil.Equals(t, strings.Contains(string(jsonData), `"1.0"`), true)
+}
+
+func TestCommonTypeAnnotations(t *testing.T) {
+	t.Parallel()
+
+	schema := &ast.Schema{
+		Nodes: []ast.IsNode{
+			ast.CommonTypeNode{
+				Name: "Address",
+				Type: ast.RecordType{
+					Pairs: []ast.Pair{
+						{Key: "street", Type: ast.StringType{}},
+					},
+				},
+				Annotations: []ast.Annotation{
+					{Key: "doc", Value: "Address type"},
+				},
+			},
+		},
+	}
+
+	s := (*Schema)(schema)
+	jsonData, err := s.MarshalJSON()
+	testutil.OK(t, err)
+
+	// Debug: print the JSON
+	t.Logf("JSON: %s", string(jsonData))
+
+	testutil.Equals(t, strings.Contains(string(jsonData), `"doc"`), true)
+	testutil.Equals(t, strings.Contains(string(jsonData), `"Address type"`), true)
+
+	// Test unmarshaling preserves annotations
+	var s2 Schema
+	err = s2.UnmarshalJSON(jsonData)
+	testutil.OK(t, err)
+	schema2 := (*ast.Schema)(&s2)
+
+	ct := schema2.Nodes[0].(ast.CommonTypeNode)
+	testutil.Equals(t, len(ct.Annotations), 1)
+	testutil.Equals(t, string(ct.Annotations[0].Key), "doc")
+	testutil.Equals(t, string(ct.Annotations[0].Value), "Address type")
+}
+
+func TestAnnotationsUnmarshal(t *testing.T) {
+	t.Parallel()
+
+	jsonInput := `{
+		"": {
+			"entityTypes": {
+				"User": {
+					"annotations": {
+						"doc": "User entity",
+						"author": "Bob"
+					}
+				}
+			},
+			"actions": {
+				"view": {
+					"annotations": {
+						"doc": "View action"
+					}
+				}
+			},
+			"commonTypes": {
+				"Address": {
+					"type": "Record",
+					"attributes": {
+						"street": {"type": "String"}
+					},
+					"annotations": {
+						"doc": "Address type"
+					}
+				}
+			}
+		}
+	}`
+
+	var s Schema
+	err := s.UnmarshalJSON([]byte(jsonInput))
+	testutil.OK(t, err)
+	schema := (*ast.Schema)(&s)
+
+	// Find nodes by type since order may vary
+	var entity ast.EntityNode
+	var action ast.ActionNode
+	var commonType ast.CommonTypeNode
+	var foundEntity, foundAction, foundCommonType bool
+
+	for _, node := range schema.Nodes {
+		switch n := node.(type) {
+		case ast.EntityNode:
+			if string(n.Name) == "User" {
+				entity = n
+				foundEntity = true
+			}
+		case ast.ActionNode:
+			if string(n.Name) == "view" {
+				action = n
+				foundAction = true
+			}
+		case ast.CommonTypeNode:
+			if string(n.Name) == "Address" {
+				commonType = n
+				foundCommonType = true
+			}
+		}
+	}
+
+	// Check entity annotations
+	testutil.FatalIf(t, !foundEntity, "User entity not found")
+	testutil.Equals(t, len(entity.Annotations), 2)
+
+	// Check action annotations
+	testutil.FatalIf(t, !foundAction, "view action not found")
+	testutil.Equals(t, len(action.Annotations), 1)
+	testutil.Equals(t, string(action.Annotations[0].Value), "View action")
+
+	// Check common type annotations
+	testutil.FatalIf(t, !foundCommonType, "Address common type not found")
+	testutil.Equals(t, len(commonType.Annotations), 1)
+	testutil.Equals(t, string(commonType.Annotations[0].Value), "Address type")
+}
+
+func TestNamespaceAnnotations(t *testing.T) {
+	t.Parallel()
+
+	schema := &ast.Schema{
+		Nodes: []ast.IsNode{
+			ast.NamespaceNode{
+				Name: "MyApp",
+				Declarations: []ast.IsDeclaration{
+					ast.EntityNode{
+						Name: "User",
+						Annotations: []ast.Annotation{
+							{Key: "doc", Value: "User in MyApp"},
+						},
+					},
+					ast.ActionNode{
+						Name: "view",
+						Annotations: []ast.Annotation{
+							{Key: "doc", Value: "View in MyApp"},
+						},
+					},
+					ast.CommonTypeNode{
+						Name: "Address",
+						Type: ast.StringType{},
+						Annotations: []ast.Annotation{
+							{Key: "doc", Value: "Address in MyApp"},
+						},
+					},
+					ast.EnumNode{
+						Name:   "Status",
+						Values: []types.String{"active"},
+						Annotations: []ast.Annotation{
+							{Key: "doc", Value: "Status in MyApp"},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	testRoundTrip(t, schema)
+
+	s := (*Schema)(schema)
+	jsonData, err := s.MarshalJSON()
+	testutil.OK(t, err)
+
+	testutil.Equals(t, strings.Contains(string(jsonData), `"User in MyApp"`), true)
+	testutil.Equals(t, strings.Contains(string(jsonData), `"View in MyApp"`), true)
+	testutil.Equals(t, strings.Contains(string(jsonData), `"Address in MyApp"`), true)
+	testutil.Equals(t, strings.Contains(string(jsonData), `"Status in MyApp"`), true)
 }

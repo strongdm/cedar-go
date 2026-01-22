@@ -129,16 +129,18 @@ type Namespace struct {
 
 // Entity represents a Cedar entity type in JSON format.
 type Entity struct {
-	MemberOfTypes []string `json:"memberOfTypes,omitempty"`
-	Shape         *Type    `json:"shape,omitempty"`
-	Tags          *Type    `json:"tags,omitempty"`
-	Enum          []string `json:"enum,omitempty"`
+	MemberOfTypes []string          `json:"memberOfTypes,omitempty"`
+	Shape         *Type             `json:"shape,omitempty"`
+	Tags          *Type             `json:"tags,omitempty"`
+	Enum          []string          `json:"enum,omitempty"`
+	Annotations   map[string]string `json:"annotations,omitempty"`
 }
 
 // Action represents a Cedar action in JSON format.
 type Action struct {
-	MemberOf  []EntityUID `json:"memberOf,omitempty"`
-	AppliesTo *AppliesTo  `json:"appliesTo,omitempty"`
+	MemberOf    []EntityUID       `json:"memberOf,omitempty"`
+	AppliesTo   *AppliesTo        `json:"appliesTo,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
 // EntityUID represents an entity reference in JSON format.
@@ -156,10 +158,11 @@ type AppliesTo struct {
 
 // Type represents a Cedar type in JSON format.
 type Type struct {
-	TypeName   string           `json:"type,omitempty"`
-	Name       string           `json:"name,omitempty"`
-	Element    *Type            `json:"element,omitempty"`
-	Attributes map[string]*Attr `json:"attributes,omitempty"`
+	TypeName    string            `json:"type,omitempty"`
+	Name        string            `json:"name,omitempty"`
+	Element     *Type             `json:"element,omitempty"`
+	Attributes  map[string]*Attr  `json:"attributes,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
 // MarshalJSON ensures Record types always output the attributes field.
@@ -167,14 +170,15 @@ func (t Type) MarshalJSON() ([]byte, error) {
 	if t.TypeName == "Record" {
 		// Record types must always have an attributes field
 		type recordType struct {
-			TypeName   string           `json:"type"`
-			Attributes map[string]*Attr `json:"attributes"`
+			TypeName    string            `json:"type"`
+			Attributes  map[string]*Attr  `json:"attributes"`
+			Annotations map[string]string `json:"annotations,omitempty"`
 		}
 		attrs := t.Attributes
 		if attrs == nil {
 			attrs = make(map[string]*Attr)
 		}
-		return json.Marshal(recordType{TypeName: t.TypeName, Attributes: attrs})
+		return json.Marshal(recordType{TypeName: t.TypeName, Attributes: attrs, Annotations: t.Annotations})
 	}
 	// Use an alias to avoid infinite recursion for non-Record types
 	type TypeAlias Type
@@ -211,6 +215,38 @@ func (a Attr) MarshalJSON() ([]byte, error) {
 }
 
 // Helper functions for marshalling
+
+func annotationsToMap(annotations []ast.Annotation) map[string]string {
+	if len(annotations) == 0 {
+		return nil
+	}
+	result := make(map[string]string, len(annotations))
+	for _, ann := range annotations {
+		result[string(ann.Key)] = string(ann.Value)
+	}
+	return result
+}
+
+func mapToAnnotations(m map[string]string) []ast.Annotation {
+	if len(m) == 0 {
+		return nil
+	}
+	// Sort keys for deterministic output
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	result := make([]ast.Annotation, 0, len(m))
+	for _, k := range keys {
+		result = append(result, ast.Annotation{
+			Key:   types.Ident(k),
+			Value: types.String(m[k]),
+		})
+	}
+	return result
+}
 
 func getOrCreateNamespace(namespaces map[string]*Namespace, name string) *Namespace {
 	if ns, ok := namespaces[name]; ok {
@@ -256,6 +292,8 @@ func addEntityToNamespace(ns *Namespace, e ast.EntityNode, entityNames map[strin
 		je.Tags = typeToJSON(e.TagsVal, entityNames)
 	}
 
+	je.Annotations = annotationsToMap(e.Annotations)
+
 	ns.EntityTypes[string(e.Name)] = je
 }
 
@@ -266,6 +304,9 @@ func addEnumToNamespace(ns *Namespace, e ast.EnumNode) {
 	for i, v := range e.Values {
 		je.Enum[i] = string(v)
 	}
+
+	je.Annotations = annotationsToMap(e.Annotations)
+
 	ns.EntityTypes[string(e.Name)] = je
 }
 
@@ -313,11 +354,18 @@ func addActionToNamespace(ns *Namespace, a ast.ActionNode, entityNames map[strin
 		}
 	}
 
+	ja.Annotations = annotationsToMap(a.Annotations)
+
 	ns.Actions[string(a.Name)] = ja
 }
 
 func addCommonTypeToNamespace(ns *Namespace, ct ast.CommonTypeNode, entityNames map[string]bool) {
-	ns.CommonTypes[string(ct.Name)] = typeToJSON(ct.Type, entityNames)
+	jt := typeToJSON(ct.Type, entityNames)
+	if jt == nil {
+		jt = &Type{}
+	}
+	jt.Annotations = annotationsToMap(ct.Annotations)
+	ns.CommonTypes[string(ct.Name)] = jt
 }
 
 func typeToJSON(t ast.IsType, entityNames map[string]bool) *Type {
@@ -419,10 +467,12 @@ func parseNamespaceContents(ns *Namespace) ([]ast.IsNode, error) {
 		if err != nil {
 			return nil, fmt.Errorf("parsing common type %s: %w", name, err)
 		}
-		nodes = append(nodes, ast.CommonTypeNode{
-			Name: types.Ident(name),
-			Type: t,
-		})
+		ct := ast.CommonTypeNode{
+			Name:        types.Ident(name),
+			Type:        t,
+			Annotations: mapToAnnotations(jt.Annotations),
+		}
+		nodes = append(nodes, ct)
 	}
 
 	// Parse entity types (sorted for determinism)
@@ -465,10 +515,12 @@ func parseEntity(name string, je *Entity) (ast.IsDeclaration, error) {
 		for i, v := range je.Enum {
 			values[i] = types.String(v)
 		}
-		return ast.EnumNode{
-			Name:   types.EntityType(name),
-			Values: values,
-		}, nil
+		en := ast.EnumNode{
+			Name:        types.EntityType(name),
+			Values:      values,
+			Annotations: mapToAnnotations(je.Annotations),
+		}
+		return en, nil
 	}
 
 	e := ast.EntityNode{
@@ -499,6 +551,8 @@ func parseEntity(name string, je *Entity) (ast.IsDeclaration, error) {
 		}
 		e.TagsVal = t
 	}
+
+	e.Annotations = mapToAnnotations(je.Annotations)
 
 	return e, nil
 }
@@ -550,6 +604,16 @@ func parseAction(name string, ja *Action) (ast.IsDeclaration, error) {
 				}
 				a.AppliesToVal.Context = t
 			}
+		}
+	}
+
+	if len(ja.Annotations) > 0 {
+		a.Annotations = make([]ast.Annotation, 0, len(ja.Annotations))
+		for k, v := range ja.Annotations {
+			a.Annotations = append(a.Annotations, ast.Annotation{
+				Key:   types.Ident(k),
+				Value: types.String(v),
+			})
 		}
 	}
 
