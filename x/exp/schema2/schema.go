@@ -5,6 +5,7 @@ import (
 	"github.com/cedar-policy/cedar-go/x/exp/schema2/ast"
 	"github.com/cedar-policy/cedar-go/x/exp/schema2/internal/json"
 	"github.com/cedar-policy/cedar-go/x/exp/schema2/internal/parser"
+	"github.com/cedar-policy/cedar-go/x/exp/schema2/resolver"
 )
 
 // Schema represents a Cedar schema with parsing and marshaling capabilities.
@@ -58,10 +59,6 @@ func (s *Schema) AST() *ast.Schema {
 // Type references within namespaces are resolved relative to their namespace.
 // Top-level type references are resolved as-is.
 // Returns an error if any type reference cannot be resolved.
-func (s *Schema) Resolve() (*ResolvedSchema, error) {
-	resolved, err := s.schema.Resolve()
-	if err != nil {
-		return nil, err
-	}
-	return &ResolvedSchema{ResolvedSchema: *resolved}, nil
+func (s *Schema) Resolve() (*resolver.ResolvedSchema, error) {
+	return resolver.Resolve(&s.schema)
 }

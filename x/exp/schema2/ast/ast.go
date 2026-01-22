@@ -22,9 +22,6 @@ type IsDeclaration interface {
 // IsType is the interface implemented by all type expressions.
 type IsType interface {
 	isType()
-	// resolve returns a new type with all references resolved using the provided resolve data.
-	// Returns an error if a type reference cannot be resolved.
-	resolve(rd *resolveData) (IsType, error)
 }
 
 // Annotation represents a Cedar annotation (@key("value")).

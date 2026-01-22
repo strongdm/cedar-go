@@ -1,22 +1,23 @@
-package ast
+package resolver
 
 import (
 	"fmt"
 	"iter"
 
 	"github.com/cedar-policy/cedar-go/types"
+	"github.com/cedar-policy/cedar-go/x/exp/schema2/ast"
 )
 
 // commonTypeEntry represents a common type that may or may not be resolved yet.
 type commonTypeEntry struct {
 	resolved bool
-	node     CommonTypeNode
+	node     ast.CommonTypeNode
 }
 
 // resolveData contains cached information for efficient type resolution.
 type resolveData struct {
-	schema               *Schema
-	namespace            *NamespaceNode
+	schema               *ast.Schema
+	namespace            *ast.NamespaceNode
 	schemaCommonTypes    map[string]*commonTypeEntry // Fully qualified name -> common type entry
 	namespaceCommonTypes map[string]*commonTypeEntry // Unqualified name -> common type entry
 }
@@ -30,11 +31,11 @@ func (rd *resolveData) entityExistsInEmptyNamespace(name types.EntityType) bool 
 	nameStr := string(name)
 	for _, node := range rd.schema.Nodes {
 		switch n := node.(type) {
-		case EntityNode:
+		case ast.EntityNode:
 			if string(n.Name) == nameStr {
 				return true
 			}
-		case EnumNode:
+		case ast.EnumNode:
 			if string(n.Name) == nameStr {
 				return true
 			}
@@ -44,7 +45,7 @@ func (rd *resolveData) entityExistsInEmptyNamespace(name types.EntityType) bool 
 }
 
 // newResolveData creates a new resolveData with cached common types from the schema.
-func newResolveData(schema *Schema, namespace *NamespaceNode) *resolveData {
+func newResolveData(schema *ast.Schema, namespace *ast.NamespaceNode) *resolveData {
 	rd := &resolveData{
 		schema:               schema,
 		namespace:            namespace,
@@ -84,7 +85,7 @@ func newResolveData(schema *Schema, namespace *NamespaceNode) *resolveData {
 }
 
 // withNamespace returns a new resolveData with the given namespace.
-func (rd *resolveData) withNamespace(namespace *NamespaceNode) *resolveData {
+func (rd *resolveData) withNamespace(namespace *ast.NamespaceNode) *resolveData {
 	if namespace == rd.namespace {
 		return rd
 	}
@@ -109,30 +110,6 @@ func (rd *resolveData) withNamespace(namespace *NamespaceNode) *resolveData {
 	}
 }
 
-// ResolvedNamespace represents a namespace without the declarations included.
-// All declarations have been moved into the other maps.
-type ResolvedNamespace struct {
-	Name        types.Path
-	Annotations []Annotation
-}
-
-// ResolvedEntity represents an entity type with all type references fully resolved.
-// All EntityTypeRef references have been converted to types.EntityType.
-type ResolvedEntity struct {
-	Name        types.EntityType   // Fully qualified entity type
-	Annotations []Annotation       // Entity annotations
-	MemberOf    []types.EntityType // Fully qualified parent entity types
-	Shape       *RecordType        // Entity shape (with all type references resolved)
-	Tags        IsType             // Tags type (with all type references resolved)
-}
-
-// ResolvedEnum represents an enum type with all references fully resolved.
-type ResolvedEnum struct {
-	Name        types.EntityType // Fully qualified enum type
-	Annotations []Annotation     // Enum annotations
-	Values      []types.String   // Enum values
-}
-
 // EntityUIDs returns an iterator over EntityUID values for each enum value.
 // The Name field should already be fully qualified.
 func (e ResolvedEnum) EntityUIDs() iter.Seq[types.EntityUID] {
@@ -145,44 +122,19 @@ func (e ResolvedEnum) EntityUIDs() iter.Seq[types.EntityUID] {
 	}
 }
 
-// ResolvedAppliesTo represents the appliesTo clause with all type references fully resolved.
-// All EntityTypeRef references have been converted to types.EntityType.
-type ResolvedAppliesTo struct {
-	PrincipalTypes []types.EntityType // Fully qualified principal entity types
-	ResourceTypes  []types.EntityType // Fully qualified resource entity types
-	Context        IsType             // Context type (with all type references resolved)
-}
-
-// ResolvedAction represents an action with all type references fully resolved.
-// All EntityTypeRef and EntityRef references have been converted to types.EntityType and types.EntityUID.
-type ResolvedAction struct {
-	Name        types.String       // Action name (local, not qualified)
-	Annotations []Annotation       // Action annotations
-	MemberOf    []types.EntityUID  // Fully qualified parent action UIDs
-	AppliesTo   *ResolvedAppliesTo // AppliesTo clause with all type references resolved
-}
-
-// ResolvedSchema represents a schema with all type references resolved and indexed for efficient lookup.
-type ResolvedSchema struct {
-	Namespaces map[types.Path]ResolvedNamespace    // Namespace path -> ResolvedNamespace
-	Entities   map[types.EntityType]ResolvedEntity // Fully qualified entity type -> ResolvedEntity
-	Enums      map[types.EntityType]ResolvedEnum   // Fully qualified entity type -> ResolvedEnum
-	Actions    map[types.EntityUID]ResolvedAction  // Fully qualified action UID -> ResolvedAction
-}
-
 // resolveDeclaration resolves a single declaration node and adds it to the resolved schema.
 // It handles common types, entities, enums, and actions.
-func resolveDeclaration(decl IsDeclaration, rd *resolveData, resolved *ResolvedSchema, namespaceName types.Path) error {
+func resolveDeclaration(decl ast.IsDeclaration, rd *resolveData, resolved *ResolvedSchema, namespaceName types.Path) error {
 	switch d := decl.(type) {
-	case CommonTypeNode:
+	case ast.CommonTypeNode:
 		// Common types are resolved but not added to the maps
-		_, err := d.resolve(rd)
+		_, err := resolveCommonTypeNode(rd, d)
 		if err != nil {
 			return err
 		}
 
-	case EntityNode:
-		resolvedEntity, err := d.resolve(rd)
+	case ast.EntityNode:
+		resolvedEntity, err := resolveEntityNode(rd, d)
 		if err != nil {
 			return err
 		}
@@ -195,8 +147,8 @@ func resolveDeclaration(decl IsDeclaration, rd *resolveData, resolved *ResolvedS
 		}
 		resolved.Entities[resolvedEntity.Name] = resolvedEntity
 
-	case EnumNode:
-		resolvedEnum := d.resolve(rd)
+	case ast.EnumNode:
+		resolvedEnum := resolveEnumNode(rd, d)
 		// Check for conflicts with existing enums or entities
 		if _, exists := resolved.Enums[resolvedEnum.Name]; exists {
 			return fmt.Errorf("enum type %q is defined multiple times", resolvedEnum.Name)
@@ -206,8 +158,8 @@ func resolveDeclaration(decl IsDeclaration, rd *resolveData, resolved *ResolvedS
 		}
 		resolved.Enums[resolvedEnum.Name] = resolvedEnum
 
-	case ActionNode:
-		resolvedAction, err := d.resolve(rd)
+	case ast.ActionNode:
+		resolvedAction, err := resolveActionNode(rd, d)
 		if err != nil {
 			return err
 		}
@@ -232,7 +184,7 @@ func resolveDeclaration(decl IsDeclaration, rd *resolveData, resolved *ResolvedS
 // Type references within namespaces are resolved relative to their namespace.
 // Top-level type references are resolved as-is.
 // Returns an error if any type reference cannot be resolved or if there are naming conflicts.
-func (s *Schema) Resolve() (*ResolvedSchema, error) {
+func Resolve(s *ast.Schema) (*ResolvedSchema, error) {
 	resolved := &ResolvedSchema{
 		Namespaces: make(map[types.Path]ResolvedNamespace),
 		Entities:   make(map[types.EntityType]ResolvedEntity),
@@ -244,7 +196,7 @@ func (s *Schema) Resolve() (*ResolvedSchema, error) {
 
 	for _, node := range s.Nodes {
 		switch n := node.(type) {
-		case NamespaceNode:
+		case ast.NamespaceNode:
 			// Store namespace annotations
 			if n.Name != "" {
 				resolved.Namespaces[n.Name] = ResolvedNamespace{
@@ -263,22 +215,22 @@ func (s *Schema) Resolve() (*ResolvedSchema, error) {
 				}
 			}
 
-		case EntityNode:
+		case ast.EntityNode:
 			if err := resolveDeclaration(n, rd, resolved, ""); err != nil {
 				return nil, err
 			}
 
-		case EnumNode:
+		case ast.EnumNode:
 			if err := resolveDeclaration(n, rd, resolved, ""); err != nil {
 				return nil, err
 			}
 
-		case ActionNode:
+		case ast.ActionNode:
 			if err := resolveDeclaration(n, rd, resolved, ""); err != nil {
 				return nil, err
 			}
 
-		case CommonTypeNode:
+		case ast.CommonTypeNode:
 			if err := resolveDeclaration(n, rd, resolved, ""); err != nil {
 				return nil, err
 			}

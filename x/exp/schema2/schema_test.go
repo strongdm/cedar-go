@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/cedar-policy/cedar-go/types"
+	"github.com/cedar-policy/cedar-go/x/exp/schema2/resolver"
 )
 
 func TestSchemaCedarMarshalUnmarshal(t *testing.T) {
@@ -251,12 +252,12 @@ func TestSchemaResolve(t *testing.T) {
 		input       string
 		wantErr     bool
 		errContains string
-		checkFn     func(*testing.T, *ResolvedSchema)
+		checkFn     func(*testing.T, *resolver.ResolvedSchema)
 	}{
 		{
 			name:  "empty schema",
 			input: "",
-			checkFn: func(t *testing.T, rs *ResolvedSchema) {
+			checkFn: func(t *testing.T, rs *resolver.ResolvedSchema) {
 				if len(rs.Entities) != 0 || len(rs.Enums) != 0 || len(rs.Actions) != 0 {
 					t.Errorf("Resolve() counts = entities:%d enums:%d actions:%d, want all 0",
 						len(rs.Entities), len(rs.Enums), len(rs.Actions))
@@ -270,7 +271,7 @@ namespace MyApp {
 	entity User;
 	entity Group;
 }`,
-			checkFn: func(t *testing.T, rs *ResolvedSchema) {
+			checkFn: func(t *testing.T, rs *resolver.ResolvedSchema) {
 				if len(rs.Entities) != 2 {
 					t.Errorf("Resolve() entities count = %d, want 2", len(rs.Entities))
 				}
@@ -294,7 +295,7 @@ namespace MyApp {
 		address: Address
 	};
 }`,
-			checkFn: func(t *testing.T, rs *ResolvedSchema) {
+			checkFn: func(t *testing.T, rs *resolver.ResolvedSchema) {
 				if len(rs.Entities) != 1 {
 					t.Errorf("Resolve() entities count = %d, want 1", len(rs.Entities))
 				}
@@ -309,7 +310,7 @@ namespace MyApp {
 namespace MyApp {
 	entity Status enum ["active", "inactive", "pending"];
 }`,
-			checkFn: func(t *testing.T, rs *ResolvedSchema) {
+			checkFn: func(t *testing.T, rs *resolver.ResolvedSchema) {
 				if len(rs.Enums) != 1 {
 					t.Errorf("Resolve() enums count = %d, want 1", len(rs.Enums))
 				}
@@ -330,7 +331,7 @@ namespace MyApp {
 	entity User;
 	entity Document;
 }`,
-			checkFn: func(t *testing.T, rs *ResolvedSchema) {
+			checkFn: func(t *testing.T, rs *resolver.ResolvedSchema) {
 				if len(rs.Actions) != 1 {
 					t.Errorf("Resolve() actions count = %d, want 1", len(rs.Actions))
 				}
@@ -362,7 +363,7 @@ namespace MyApp {
 			input: `
 entity User;
 entity Group;`,
-			checkFn: func(t *testing.T, rs *ResolvedSchema) {
+			checkFn: func(t *testing.T, rs *resolver.ResolvedSchema) {
 				if len(rs.Entities) != 2 {
 					t.Errorf("Resolve() entities count = %d, want 2", len(rs.Entities))
 				}
@@ -381,7 +382,7 @@ entity TopLevel;
 namespace MyApp {
 	entity Namespaced;
 }`,
-			checkFn: func(t *testing.T, rs *ResolvedSchema) {
+			checkFn: func(t *testing.T, rs *resolver.ResolvedSchema) {
 				if len(rs.Entities) != 2 {
 					t.Errorf("Resolve() entities count = %d, want 2", len(rs.Entities))
 				}
