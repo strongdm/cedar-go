@@ -422,7 +422,8 @@ func TestResolve(t *testing.T) {
 			type Type3 = Type2;
 			entity User = {
 				"field1": Type3,
-				"field2": Type3
+				"field2": Type2,
+				"field3": Type1
 			};`,
 			want: &resolver.ResolvedSchema{
 				Namespaces: map[types.Path]resolver.ResolvedNamespace{},
@@ -433,6 +434,7 @@ func TestResolve(t *testing.T) {
 							Pairs: []ast.Pair{
 								{Key: "field1", Type: ast.StringType{}},
 								{Key: "field2", Type: ast.StringType{}},
+								{Key: "field3", Type: ast.StringType{}},
 							},
 						},
 					},
@@ -693,6 +695,109 @@ func TestResolve(t *testing.T) {
 			}`,
 			errTest: testutil.Error,
 		},
+		{
+			name: "namespace common type used multiple times triggers cache",
+			in: `namespace App {
+				type MyType = String;
+				entity User = { "field": MyType };
+				entity Group = { "field": MyType };
+			}`,
+			want: &resolver.ResolvedSchema{
+				Namespaces: map[types.Path]resolver.ResolvedNamespace{
+					"App": {Name: "App"},
+				},
+				Entities: map[types.EntityType]resolver.ResolvedEntity{
+					"App::User": {
+						Name: "App::User",
+						Shape: &ast.RecordType{
+							Pairs: []ast.Pair{
+								{Key: "field", Type: ast.String()},
+							},
+						},
+					},
+					"App::Group": {
+						Name: "App::Group",
+						Shape: &ast.RecordType{
+							Pairs: []ast.Pair{
+								{Key: "field", Type: ast.String()},
+							},
+						},
+					},
+				},
+				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
+				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+			},
+			errTest: testutil.OK,
+		},
+		{
+			name: "error resolving namespace common type during lazy resolution",
+			in: `namespace App {
+				entity User = { "f1": BadType, "f2": BadType };
+				type BadType = NonExistent;
+			}`,
+			errTest: testutil.Error,
+		},
+		{
+			name: "nested common types in namespace with cross reference triggers schema cache search",
+			in: `namespace App {
+				type Type1 = String;
+				type Type2 = Type1;
+			}
+			namespace Other {
+				entity User = { "field": Type2 };
+			}`,
+			errTest: testutil.Error, // Type2 is not accessible from Other namespace
+		},
+		{
+			name: "common type aliasing entity type is invalid",
+			in: `entity User;
+			type UserAlias = User;
+			entity Group = { "owner": UserAlias };`,
+			errTest: testutil.Error, // User is an entity, not a type
+		},
+		{
+			name: "namespace cannot reference global common types",
+			in: `type GlobalType = String;
+			namespace App {
+				type LocalType = GlobalType;
+				entity User = { "field": LocalType };
+			}`,
+			errTest: testutil.Error, // Global types not accessible from namespaces
+		},
+		{
+			name: "error resolving global common type during lazy resolution",
+			in: `entity User = { "field": BadType };
+			type BadType = NonExistent;`,
+			errTest: testutil.Error,
+		},
+		{
+			name: "lazy resolution finds namespaced common type in schema cache",
+			in: `namespace App {
+				type Type1 = String;
+				type Type2 = Type1;
+			}
+			namespace App {
+				entity User = { "field": Type2 };
+			}`,
+			want: &resolver.ResolvedSchema{
+				Namespaces: map[types.Path]resolver.ResolvedNamespace{
+					"App": {Name: "App"},
+				},
+				Entities: map[types.EntityType]resolver.ResolvedEntity{
+					"App::User": {
+						Name: "App::User",
+						Shape: &ast.RecordType{
+							Pairs: []ast.Pair{
+								{Key: "field", Type: ast.String()},
+							},
+						},
+					},
+				},
+				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
+				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+			},
+			errTest: testutil.OK,
+		},
 	}
 
 	for _, tt := range tests {
@@ -711,6 +816,37 @@ func TestResolve(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestEntityTypeRefInSet tests that EntityTypeRef can be resolved when nested in a Set.
+// This is a valid AST construction that can come from JSON schemas.
+// The Cedar text parser treats Set<User> as Set<TypeRef>, so we must construct the AST directly.
+func TestEntityTypeRefInSet(t *testing.T) {
+	t.Parallel()
+
+	// Construct schema with Set<EntityTypeRef> directly in AST
+	schema := ast.NewSchema(
+		ast.Entity("User"),
+		ast.Entity("Group").Shape(
+			ast.Attribute("members", ast.Set(ast.EntityType("User"))),
+		),
+	)
+
+	resolved, err := resolver.Resolve(schema)
+	testutil.OK(t, err)
+
+	// Verify Group entity has correct shape with resolved User reference
+	group := resolved.Entities["Group"]
+	testutil.Equals(t, group.Name, types.EntityType("Group"))
+	testutil.Equals(t, len(group.Shape.Pairs), 1)
+	testutil.Equals(t, group.Shape.Pairs[0].Key, types.String("members"))
+
+	// The Set element should still be EntityTypeRef, just with name resolved
+	setType, ok := group.Shape.Pairs[0].Type.(ast.SetType)
+	testutil.Equals(t, ok, true)
+	entityRef, ok := setType.Element.(ast.EntityTypeRef)
+	testutil.Equals(t, ok, true)
+	testutil.Equals(t, entityRef.Name, types.EntityType("User"))
 }
 
 // TestEnumEntityUIDs tests the EntityUIDs iterator method.
