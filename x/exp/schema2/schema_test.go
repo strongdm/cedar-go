@@ -16,6 +16,7 @@ var wantCedar = `
 @doc("Address information")
 type Address = {
   "city": String,
+  "country": Country,
   "street": String,
   "zipcode"?: String,
 };
@@ -105,6 +106,10 @@ var wantJSON = `{
           "city": {
             "type": "EntityOrCommon",
             "name": "String"
+          },
+          "country": {
+            "type": "EntityOrCommon",
+            "name": "Country"
           },
           "street": {
             "type": "EntityOrCommon",
@@ -356,6 +361,7 @@ var wantAST = &ast.Schema{
 			Type: ast.RecordType{
 				Pairs: []ast.Pair{
 					{Key: "city", Type: ast.StringType{}},
+					{Key: "country", Type: ast.TypeRef{Name: "Country"}},
 					{Key: "street", Type: ast.StringType{}},
 					{Key: "zipcode", Type: ast.StringType{}, Optional: true},
 				},
@@ -588,6 +594,7 @@ var wantResolved = &resolver.ResolvedSchema{
 					{Key: "address", Type: ast.RecordType{
 						Pairs: []ast.Pair{
 							{Key: "city", Type: ast.StringType{}},
+							{Key: "country", Type: ast.EntityTypeRef{Name: types.EntityType("Country")}},
 							{Key: "street", Type: ast.StringType{}},
 							{Key: "zipcode", Type: ast.StringType{}, Optional: true},
 						},
