@@ -11,7 +11,11 @@ import (
 // Schema represents a Cedar schema with parsing and marshaling capabilities.
 type Schema struct {
 	filename string
-	schema   ast.Schema
+	schema   *ast.Schema
+}
+
+func NewSchemaFromAST(in *ast.Schema) *Schema {
+	return &Schema{schema: in}
 }
 
 // SetFilename sets the filename for this schema.
@@ -21,7 +25,7 @@ func (s *Schema) SetFilename(filename string) {
 
 // MarshalJSON encodes the Schema in the JSON format specified by the Cedar documentation.
 func (s *Schema) MarshalJSON() ([]byte, error) {
-	jsonSchema := (*json.Schema)(&s.schema)
+	jsonSchema := (*json.Schema)(s.schema)
 	return jsonSchema.MarshalJSON()
 }
 
@@ -31,13 +35,13 @@ func (s *Schema) UnmarshalJSON(b []byte) error {
 	if err := jsonSchema.UnmarshalJSON(b); err != nil {
 		return err
 	}
-	s.schema = *(*ast.Schema)(&jsonSchema)
+	s.schema = (*ast.Schema)(&jsonSchema)
 	return nil
 }
 
 // MarshalCedar encodes the Schema in the human-readable format specified by the Cedar documentation.
 func (s *Schema) MarshalCedar() ([]byte, error) {
-	return parser.MarshalSchema(&s.schema), nil
+	return parser.MarshalSchema(s.schema), nil
 }
 
 // UnmarshalCedar parses a Schema in the human-readable format specified by the Cedar documentation.
@@ -46,13 +50,13 @@ func (s *Schema) UnmarshalCedar(b []byte) error {
 	if err != nil {
 		return err
 	}
-	s.schema = *schema
+	s.schema = schema
 	return nil
 }
 
 // AST returns the underlying AST schema.
 func (s *Schema) AST() *ast.Schema {
-	return &s.schema
+	return s.schema
 }
 
 // Resolve returns a ResolvedSchema with all type references resolved and indexed for efficient lookup.
@@ -60,5 +64,5 @@ func (s *Schema) AST() *ast.Schema {
 // Top-level type references are resolved as-is.
 // Returns an error if any type reference cannot be resolved.
 func (s *Schema) Resolve() (*resolver.ResolvedSchema, error) {
-	return resolver.Resolve(&s.schema)
+	return resolver.Resolve(s.schema)
 }

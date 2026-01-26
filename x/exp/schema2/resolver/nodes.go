@@ -1,6 +1,8 @@
 package resolver
 
 import (
+	"fmt"
+
 	"github.com/cedar-policy/cedar-go/types"
 	"github.com/cedar-policy/cedar-go/x/exp/schema2/ast"
 )
@@ -119,7 +121,11 @@ func resolveActionNode(rd *resolveData, a ast.ActionNode) (ResolvedAction, error
 			if err != nil {
 				return ResolvedAction{}, err
 			}
-			resolved.AppliesTo.Context = resolvedContext
+			recordContext, ok := resolvedContext.(ast.RecordType)
+			if resolvedContext != nil && !ok {
+				return ResolvedAction{}, fmt.Errorf("action %q context resolved to %T", a.Name, resolvedContext)
+			}
+			resolved.AppliesTo.Context = recordContext
 		}
 	}
 

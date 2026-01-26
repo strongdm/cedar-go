@@ -4,7 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"reflect"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 type TB interface {
@@ -16,10 +17,12 @@ type TB interface {
 
 func Equals[T any](t TB, a, b T) {
 	t.Helper()
-	if reflect.DeepEqual(a, b) {
-		return
-	}
-	t.Fatalf("got %+v want %+v", a, b)
+	diff := cmp.Diff(b, a)
+	FatalIf(t, diff != "", "mismatch -want +got:\n%v", diff)
+	// if reflect.DeepEqual(a, b) {
+	// 	return
+	// }
+	// t.Fatalf("got %+v want %+v", a, b)
 }
 
 func FatalIf(t TB, c bool, f string, args ...any) {

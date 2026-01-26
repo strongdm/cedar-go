@@ -74,7 +74,7 @@ func marshalCommonType(buf *bytes.Buffer, ct ast.CommonTypeNode, indent string) 
 	buf.WriteString("type ")
 	buf.WriteString(string(ct.Name))
 	buf.WriteString(" = ")
-	marshalType(buf, ct.Type)
+	marshalTypeIndented(buf, ct.Type, indent)
 	buf.WriteString(";\n")
 }
 
@@ -91,12 +91,12 @@ func marshalEntity(buf *bytes.Buffer, e ast.EntityNode, indent string) {
 
 	if e.ShapeVal != nil && len(e.ShapeVal.Pairs) > 0 {
 		buf.WriteString(" = ")
-		marshalRecordTypeCompact(buf, *e.ShapeVal, indent)
+		marshalRecordType(buf, *e.ShapeVal, indent)
 	}
 
 	if e.TagsVal != nil {
 		buf.WriteString(" tags ")
-		marshalType(buf, e.TagsVal)
+		marshalTypeIndented(buf, e.TagsVal, indent+"  ")
 	}
 
 	buf.WriteString(";\n")
@@ -148,14 +148,12 @@ func marshalAction(buf *bytes.Buffer, a ast.ActionNode, indent string) {
 			buf.WriteString(",\n")
 		}
 
-		buf.WriteString(innerIndent)
-		buf.WriteString("context: ")
 		if a.AppliesToVal.Context != nil {
+			buf.WriteString(innerIndent)
+			buf.WriteString("context: ")
 			marshalTypeIndented(buf, a.AppliesToVal.Context, innerIndent)
-		} else {
-			buf.WriteString("{}")
+			buf.WriteString("\n")
 		}
-		buf.WriteString(",\n")
 
 		buf.WriteString(indent)
 		buf.WriteString("}")
@@ -173,11 +171,6 @@ func marshalActionName(buf *bytes.Buffer, name string) {
 }
 
 func marshalEntityTypeRefs(buf *bytes.Buffer, refs []ast.EntityTypeRef) {
-	if len(refs) == 1 {
-		buf.WriteString(string(refs[0].Name))
-		return
-	}
-
 	buf.WriteString("[")
 	for i, ref := range refs {
 		if i > 0 {
@@ -212,10 +205,6 @@ func marshalEntityRef(buf *bytes.Buffer, ref ast.EntityRef) {
 	buf.WriteString(quoteString(string(ref.ID)))
 }
 
-func marshalType(buf *bytes.Buffer, t ast.IsType) {
-	marshalTypeIndented(buf, t, "")
-}
-
 func marshalTypeIndented(buf *bytes.Buffer, t ast.IsType, indent string) {
 	switch v := t.(type) {
 	case ast.StringType:
@@ -229,7 +218,7 @@ func marshalTypeIndented(buf *bytes.Buffer, t ast.IsType, indent string) {
 		buf.WriteString(string(v.Name))
 	case ast.SetType:
 		buf.WriteString("Set<")
-		marshalType(buf, v.Element)
+		marshalTypeIndented(buf, v.Element, indent+"  ")
 		buf.WriteString(">")
 	case ast.RecordType:
 		marshalRecordType(buf, v, indent)

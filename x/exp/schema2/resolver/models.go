@@ -56,7 +56,7 @@ func (e ResolvedEnum) EntityUIDs() iter.Seq[types.EntityUID] {
 type ResolvedAppliesTo struct {
 	PrincipalTypes []types.EntityType // Fully qualified principal entity types
 	ResourceTypes  []types.EntityType // Fully qualified resource entity types
-	Context        ast.IsType         // Context type (with all type references resolved)
+	Context        ast.RecordType     // Context type (with all type references resolved)
 }
 
 // ResolvedAction represents an action with all type references fully resolved.

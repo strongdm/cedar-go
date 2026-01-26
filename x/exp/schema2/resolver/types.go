@@ -100,7 +100,7 @@ func resolveTypeRef(rd *resolveData, t ast.TypeRef) (ast.IsType, error) {
 		}
 
 		// Not found in namespace, qualify the name for schema search
-		name = string(rd.namespace.Name) + "::" + name
+		// name = string(rd.namespace.Name) + "::" + name
 	}
 
 	// Check schema-wide cache
@@ -136,6 +136,17 @@ func resolveTypeRef(rd *resolveData, t ast.TypeRef) (ast.IsType, error) {
 		return resolvedNode.Type, nil
 	}
 
+	if _, ok := knownExtensions[name]; ok {
+		return ast.ExtensionType{Name: types.Ident(name)}, nil
+	}
+
 	// Not found, return an error
 	return nil, fmt.Errorf("type %q not found", name)
+}
+
+var knownExtensions = map[string]struct{}{
+	"decimal":  {},
+	"duration": {},
+	"datetime": {},
+	"ipaddr":   {},
 }

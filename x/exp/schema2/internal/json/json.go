@@ -25,21 +25,21 @@ func (s *Schema) MarshalJSON() ([]byte, error) {
 	for _, node := range astSchema.Nodes {
 		switch n := node.(type) {
 		case ast.NamespaceNode:
-			ns := getOrCreateNamespace(namespaces, string(n.Name))
+			ns := getOrCreateNamespace(namespaces, string(n.Name), n.Annotations)
 			for _, decl := range n.Declarations {
 				addDeclToNamespace(ns, decl, entityNames)
 			}
 		case ast.EntityNode:
-			ns := getOrCreateNamespace(namespaces, "")
+			ns := getOrCreateNamespace(namespaces, "", nil)
 			addEntityToNamespace(ns, n, entityNames)
 		case ast.EnumNode:
-			ns := getOrCreateNamespace(namespaces, "")
+			ns := getOrCreateNamespace(namespaces, "", nil)
 			addEnumToNamespace(ns, n)
 		case ast.ActionNode:
-			ns := getOrCreateNamespace(namespaces, "")
+			ns := getOrCreateNamespace(namespaces, "", nil)
 			addActionToNamespace(ns, n, entityNames)
 		case ast.CommonTypeNode:
-			ns := getOrCreateNamespace(namespaces, "")
+			ns := getOrCreateNamespace(namespaces, "", nil)
 			addCommonTypeToNamespace(ns, n, entityNames)
 		}
 	}
@@ -87,6 +87,7 @@ func (s *Schema) UnmarshalJSON(data []byte) error {
 			astSchema.Nodes = append(astSchema.Nodes, ast.NamespaceNode{
 				Name:         types.Path(nsName),
 				Declarations: declarations,
+				Annotations:  mapToAnnotations(ns.Annotations),
 			})
 		}
 	}
@@ -125,6 +126,7 @@ type Namespace struct {
 	CommonTypes map[string]*Type   `json:"commonTypes,omitempty"`
 	EntityTypes map[string]*Entity `json:"entityTypes"`
 	Actions     map[string]*Action `json:"actions"`
+	Annotations map[string]string  `json:"annotations,omitempty"`
 }
 
 // Entity represents a Cedar entity type in JSON format.
@@ -248,7 +250,7 @@ func mapToAnnotations(m map[string]string) []ast.Annotation {
 	return result
 }
 
-func getOrCreateNamespace(namespaces map[string]*Namespace, name string) *Namespace {
+func getOrCreateNamespace(namespaces map[string]*Namespace, name string, annotations []ast.Annotation) *Namespace {
 	if ns, ok := namespaces[name]; ok {
 		return ns
 	}
@@ -256,7 +258,11 @@ func getOrCreateNamespace(namespaces map[string]*Namespace, name string) *Namesp
 		CommonTypes: make(map[string]*Type),
 		EntityTypes: make(map[string]*Entity),
 		Actions:     make(map[string]*Action),
+		Annotations: make(map[string]string),
 	}
+
+	ns.Annotations = annotationsToMap(annotations)
+
 	namespaces[name] = ns
 	return ns
 }
@@ -395,7 +401,7 @@ func typeToJSON(t ast.IsType, entityNames map[string]bool) *Type {
 		}
 		return jt
 	case ast.EntityTypeRef:
-		return &Type{TypeName: "Entity", Name: string(v.Name)}
+		return &Type{TypeName: "EntityOrCommon", Name: string(v.Name)}
 	case ast.TypeRef:
 		// Check if this type name refers to an entity
 		name := string(v.Name)
@@ -436,7 +442,7 @@ func attrToJSON(t ast.IsType, entityNames map[string]bool) *Attr {
 		}
 		return ja
 	case ast.EntityTypeRef:
-		return &Attr{TypeName: "Entity", Name: string(v.Name)}
+		return &Attr{TypeName: "EntityOrCommon", Name: string(v.Name)}
 	case ast.TypeRef:
 		// Check if this type name refers to an entity
 		name := string(v.Name)
