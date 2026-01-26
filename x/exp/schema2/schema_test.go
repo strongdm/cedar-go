@@ -714,6 +714,23 @@ func TestSchema(t *testing.T) {
 		testutil.OK(t, err)
 		testutil.Equals(t, r, wantResolved)
 	})
+
+	t.Run("UnmarshalCedarErr", func(t *testing.T) {
+		t.Parallel()
+		var s schema2.Schema
+		const filename = "path/to/my-file-name.cedarschema"
+		s.SetFilename(filename)
+		err := s.UnmarshalCedar([]byte("LSKJDFN"))
+		testutil.Error(t, err)
+		testutil.FatalIf(t, !strings.Contains(err.Error(), filename+":1:1"), "expected %q in error: %v", filename, err)
+	})
+
+	t.Run("UnmarshalJSONErr", func(t *testing.T) {
+		t.Parallel()
+		var s schema2.Schema
+		err := s.UnmarshalJSON([]byte("LSKJDFN"))
+		testutil.Error(t, err)
+	})
 }
 
 func stringEquals(t *testing.T, got, want string) {
