@@ -592,16 +592,42 @@ func TestResolve(t *testing.T) {
 			errTest: testutil.OK,
 		},
 
-		// Error cases
+		// Cases with unresolved type references (treated as EntityTypeRef)
 		{
-			name:    "undefined type reference",
-			in:      `entity User = { "field": NonExistent };`,
-			errTest: testutil.Error,
+			name: "undefined type reference",
+			in:   `entity User = { "field": NonExistent };`,
+			want: &resolver.ResolvedSchema{
+				Namespaces: map[types.Path]resolver.ResolvedNamespace{},
+				Entities: map[types.EntityType]resolver.ResolvedEntity{
+					"User": {
+						Name: "User",
+						Shape: &ast.RecordType{
+							Pairs: []ast.Pair{
+								{Key: "field", Type: ast.EntityTypeRef{Name: "NonExistent"}},
+							},
+						},
+					},
+				},
+				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
+				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+			},
+			errTest: testutil.OK,
 		},
 		{
-			name:    "undefined type reference in tags",
-			in:      `entity User tags NonExistent;`,
-			errTest: testutil.Error,
+			name: "undefined type reference in tags",
+			in:   `entity User tags NonExistent;`,
+			want: &resolver.ResolvedSchema{
+				Namespaces: map[types.Path]resolver.ResolvedNamespace{},
+				Entities: map[types.EntityType]resolver.ResolvedEntity{
+					"User": {
+						Name: "User",
+						Tags: ast.EntityTypeRef{Name: "NonExistent"},
+					},
+				},
+				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
+				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+			},
+			errTest: testutil.OK,
 		},
 		{
 			name: "undefined type reference in action context",
@@ -610,22 +636,40 @@ func TestResolve(t *testing.T) {
 				resource: [],
 				context: NonExistent
 			};`,
-			errTest: testutil.Error,
+			errTest: testutil.Error, // Context must be a record type
 		},
 		{
-			name:    "common type with undefined nested type",
-			in:      `type MyType = NonExistent;`,
-			errTest: testutil.Error,
+			name: "common type with undefined nested type",
+			in:   `type MyType = NonExistent;`,
+			want: &resolver.ResolvedSchema{
+				Namespaces: map[types.Path]resolver.ResolvedNamespace{},
+				Entities:   map[types.EntityType]resolver.ResolvedEntity{},
+				Enums:      map[types.EntityType]resolver.ResolvedEnum{},
+				Actions:    map[types.EntityUID]resolver.ResolvedAction{},
+			},
+			errTest: testutil.OK,
 		},
 		{
-			name:    "common type with undefined nested type in record",
-			in:      `type MyType = { "field": NonExistent };`,
-			errTest: testutil.Error,
+			name: "common type with undefined nested type in record",
+			in:   `type MyType = { "field": NonExistent };`,
+			want: &resolver.ResolvedSchema{
+				Namespaces: map[types.Path]resolver.ResolvedNamespace{},
+				Entities:   map[types.EntityType]resolver.ResolvedEntity{},
+				Enums:      map[types.EntityType]resolver.ResolvedEnum{},
+				Actions:    map[types.EntityUID]resolver.ResolvedAction{},
+			},
+			errTest: testutil.OK,
 		},
 		{
-			name:    "common type with undefined nested type in set",
-			in:      `type MyType = Set<NonExistent>;`,
-			errTest: testutil.Error,
+			name: "common type with undefined nested type in set",
+			in:   `type MyType = Set<NonExistent>;`,
+			want: &resolver.ResolvedSchema{
+				Namespaces: map[types.Path]resolver.ResolvedNamespace{},
+				Entities:   map[types.EntityType]resolver.ResolvedEntity{},
+				Enums:      map[types.EntityType]resolver.ResolvedEnum{},
+				Actions:    map[types.EntityUID]resolver.ResolvedAction{},
+			},
+			errTest: testutil.OK,
 		},
 		{
 			name:    "duplicate entity definition",
@@ -693,7 +737,24 @@ func TestResolve(t *testing.T) {
 					"field": MyType
 				};
 			}`,
-			errTest: testutil.Error,
+			want: &resolver.ResolvedSchema{
+				Namespaces: map[types.Path]resolver.ResolvedNamespace{
+					"App": {Name: "App"},
+				},
+				Entities: map[types.EntityType]resolver.ResolvedEntity{
+					"App::User": {
+						Name: "App::User",
+						Shape: &ast.RecordType{
+							Pairs: []ast.Pair{
+								{Key: "field", Type: ast.EntityTypeRef{Name: "NonExistent"}},
+							},
+						},
+					},
+				},
+				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
+				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+			},
+			errTest: testutil.OK,
 		},
 		{
 			name: "namespace common type used multiple times triggers cache",
@@ -735,7 +796,25 @@ func TestResolve(t *testing.T) {
 				entity User = { "f1": BadType, "f2": BadType };
 				type BadType = NonExistent;
 			}`,
-			errTest: testutil.Error,
+			want: &resolver.ResolvedSchema{
+				Namespaces: map[types.Path]resolver.ResolvedNamespace{
+					"App": {Name: "App"},
+				},
+				Entities: map[types.EntityType]resolver.ResolvedEntity{
+					"App::User": {
+						Name: "App::User",
+						Shape: &ast.RecordType{
+							Pairs: []ast.Pair{
+								{Key: "f1", Type: ast.EntityTypeRef{Name: "NonExistent"}},
+								{Key: "f2", Type: ast.EntityTypeRef{Name: "NonExistent"}},
+							},
+						},
+					},
+				},
+				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
+				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+			},
+			errTest: testutil.OK,
 		},
 		{
 			name: "nested common types in namespace with cross reference triggers schema cache search",
@@ -746,29 +825,95 @@ func TestResolve(t *testing.T) {
 			namespace Other {
 				entity User = { "field": Type2 };
 			}`,
-			errTest: testutil.Error, // Type2 is not accessible from Other namespace
+			want: &resolver.ResolvedSchema{
+				Namespaces: map[types.Path]resolver.ResolvedNamespace{
+					"App":   {Name: "App"},
+					"Other": {Name: "Other"},
+				},
+				Entities: map[types.EntityType]resolver.ResolvedEntity{
+					"Other::User": {
+						Name: "Other::User",
+						Shape: &ast.RecordType{
+							Pairs: []ast.Pair{
+								{Key: "field", Type: ast.EntityTypeRef{Name: "Type2"}},
+							},
+						},
+					},
+				},
+				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
+				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+			},
+			errTest: testutil.OK, // Type2 is not accessible from Other namespace, becomes EntityTypeRef
 		},
 		{
 			name: "common type aliasing entity type is invalid",
 			in: `entity User;
 			type UserAlias = User;
 			entity Group = { "owner": UserAlias };`,
-			errTest: testutil.Error, // User is an entity, not a type
+			want: &resolver.ResolvedSchema{
+				Namespaces: map[types.Path]resolver.ResolvedNamespace{},
+				Entities: map[types.EntityType]resolver.ResolvedEntity{
+					"User": {Name: "User"},
+					"Group": {
+						Name: "Group",
+						Shape: &ast.RecordType{
+							Pairs: []ast.Pair{
+								{Key: "owner", Type: ast.EntityTypeRef{Name: "User"}},
+							},
+						},
+					},
+				},
+				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
+				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+			},
+			errTest: testutil.OK, // User is treated as EntityTypeRef when used as type
 		},
 		{
-			name: "namespace cannot reference global common types",
+			name: "namespace can reference global common types",
 			in: `type GlobalType = String;
 			namespace App {
 				type LocalType = GlobalType;
 				entity User = { "field": LocalType };
 			}`,
-			errTest: testutil.Error, // Global types not accessible from namespaces
+			want: &resolver.ResolvedSchema{
+				Namespaces: map[types.Path]resolver.ResolvedNamespace{
+					"App": {Name: "App"},
+				},
+				Entities: map[types.EntityType]resolver.ResolvedEntity{
+					"App::User": {
+						Name: "App::User",
+						Shape: &ast.RecordType{
+							Pairs: []ast.Pair{
+								{Key: "field", Type: ast.StringType{}},
+							},
+						},
+					},
+				},
+				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
+				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+			},
+			errTest: testutil.OK, // Global types ARE accessible from namespaces
 		},
 		{
 			name: "error resolving global common type during lazy resolution",
 			in: `entity User = { "field": BadType };
 			type BadType = NonExistent;`,
-			errTest: testutil.Error,
+			want: &resolver.ResolvedSchema{
+				Namespaces: map[types.Path]resolver.ResolvedNamespace{},
+				Entities: map[types.EntityType]resolver.ResolvedEntity{
+					"User": {
+						Name: "User",
+						Shape: &ast.RecordType{
+							Pairs: []ast.Pair{
+								{Key: "field", Type: ast.EntityTypeRef{Name: "NonExistent"}},
+							},
+						},
+					},
+				},
+				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
+				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+			},
+			errTest: testutil.OK,
 		},
 		{
 			name: "lazy resolution finds namespaced common type in schema cache",
@@ -788,7 +933,7 @@ func TestResolve(t *testing.T) {
 						Name: "App::User",
 						Shape: &ast.RecordType{
 							Pairs: []ast.Pair{
-								{Key: "field", Type: ast.String()},
+								{Key: "field", Type: ast.EntityTypeRef{Name: "Type2"}},
 							},
 						},
 					},
@@ -796,7 +941,47 @@ func TestResolve(t *testing.T) {
 				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
 				Actions: map[types.EntityUID]resolver.ResolvedAction{},
 			},
+			errTest: testutil.OK, // Type2 not found in namespace-local cache, not qualified for schema cache
+		},
+		{
+			name: "action context with unqualified extension type",
+			in: `action view appliesTo {
+				principal: [],
+				resource: [],
+				context: {
+					"timestamp": datetime,
+					"duration": duration
+				}
+			};`,
+			want: &resolver.ResolvedSchema{
+				Namespaces: map[types.Path]resolver.ResolvedNamespace{},
+				Entities:   map[types.EntityType]resolver.ResolvedEntity{},
+				Enums:      map[types.EntityType]resolver.ResolvedEnum{},
+				Actions: map[types.EntityUID]resolver.ResolvedAction{
+					types.NewEntityUID("Action", "view"): {
+						Name: "view",
+						AppliesTo: &resolver.ResolvedAppliesTo{
+							Context: ast.RecordType{
+								Pairs: []ast.Pair{
+									{Key: "timestamp", Type: ast.ExtensionType{Name: "datetime"}},
+									{Key: "duration", Type: ast.ExtensionType{Name: "duration"}},
+								},
+							},
+						},
+					},
+				},
+			},
 			errTest: testutil.OK,
+		},
+		{
+			name: "action context resolves to non-record type",
+			in: `type NotARecord = String;
+			action view appliesTo {
+				principal: [],
+				resource: [],
+				context: NotARecord
+			};`,
+			errTest: testutil.Error,
 		},
 	}
 

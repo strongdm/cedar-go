@@ -34,7 +34,10 @@ func TestSchemaMarshalCedar(t *testing.T) {
 					ast.Optional("email", ast.String()),
 				),
 			),
-			expected: `entity User = {"name": String, "email?": String};
+			expected: `entity User = {
+  "name": String,
+  "email"?: String,
+};
 `,
 		},
 		{
@@ -42,7 +45,7 @@ func TestSchemaMarshalCedar(t *testing.T) {
 			schema: ast.NewSchema(
 				ast.Entity("User").MemberOf(ast.EntityType("Group")),
 			),
-			expected: "entity User in Group;\n",
+			expected: "entity User in [Group];\n",
 		},
 		{
 			name: "entity with multiple parents",
@@ -108,11 +111,11 @@ func TestSchemaMarshalCedar(t *testing.T) {
 					)),
 			),
 			expected: `action view appliesTo {
-  principal: User,
-  resource: Document,
+  principal: [User],
+  resource: [Document],
   context: {
     "ip": __cedar::ipaddr,
-  },
+  }
 };
 `,
 		},
@@ -271,8 +274,7 @@ entity User;
 			),
 			expected: `action view appliesTo {
   principal: [User, Admin],
-  resource: Document,
-  context: {},
+  resource: [Document],
 };
 `,
 		},
