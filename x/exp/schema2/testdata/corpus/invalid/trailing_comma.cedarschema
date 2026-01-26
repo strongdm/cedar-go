@@ -1,2 +1,0 @@
-entity Group;
-entity User in [Group,];

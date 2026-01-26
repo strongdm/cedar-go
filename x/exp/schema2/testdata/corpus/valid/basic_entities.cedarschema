@@ -1,4 +1,0 @@
-// Basic entity declarations
-entity User;
-entity Admin;
-entity Guest;

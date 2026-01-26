@@ -347,7 +347,6 @@ var wantJSON = `{
 // All attributes are in alphabetical order to match the deterministic marshaling.
 // All slices are initialized as empty slices (not nil) to match unmarshaling behavior.
 var wantAST = &ast.Schema{
-	// TODO: have some optional stuff in here, can context be optional altogether?
 	Nodes: []ast.IsNode{
 		ast.CommonTypeNode{
 			Name: "Address",

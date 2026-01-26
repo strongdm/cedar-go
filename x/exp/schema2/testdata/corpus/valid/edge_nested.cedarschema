@@ -1,4 +1,0 @@
-// Deeply nested types
-type Deep = { l1: { l2: { l3: { l4: { value: String } } } } };
-type Matrix = Set<Set<Long>>;
-entity Config { settings: { level1: { level2: String } } };
