@@ -60,7 +60,8 @@ func TestCorpus(t *testing.T) {
 				testutil.OK(t, err)
 				j2, err := s2.MarshalJSON()
 				testutil.OK(t, err)
-				stringEquals(t, string(normalizeJSON(t, j1)), string(normalizeJSON(t, j2)))
+				stringEquals(t, string(normalizeJSON(t, j1)), string(normalizeJSON(t, jsonBytes)))
+				stringEquals(t, string(normalizeJSON(t, j2)), string(normalizeJSON(t, jsonBytes)))
 			}
 
 			// MarshalJSON
@@ -69,7 +70,8 @@ func TestCorpus(t *testing.T) {
 				testutil.OK(t, err)
 				j2, err := jsonSchema.MarshalJSON()
 				testutil.OK(t, err)
-				stringEquals(t, string(normalizeJSON(t, j1)), string(normalizeJSON(t, j2)))
+				stringEquals(t, string(normalizeJSON(t, j1)), string(normalizeJSON(t, jsonBytes)))
+				stringEquals(t, string(normalizeJSON(t, j2)), string(normalizeJSON(t, jsonBytes)))
 			}
 
 			// Resolve
