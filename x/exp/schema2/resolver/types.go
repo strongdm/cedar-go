@@ -1,7 +1,6 @@
 package resolver
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/cedar-policy/cedar-go/types"
@@ -141,7 +140,8 @@ func resolveTypeRef(rd *resolveData, t ast.TypeRef) (ast.IsType, error) {
 	}
 
 	// Not found, return an error
-	return nil, fmt.Errorf("type %q not found", name)
+	// return nil, fmt.Errorf("type %q not found", name)
+	return ast.EntityTypeRef{Name: types.EntityType(name)}, nil
 }
 
 var knownExtensions = map[string]struct{}{

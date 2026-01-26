@@ -1,0 +1,1 @@
+{"":{"entityTypes":{"Snack":{"shape":{"type":"Record","attributes":{"min_hungry_level":{"type":"EntityOrCommon","name":"Long"}}}},"User":{"memberOfTypes":["UserGroup"],"shape":{"type":"Record","attributes":{"hungry_level":{"type":"EntityOrCommon","name":"Long"}}}},"UserGroup":{}},"actions":{"eat":{"appliesTo":{"resourceTypes":["Snack"],"principalTypes":["User"]}}}}}
