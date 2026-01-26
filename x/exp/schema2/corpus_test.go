@@ -45,24 +45,41 @@ func TestCorpus(t *testing.T) {
 			testutil.OK(t, err)
 
 			// MarshalCedar
-			_, err = cedarSchema.MarshalCedar()
-			testutil.OK(t, err)
-			_, err = jsonSchema.MarshalCedar()
-			testutil.OK(t, err)
+			{
+				c1, err := cedarSchema.MarshalCedar()
+				testutil.OK(t, err)
+				c2, err := jsonSchema.MarshalCedar()
+				testutil.OK(t, err)
+				// round-trip to JSON so we can do a comparison
+				var s1, s2 schema2.Schema
+				err = s1.UnmarshalCedar(c1)
+				testutil.OK(t, err)
+				err = s2.UnmarshalCedar(c2)
+				testutil.OK(t, err)
+				j1, err := s1.MarshalJSON()
+				testutil.OK(t, err)
+				j2, err := s2.MarshalJSON()
+				testutil.OK(t, err)
+				stringEquals(t, string(normalizeJSON(t, j1)), string(normalizeJSON(t, j2)))
+			}
 
 			// MarshalJSON
-			b1, err := cedarSchema.MarshalJSON()
-			testutil.OK(t, err)
-			b2, err := jsonSchema.MarshalJSON()
-			testutil.OK(t, err)
-			stringEquals(t, string(normalizeJSON(t, b1)), string(normalizeJSON(t, b2)))
+			{
+				j1, err := cedarSchema.MarshalJSON()
+				testutil.OK(t, err)
+				j2, err := jsonSchema.MarshalJSON()
+				testutil.OK(t, err)
+				stringEquals(t, string(normalizeJSON(t, j1)), string(normalizeJSON(t, j2)))
+			}
 
 			// Resolve
-			r1, err := cedarSchema.Resolve()
-			testutil.OK(t, err)
-			r2, err := cedarSchema.Resolve()
-			testutil.OK(t, err)
-			testutil.Equals(t, r1, r2)
+			{
+				r1, err := cedarSchema.Resolve()
+				testutil.OK(t, err)
+				r2, err := cedarSchema.Resolve()
+				testutil.OK(t, err)
+				testutil.Equals(t, r1, r2)
+			}
 		})
 	}
 }
