@@ -40,9 +40,10 @@ func resolveRecord(rd *resolveData, r ast.RecordType) (ast.RecordType, error) {
 			return ast.RecordType{}, err
 		}
 		resolved[i] = ast.Pair{
-			Key:      p.Key,
-			Type:     resolvedType,
-			Optional: p.Optional,
+			Key:         p.Key,
+			Type:        resolvedType,
+			Optional:    p.Optional,
+			Annotations: p.Annotations,
 		}
 	}
 	return ast.RecordType{Pairs: resolved}, nil

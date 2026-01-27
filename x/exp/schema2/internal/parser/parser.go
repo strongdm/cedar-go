@@ -96,20 +96,28 @@ func (p *Parser) consumeString() string {
 	return val
 }
 
+func (p *Parser) parseAnnotations() ([]ast.Annotation, error) {
+	var annotations []ast.Annotation
+
+	// Parse annotations
+	for p.peek().Text == "@" {
+		ann, err := p.parseAnnotation()
+		if err != nil {
+			return nil, err
+		}
+		annotations = append(annotations, ann)
+	}
+	return annotations, nil
+}
+
 // Parse parses a complete Cedar schema.
 func (p *Parser) Parse() (*ast.Schema, error) {
 	var nodes []ast.IsNode
 
 	for !p.peek().isEOF() {
-		var annotations []ast.Annotation
-
-		// Parse annotations
-		for p.peek().Text == "@" {
-			ann, err := p.parseAnnotation()
-			if err != nil {
-				return nil, err
-			}
-			annotations = append(annotations, ann)
+		annotations, err := p.parseAnnotations()
+		if err != nil {
+			return nil, err
 		}
 
 		// Parse declaration
@@ -193,14 +201,9 @@ func (p *Parser) parseNamespace(annotations []ast.Annotation) (ast.NamespaceNode
 	var decls []ast.IsDeclaration
 
 	for p.peek().Text != "}" && !p.peek().isEOF() {
-		var declAnnotations []ast.Annotation
-
-		for p.peek().Text == "@" {
-			ann, err := p.parseAnnotation()
-			if err != nil {
-				return ast.NamespaceNode{}, err
-			}
-			declAnnotations = append(declAnnotations, ann)
+		declAnnotations, err := p.parseAnnotations()
+		if err != nil {
+			return ast.NamespaceNode{}, err
 		}
 
 		tok := p.peek()
@@ -712,9 +715,14 @@ func (p *Parser) parseRecordPairs() ([]ast.Pair, error) {
 }
 
 func (p *Parser) parseRecordPair() (ast.Pair, error) {
+	var err error
+	annotations, err := p.parseAnnotations()
+	if err != nil {
+		return ast.Pair{}, err
+	}
+
 	tok := p.peek()
 	var key string
-	var err error
 
 	if tok.Type == TokenString {
 		key, err = p.expectString()
@@ -741,9 +749,9 @@ func (p *Parser) parseRecordPair() (ast.Pair, error) {
 	}
 
 	if optional {
-		return ast.Optional(types.String(key), t), nil
+		return ast.Optional(types.String(key), t).Annotate(annotations...), nil
 	}
-	return ast.Attribute(types.String(key), t), nil
+	return ast.Attribute(types.String(key), t).Annotate(annotations...), nil
 }
 
 func (p *Parser) parsePath() (string, error) {

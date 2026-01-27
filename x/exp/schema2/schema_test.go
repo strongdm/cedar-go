@@ -14,7 +14,9 @@ import (
 
 var wantCedar = `
 @doc("Address information")
+@personal_information
 type Address = {
+  @also("town")
   "city": String,
   "country": Country,
   "street": String,
@@ -105,7 +107,10 @@ var wantJSON = `{
         "attributes": {
           "city": {
             "type": "EntityOrCommon",
-            "name": "String"
+            "name": "String",
+			"annotations": {
+			  "also": "town"
+			}
           },
           "country": {
             "type": "EntityOrCommon",
@@ -122,7 +127,8 @@ var wantJSON = `{
           }
         },
         "annotations": {
-          "doc": "Address information"
+          "doc": "Address information",
+		  "personal_information": ""
         }
       },
       "decimal": {
@@ -357,10 +363,13 @@ var wantAST = &ast.Schema{
 			Name: "Address",
 			Annotations: []ast.Annotation{
 				{Key: "doc", Value: "Address information"},
+				{Key: "personal_information", Value: ""},
 			},
 			Type: ast.RecordType{
 				Pairs: []ast.Pair{
-					{Key: "city", Type: ast.StringType{}},
+					{Key: "city", Type: ast.StringType{}, Annotations: []ast.Annotation{
+						{Key: "also", Value: "town"},
+					}},
 					{Key: "country", Type: ast.TypeRef{Name: "Country"}},
 					{Key: "street", Type: ast.StringType{}},
 					{Key: "zipcode", Type: ast.StringType{}, Optional: true},
@@ -592,8 +601,11 @@ var wantResolved = &resolver.ResolvedSchema{
 				Pairs: []ast.Pair{
 					{Key: "active", Type: ast.BoolType{}},
 					{Key: "address", Type: ast.RecordType{
+						// TODO: include annotations of the type?
 						Pairs: []ast.Pair{
-							{Key: "city", Type: ast.StringType{}},
+							{Key: "city", Type: ast.StringType{}, Annotations: []ast.Annotation{
+								{Key: "also", Value: "town"},
+							}},
 							{Key: "country", Type: ast.EntityTypeRef{Name: types.EntityType("Country")}},
 							{Key: "street", Type: ast.StringType{}},
 							{Key: "zipcode", Type: ast.StringType{}, Optional: true},

@@ -241,6 +241,7 @@ func marshalRecordType(buf *bytes.Buffer, r ast.RecordType, indent string) {
 		if i > 0 {
 			buf.WriteString(",\n")
 		}
+		marshalAnnotations(buf, pair.Annotations, innerIndent)
 		buf.WriteString(innerIndent)
 		buf.WriteString(quoteString(string(pair.Key)))
 		if pair.Optional {
@@ -251,25 +252,6 @@ func marshalRecordType(buf *bytes.Buffer, r ast.RecordType, indent string) {
 	}
 	buf.WriteString(",\n")
 	buf.WriteString(indent)
-	buf.WriteString("}")
-}
-
-// marshalRecordTypeCompact marshals a record type in Rust format for entity shapes
-// e.g., {"name": String, "age": Long}
-func marshalRecordTypeCompact(buf *bytes.Buffer, r ast.RecordType, indent string) {
-	buf.WriteString("{")
-	for i, pair := range r.Pairs {
-		if i > 0 {
-			buf.WriteString(", ")
-		}
-		key := string(pair.Key)
-		if pair.Optional {
-			key += "?"
-		}
-		buf.WriteString(quoteString(key))
-		buf.WriteString(": ")
-		marshalTypeIndented(buf, pair.Type, indent)
-	}
 	buf.WriteString("}")
 }
 

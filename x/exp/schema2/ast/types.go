@@ -74,9 +74,10 @@ func Set(element IsType) SetType {
 
 // Pair represents a key-value pair in a record type.
 type Pair struct {
-	Key      types.String
-	Type     IsType
-	Optional bool
+	Key         types.String
+	Type        IsType
+	Optional    bool
+	Annotations []Annotation
 }
 
 // Attribute creates a required attribute pair.
@@ -87,6 +88,11 @@ func Attribute(key types.String, t IsType) Pair {
 // Optional creates an optional attribute pair.
 func Optional(key types.String, t IsType) Pair {
 	return Pair{Key: key, Type: t, Optional: true}
+}
+
+func (p Pair) Annotate(ann ...Annotation) Pair {
+	p.Annotations = append(p.Annotations, ann...)
+	return p
 }
 
 // RecordType represents a Cedar Record type with attributes.

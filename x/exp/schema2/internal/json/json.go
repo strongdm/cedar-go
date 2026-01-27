@@ -4,6 +4,8 @@ package json
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
+	"slices"
 	"sort"
 
 	"github.com/cedar-policy/cedar-go/types"
@@ -189,11 +191,12 @@ func (t Type) MarshalJSON() ([]byte, error) {
 
 // Attr represents a record attribute in JSON format.
 type Attr struct {
-	TypeName   string           `json:"type,omitempty"`
-	Name       string           `json:"name,omitempty"`
-	Element    *Type            `json:"element,omitempty"`
-	Attributes map[string]*Attr `json:"attributes,omitempty"`
-	Required   *bool            `json:"required,omitempty"`
+	TypeName    string            `json:"type,omitempty"`
+	Name        string            `json:"name,omitempty"`
+	Element     *Type             `json:"element,omitempty"`
+	Attributes  map[string]*Attr  `json:"attributes,omitempty"`
+	Required    *bool             `json:"required,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
 // MarshalJSON ensures Record types always output the attributes field.
@@ -201,15 +204,16 @@ func (a Attr) MarshalJSON() ([]byte, error) {
 	if a.TypeName == "Record" {
 		// Record types must always have an attributes field
 		type recordAttr struct {
-			TypeName   string           `json:"type"`
-			Attributes map[string]*Attr `json:"attributes"`
-			Required   *bool            `json:"required,omitempty"`
+			TypeName    string            `json:"type"`
+			Attributes  map[string]*Attr  `json:"attributes"`
+			Required    *bool             `json:"required,omitempty"`
+			Annotations map[string]string `json:"annotations,omitempty"`
 		}
 		attrs := a.Attributes
 		if attrs == nil {
 			attrs = make(map[string]*Attr)
 		}
-		return json.Marshal(recordAttr{TypeName: a.TypeName, Attributes: attrs, Required: a.Required})
+		return json.Marshal(recordAttr{TypeName: a.TypeName, Attributes: attrs, Required: a.Required, Annotations: a.Annotations})
 	}
 	// Use an alias to avoid infinite recursion for non-Record types
 	type AttrAlias Attr
@@ -401,6 +405,12 @@ func typeToJSONFromContext(t ast.IsType, entityNames map[string]bool, fromContex
 				f := false
 				attr.Required = &f
 			}
+			if len(pair.Annotations) > 0 {
+				attr.Annotations = map[string]string{}
+				for _, a := range pair.Annotations {
+					attr.Annotations[string(a.Key)] = string(a.Value)
+				}
+			}
 			jt.Attributes[string(pair.Key)] = attr
 		}
 		return jt
@@ -422,10 +432,11 @@ func typeToJSONFromContext(t ast.IsType, entityNames map[string]bool, fromContex
 func attrToJSON(t ast.IsType, entityNames map[string]bool) *Attr {
 	typ := typeToJSON(t, entityNames)
 	return &Attr{
-		TypeName:   typ.TypeName,
-		Name:       typ.Name,
-		Element:    typ.Element,
-		Attributes: typ.Attributes,
+		TypeName:    typ.TypeName,
+		Name:        typ.Name,
+		Element:     typ.Element,
+		Attributes:  typ.Attributes,
+		Annotations: typ.Annotations,
 	}
 }
 
@@ -633,10 +644,16 @@ func jsonToType(jt *Type) (ast.IsType, error) {
 				return nil, err
 			}
 			optional := attr.Required != nil && !*attr.Required
+			var annotations []ast.Annotation
+			annKeys := slices.Sorted(maps.Keys(attr.Annotations))
+			for _, key := range annKeys {
+				annotations = append(annotations, ast.Annotation{Key: types.Ident(key), Value: types.String(attr.Annotations[key])})
+			}
 			pairs = append(pairs, ast.Pair{
-				Key:      types.String(name),
-				Type:     t,
-				Optional: optional,
+				Key:         types.String(name),
+				Type:        t,
+				Optional:    optional,
+				Annotations: annotations,
 			})
 		}
 		return ast.RecordType{Pairs: pairs}, nil
@@ -724,10 +741,16 @@ func jsonAttrToType(ja *Attr) (ast.IsType, error) {
 				return nil, err
 			}
 			optional := attr.Required != nil && !*attr.Required
+			var annotations []ast.Annotation
+			annKeys := slices.Sorted(maps.Keys(ja.Annotations))
+			for _, key := range annKeys {
+				annotations = append(annotations, ast.Annotation{Key: types.Ident(key), Value: types.String(ja.Annotations[key])})
+			}
 			pairs = append(pairs, ast.Pair{
-				Key:      types.String(name),
-				Type:     t,
-				Optional: optional,
+				Key:         types.String(name),
+				Type:        t,
+				Optional:    optional,
+				Annotations: annotations,
 			})
 		}
 		return ast.RecordType{Pairs: pairs}, nil
