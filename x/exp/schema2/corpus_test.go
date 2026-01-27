@@ -5,7 +5,6 @@ import (
 	"embed"
 	_ "embed"
 	"io/fs"
-	"strings"
 	"testing"
 
 	"github.com/cedar-policy/cedar-go/internal/testutil"
@@ -32,7 +31,7 @@ func TestCorpus(t *testing.T) {
 			t.Parallel()
 			cedarBytes := mustRead(t, testdata, name)
 			cedarBytes = bytes.ReplaceAll(cedarBytes, []byte("context: {}\n"), nil) // Rust converted JSON never contains the empty context record
-			jsonBytes := mustRead(t, testdata, strings.ReplaceAll(name, ".cedarschema", ".json"))
+			jsonBytes := mustRead(t, testdata, name+".json")
 			jsonBytes = bytes.ReplaceAll(jsonBytes, []byte(`"appliesTo":{"resourceTypes":[],"principalTypes":[]}`), nil) // appliesTo is optional
 
 			// UnmarshalCedar
