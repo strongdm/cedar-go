@@ -80,6 +80,14 @@ func (p *Parser) expectIdent() (string, error) {
 	return tok.Text, nil
 }
 
+func (p *Parser) expectAnyIdent() (string, error) {
+	tok := p.advance()
+	if tok.Type != TokenIdent {
+		return "", fmt.Errorf("expected identifier, got %q at %s", tok.Text, fmtPos(tok.Pos))
+	}
+	return tok.Text, nil
+}
+
 func (p *Parser) expectString() (string, error) {
 	tok := p.advance()
 	if tok.Type != TokenString {
@@ -164,7 +172,7 @@ func (p *Parser) parseAnnotation() (ast.Annotation, error) {
 		return ast.Annotation{}, err
 	}
 
-	key, err := p.expectIdent()
+	key, err := p.expectAnyIdent()
 	if err != nil {
 		return ast.Annotation{}, err
 	}
