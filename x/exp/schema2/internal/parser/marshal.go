@@ -2,7 +2,7 @@ package parser
 
 import (
 	"bytes"
-	"fmt"
+	"strconv"
 
 	"github.com/cedar-policy/cedar-go/x/exp/schema2/ast"
 )
@@ -282,5 +282,5 @@ func isIdentChar(c rune) bool {
 }
 
 func quoteString(s string) string {
-	return fmt.Sprintf("%q", s)
+	return strconv.Quote(string(s))
 }

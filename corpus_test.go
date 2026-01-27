@@ -157,6 +157,27 @@ func TestCorpus(t *testing.T) {
 			if err := s.UnmarshalCedar(schemaContent); err != nil {
 				t.Fatal("error parsing schema", err, "\n===\n", string(schemaContent))
 			}
+			// round-trip the schema
+			{
+				js, err := s.MarshalJSON()
+				testutil.OK(t, err)
+
+				var s2 schema2.Schema
+				err = s2.UnmarshalJSON(js)
+				testutil.OK(t, err)
+
+				sb, err := s2.MarshalCedar()
+				testutil.OK(t, err)
+
+				var s3 schema2.Schema
+				err = s3.UnmarshalCedar(sb)
+				testutil.OK(t, err)
+
+				j2, err := s3.MarshalJSON()
+				testutil.OK(t, err)
+
+				testutil.Equals(t, string(j2), string(js))
+			}
 
 			policyContent, err := fdm.GetFileData(tt.Policies)
 			if err != nil {
