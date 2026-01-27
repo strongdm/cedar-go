@@ -481,11 +481,11 @@ func TestCommaSeparatedDeclarations(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name        string
-		input       string
+		name         string
+		input        string
 		wantEntities int
 		wantActions  int
-		wantErr     bool
+		wantErr      bool
 	}{
 		{"multiple entities", `entity User, Admin, Guest;`, 3, 0, false},
 		{"multiple entities with shared in clause", `entity Group; entity User, Admin in [Group];`, 3, 0, false},

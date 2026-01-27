@@ -1576,38 +1576,7 @@ func TestDirectAST(t *testing.T) {
 	t.Run("namespace entity defined multiple times", func(t *testing.T) {
 		t.Parallel()
 
-		// Create two namespaces with entities that have the same qualified name
-		// This can happen if we manually construct the AST
 		schema := &ast.Schema{
-			Entities:    ast.Entities{},
-			Enums:       ast.Enums{},
-			Actions:     ast.Actions{},
-			CommonTypes: ast.CommonTypes{},
-			Namespaces: ast.Namespaces{
-				"App": ast.NamespaceNode{
-					Entities: ast.Entities{
-						"User": ast.EntityNode{},
-					},
-					Enums:       ast.Enums{},
-					Actions:     ast.Actions{},
-					CommonTypes: ast.CommonTypes{},
-				},
-				"App2": ast.NamespaceNode{
-					Entities: ast.Entities{
-						// Manually set up a collision by using a name that conflicts
-						// We'll process them in order and the second one should fail
-					},
-					Enums:       ast.Enums{},
-					Actions:     ast.Actions{},
-					CommonTypes: ast.CommonTypes{},
-				},
-			},
-		}
-		// Actually, Go maps don't preserve order, so let's create a direct collision
-		// by processing the same namespace path twice (which the parser prevents)
-		// Let me create a simpler case - reusing the same entity name in a namespace
-
-		schema = &ast.Schema{
 			Entities:    ast.Entities{},
 			Enums:       ast.Enums{},
 			Actions:     ast.Actions{},
@@ -1796,7 +1765,7 @@ func TestDirectAST(t *testing.T) {
 			CommonTypes: ast.CommonTypes{},
 			Namespaces: ast.Namespaces{
 				"App": ast.NamespaceNode{
-					Entities:    ast.Entities{},
+					Entities: ast.Entities{},
 					Enums: ast.Enums{
 						"Status": ast.EnumNode{Values: []types.String{"inactive"}}, // Namespace enum that becomes "App::Status"
 					},
@@ -1823,7 +1792,7 @@ func TestDirectAST(t *testing.T) {
 			CommonTypes: ast.CommonTypes{},
 			Namespaces: ast.Namespaces{
 				"App": ast.NamespaceNode{
-					Entities:    ast.Entities{},
+					Entities: ast.Entities{},
 					Enums: ast.Enums{
 						"Thing": ast.EnumNode{Values: []types.String{"value"}}, // Namespace enum that becomes "App::Thing"
 					},

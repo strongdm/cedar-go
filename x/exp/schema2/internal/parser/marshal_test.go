@@ -18,9 +18,8 @@ func TestSchemaMarshalCedar(t *testing.T) {
 		expected string
 	}{
 		{
-			name: "empty schema",
-			schema: &ast.Schema{
-			},
+			name:     "empty schema",
+			schema:   &ast.Schema{},
 			expected: "",
 		},
 		{
@@ -884,8 +883,8 @@ action view;
 			name: "multiple common types",
 			schema: &ast.Schema{
 				CommonTypes: ast.CommonTypes{
-					types.Ident("Name"):    ast.CommonTypeNode{Type: ast.String()},
-					types.Ident("Age"):     ast.CommonTypeNode{Type: ast.Long()},
+					types.Ident("Name"):     ast.CommonTypeNode{Type: ast.String()},
+					types.Ident("Age"):      ast.CommonTypeNode{Type: ast.Long()},
 					types.Ident("IsActive"): ast.CommonTypeNode{Type: ast.Bool()},
 				},
 			},

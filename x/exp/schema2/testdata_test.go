@@ -24,7 +24,7 @@ func mustReadZip(t testing.TB, files map[string]*zip.File, name string) []byte {
 	}
 	rc, err := file.Open()
 	testutil.OK(t, err)
-	defer rc.Close()
+	defer func() { _ = rc.Close() }()
 	var buf bytes.Buffer
 	_, err = buf.ReadFrom(rc)
 	testutil.OK(t, err)

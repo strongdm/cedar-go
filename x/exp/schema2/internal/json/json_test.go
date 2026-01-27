@@ -965,9 +965,9 @@ func TestActionMemberOfWithEmptyType(t *testing.T) {
 
 	// The implementation preserves empty type as empty string
 	// Verify the memberOf reference exists
-	hasIdRead := strings.Contains(string(jsonOut), `"id":"read"`) ||
+	hasIDRead := strings.Contains(string(jsonOut), `"id":"read"`) ||
 		strings.Contains(string(jsonOut), `"id": "read"`)
-	testutil.Equals(t, hasIdRead, true)
+	testutil.Equals(t, hasIDRead, true)
 }
 
 func TestEmptyAppliesToNotEmitted(t *testing.T) {
@@ -1747,9 +1747,9 @@ func TestActionMemberOfEmptyTypeInSchema(t *testing.T) {
 	testutil.OK(t, err)
 
 	// The implementation preserves empty type as empty string
-	hasIdRead := strings.Contains(string(jsonData), `"id":"read"`) ||
+	hasIDRead := strings.Contains(string(jsonData), `"id":"read"`) ||
 		strings.Contains(string(jsonData), `"id": "read"`)
-	testutil.Equals(t, hasIdRead, true)
+	testutil.Equals(t, hasIDRead, true)
 }
 
 func TestNamespaceWithCommonTypeError(t *testing.T) {
