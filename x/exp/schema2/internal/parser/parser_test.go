@@ -299,9 +299,10 @@ entity User;`,
 			validate: func(t *testing.T, schema *ast.Schema) {
 				ct, ok := schema.Nodes[0].(ast.CommonTypeNode)
 				testutil.Equals(t, ok, true)
-				et, ok := ct.Type.(ast.ExtensionType)
+				// Parser now treats __cedar::ipaddr as a TypeRef
+				ref, ok := ct.Type.(ast.TypeRef)
 				testutil.Equals(t, ok, true)
-				testutil.Equals(t, et.Name, types.Ident("ipaddr"))
+				testutil.Equals(t, ref.Name, types.Path("__cedar::ipaddr"))
 			},
 		},
 		{
@@ -311,9 +312,10 @@ entity User;`,
 			validate: func(t *testing.T, schema *ast.Schema) {
 				ct, ok := schema.Nodes[0].(ast.CommonTypeNode)
 				testutil.Equals(t, ok, true)
-				ref, ok := ct.Type.(ast.EntityTypeRef)
+				// Parser now treats MyApp::User as a TypeRef
+				ref, ok := ct.Type.(ast.TypeRef)
 				testutil.Equals(t, ok, true)
-				testutil.Equals(t, ref.Name, types.EntityType("MyApp::User"))
+				testutil.Equals(t, ref.Name, types.Path("MyApp::User"))
 			},
 		},
 		{
@@ -408,7 +410,8 @@ namespace MyApp {
 				testutil.Equals(t, ok, true)
 				st, ok := ct.Type.(ast.SetType)
 				testutil.Equals(t, ok, true)
-				_, ok = st.Element.(ast.EntityTypeRef)
+				// Parser now treats MyApp::User as a TypeRef
+				_, ok = st.Element.(ast.TypeRef)
 				testutil.Equals(t, ok, true)
 			},
 		},
@@ -489,6 +492,39 @@ namespace MyApp {
 				testutil.Equals(t, len(ns.Declarations), 7)
 			},
 		},
+		{
+			name: "record with string keys",
+			input: `type Data = {
+				"first-name": String,
+				"last-name": String,
+			};`,
+			wantNodes: 1,
+			validate: func(t *testing.T, schema *ast.Schema) {
+				ct, ok := schema.Nodes[0].(ast.CommonTypeNode)
+				testutil.Equals(t, ok, true)
+				rt, ok := ct.Type.(ast.RecordType)
+				testutil.Equals(t, ok, true)
+				testutil.Equals(t, len(rt.Pairs), 2)
+				testutil.Equals(t, rt.Pairs[0].Key, types.String("first-name"))
+				testutil.Equals(t, rt.Pairs[1].Key, types.String("last-name"))
+			},
+		},
+		{
+			name: "record with optional string key",
+			input: `type Data = {
+				"email"?: String,
+			};`,
+			wantNodes: 1,
+			validate: func(t *testing.T, schema *ast.Schema) {
+				ct, ok := schema.Nodes[0].(ast.CommonTypeNode)
+				testutil.Equals(t, ok, true)
+				rt, ok := ct.Type.(ast.RecordType)
+				testutil.Equals(t, ok, true)
+				testutil.Equals(t, len(rt.Pairs), 1)
+				testutil.Equals(t, rt.Pairs[0].Key, types.String("email"))
+				testutil.Equals(t, rt.Pairs[0].Optional, true)
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -562,6 +598,7 @@ func TestParserErrors(t *testing.T) {
 		{"action entity refs list error", `action view in [123];`},
 		{"common type semicolon error", `type Foo = String`},
 		{"record pair in shape error", `entity User { ?: String };`},
+		{"record pair annotation error", `type Data = { @123 name: String };`},
 	}
 
 	for _, tt := range tests {

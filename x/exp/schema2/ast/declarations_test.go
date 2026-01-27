@@ -131,8 +131,7 @@ func TestEnumEntityUIDs(t *testing.T) {
 func TestUID(t *testing.T) {
 	t.Parallel()
 	want := ast.EntityRef{
-		Type: ast.EntityTypeRef{Name: "Action"},
-		ID:   "view",
+		ID: "view",
 	}
 	got := ast.UID("view")
 	testutil.Equals(t, got, want)
@@ -162,7 +161,7 @@ func TestActionMemberOf(t *testing.T) {
 	want := ast.ActionNode{
 		Name: "view",
 		MemberOfVal: []ast.EntityRef{
-			{Type: ast.EntityTypeRef{Name: "Action"}, ID: "read"},
+			{ID: "read"},
 		},
 	}
 	got := ast.Action("view").MemberOf(ast.UID("read"))
@@ -215,4 +214,17 @@ func TestActionAnnotate(t *testing.T) {
 	}
 	got := ast.Action("view").Annotate("doc", "View action")
 	testutil.Equals(t, got, want)
+}
+
+func TestDeclarationInterfaces(t *testing.T) {
+	t.Parallel()
+	// Test that all declaration types implement IsDeclaration interface
+	var declarations []ast.IsDeclaration
+	declarations = append(declarations,
+		ast.CommonType("Type", ast.String()),
+		ast.Entity("User"),
+		ast.Enum("Status", "active"),
+		ast.Action("view"),
+	)
+	testutil.Equals(t, len(declarations), 4)
 }

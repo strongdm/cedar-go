@@ -3,7 +3,6 @@ package parser
 import (
 	"bytes"
 	"fmt"
-	"unicode/utf8"
 
 	"github.com/cedar-policy/cedar-go/x/exp/schema2/ast"
 )
@@ -313,9 +312,6 @@ func quoteString(s string) string {
 			} else if r > 0x7E && r < 0xA0 {
 				// Extended control characters: use \xNN
 				buf.WriteString(fmt.Sprintf("\\x%02x", r))
-			} else if r > utf8.MaxRune {
-				// Invalid rune
-				buf.WriteString("\\x00")
 			} else {
 				// Printable character
 				buf.WriteRune(r)

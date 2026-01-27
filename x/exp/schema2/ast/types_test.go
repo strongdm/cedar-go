@@ -112,3 +112,19 @@ func TestType(t *testing.T) {
 	got := ast.Type("Common::Name")
 	testutil.Equals(t, got, want)
 }
+
+func TestPairAnnotate(t *testing.T) {
+	t.Parallel()
+	want := ast.Pair{
+		Key:      "name",
+		Type:     ast.StringType{},
+		Optional: false,
+		Annotations: []ast.Annotation{
+			{Key: "doc", Value: "User name"},
+			{Key: "required", Value: "true"},
+		},
+	}
+	got := ast.Attribute("name", ast.String()).
+		Annotate(ast.Annotation{Key: "doc", Value: "User name"}, ast.Annotation{Key: "required", Value: "true"})
+	testutil.Equals(t, got, want)
+}

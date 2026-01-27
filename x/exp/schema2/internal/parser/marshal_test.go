@@ -354,6 +354,239 @@ type Name = String;
 };
 `,
 		},
+		{
+			name: "action name with reserved keyword 'in'",
+			schema: ast.NewSchema(
+				ast.Action("in"),
+			),
+			expected: `action "in";
+`,
+		},
+		{
+			name: "string with newline escape",
+			schema: ast.NewSchema(
+				ast.Entity("User").Annotate("doc", "Line1\nLine2"),
+			),
+			expected: `@doc("Line1\nLine2")
+entity User;
+`,
+		},
+		{
+			name: "string with carriage return escape",
+			schema: ast.NewSchema(
+				ast.Entity("User").Annotate("doc", "Line1\rLine2"),
+			),
+			expected: `@doc("Line1\rLine2")
+entity User;
+`,
+		},
+		{
+			name: "string with tab escape",
+			schema: ast.NewSchema(
+				ast.Entity("User").Annotate("doc", "Col1\tCol2"),
+			),
+			expected: `@doc("Col1\tCol2")
+entity User;
+`,
+		},
+		{
+			name: "string with backslash escape",
+			schema: ast.NewSchema(
+				ast.Entity("User").Annotate("doc", "path\\to\\file"),
+			),
+			expected: `@doc("path\\to\\file")
+entity User;
+`,
+		},
+		{
+			name: "string with null character escape",
+			schema: ast.NewSchema(
+				ast.Entity("User").Annotate("doc", "null\x00char"),
+			),
+			expected: `@doc("null\0char")
+entity User;
+`,
+		},
+		{
+			name: "string with single quote escape",
+			schema: ast.NewSchema(
+				ast.Entity("User").Annotate("doc", "It's fine"),
+			),
+			expected: "@doc(\"It\\'s fine\")\nentity User;\n",
+		},
+		{
+			name: "string with control character",
+			schema: ast.NewSchema(
+				ast.Entity("User").Annotate("doc", "test\x01control"),
+			),
+			expected: "@doc(\"test\\x01control\")\nentity User;\n",
+		},
+		{
+			name: "string with DEL character",
+			schema: ast.NewSchema(
+				ast.Entity("User").Annotate("doc", "test\x7Fdel"),
+			),
+			expected: "@doc(\"test\\x7fdel\")\nentity User;\n",
+		},
+		{
+			name: "string with extended control character",
+			schema: ast.NewSchema(
+				ast.Entity("User").Annotate("doc", "test\u0085ext"),
+			),
+			expected: "@doc(\"test\\x85ext\")\nentity User;\n",
+		},
+		{
+			name: "namespace with annotations",
+			schema: ast.NewSchema(
+				ast.Namespace("MyApp",
+					ast.Entity("User"),
+				).Annotate("doc", "My application namespace"),
+			),
+			expected: `@doc("My application namespace")
+namespace MyApp {
+  entity User;
+}
+`,
+		},
+		{
+			name: "enum with annotations",
+			schema: ast.NewSchema(
+				ast.Enum("Status", "active", "inactive").Annotate("doc", "Status values"),
+			),
+			expected: `@doc("Status values")
+entity Status enum ["active", "inactive"];
+`,
+		},
+		{
+			name: "common type with annotations",
+			schema: ast.NewSchema(
+				ast.CommonType("Name", ast.String()).Annotate("doc", "A name type"),
+			),
+			expected: `@doc("A name type")
+type Name = String;
+`,
+		},
+		{
+			name: "action with annotations",
+			schema: ast.NewSchema(
+				ast.Action("view").Annotate("doc", "View action"),
+			),
+			expected: `@doc("View action")
+action view;
+`,
+		},
+		{
+			name: "record with annotated attribute",
+			schema: ast.NewSchema(
+				ast.CommonType("User", ast.Record(
+					ast.Attribute("name", ast.String()).Annotate(ast.Annotation{Key: "doc", Value: "User's name"}),
+				)),
+			),
+			expected: "type User = {\n  @doc(\"User\\'s name\")\n  \"name\": String,\n};\n",
+		},
+		{
+			name: "entity ref without type",
+			schema: ast.NewSchema(
+				ast.Action("view").MemberOf(ast.EntityUID("", "someAction")),
+			),
+			expected: `action view in "someAction";
+`,
+		},
+		{
+			name: "action with only context in appliesTo",
+			schema: ast.NewSchema(
+				ast.Action("view").Context(ast.Record(
+					ast.Attribute("timestamp", ast.Long()),
+				)),
+			),
+			expected: `action view appliesTo {
+  context: {
+    "timestamp": Long,
+  }
+};
+`,
+		},
+		{
+			name: "action with only principal in appliesTo",
+			schema: ast.NewSchema(
+				ast.Action("view").Principal(ast.EntityType("User")),
+			),
+			expected: `action view appliesTo {
+  principal: [User],
+};
+`,
+		},
+		{
+			name: "action with only resource in appliesTo",
+			schema: ast.NewSchema(
+				ast.Action("view").Resource(ast.EntityType("Document")),
+			),
+			expected: `action view appliesTo {
+  resource: [Document],
+};
+`,
+		},
+		{
+			name: "entity with shape and memberOf",
+			schema: ast.NewSchema(
+				ast.Entity("User").
+					MemberOf(ast.EntityType("Group")).
+					Shape(ast.Attribute("name", ast.String())),
+			),
+			expected: `entity User in [Group] = {
+  "name": String,
+};
+`,
+		},
+		{
+			name: "entity with shape and tags",
+			schema: ast.NewSchema(
+				ast.Entity("Document").
+					Shape(ast.Attribute("title", ast.String())).
+					Tags(ast.String()),
+			),
+			expected: `entity Document = {
+  "title": String,
+} tags String;
+`,
+		},
+		{
+			name: "entity with memberOf and tags",
+			schema: ast.NewSchema(
+				ast.Entity("Document").
+					MemberOf(ast.EntityType("Folder")).
+					Tags(ast.String()),
+			),
+			expected: `entity Document in [Folder] tags String;
+`,
+		},
+		{
+			name: "entity with all features",
+			schema: ast.NewSchema(
+				ast.Entity("Document").
+					MemberOf(ast.EntityType("Folder")).
+					Shape(ast.Attribute("title", ast.String())).
+					Tags(ast.String()),
+			),
+			expected: `entity Document in [Folder] = {
+  "title": String,
+} tags String;
+`,
+		},
+		{
+			name: "decimal type",
+			schema: ast.NewSchema(
+				ast.CommonType("Price", ast.Decimal()),
+			),
+			expected: "type Price = __cedar::decimal;\n",
+		},
+		{
+			name: "string with double quote escape",
+			schema: ast.NewSchema(
+				ast.Entity("User").Annotate("doc", `He said "hello"`),
+			),
+			expected: "@doc(\"He said \\\"hello\\\"\")\nentity User;\n",
+		},
 	}
 
 	for _, tt := range tests {
