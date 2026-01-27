@@ -14,7 +14,7 @@ type IsType interface {
 // StringType represents the Cedar String type.
 type StringType struct{}
 
-func (StringType) isType() {}
+func (StringType) isType() { _ = 0 }
 
 // String returns a StringType.
 func String() StringType { return StringType{} }
@@ -22,7 +22,7 @@ func String() StringType { return StringType{} }
 // LongType represents the Cedar Long type.
 type LongType struct{}
 
-func (LongType) isType() {}
+func (LongType) isType() { _ = 0 }
 
 // Long returns a LongType.
 func Long() LongType { return LongType{} }
@@ -30,7 +30,7 @@ func Long() LongType { return LongType{} }
 // BoolType represents the Cedar Bool type.
 type BoolType struct{}
 
-func (BoolType) isType() {}
+func (BoolType) isType() { _ = 0 }
 
 // Bool returns a BoolType.
 func Bool() BoolType { return BoolType{} }
@@ -42,7 +42,7 @@ type ExtensionType struct {
 	Name types.Ident
 }
 
-func (ExtensionType) isType() {}
+func (ExtensionType) isType() { _ = 0 }
 
 // IPAddr returns an ExtensionType for ipaddr.
 func IPAddr() ExtensionType { return ExtensionType{Name: "ipaddr"} }
