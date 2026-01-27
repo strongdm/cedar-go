@@ -2,7 +2,8 @@ package parser
 
 import (
 	"bytes"
-	"strconv"
+	"fmt"
+	"unicode/utf8"
 
 	"github.com/cedar-policy/cedar-go/x/exp/schema2/ast"
 )
@@ -259,6 +260,10 @@ func needsQuoting(s string) bool {
 	if len(s) == 0 {
 		return true
 	}
+	// Check if it's a reserved keyword
+	if s == "in" {
+		return true
+	}
 	for i, c := range s {
 		if i == 0 {
 			if !isIdentStart(c) {
@@ -282,5 +287,41 @@ func isIdentChar(c rune) bool {
 }
 
 func quoteString(s string) string {
-	return strconv.Quote(string(s))
+	// Use Cedar-compatible escape sequences only
+	var buf bytes.Buffer
+	buf.WriteByte('"')
+	for _, r := range s {
+		switch r {
+		case '\n':
+			buf.WriteString("\\n")
+		case '\r':
+			buf.WriteString("\\r")
+		case '\t':
+			buf.WriteString("\\t")
+		case '\\':
+			buf.WriteString("\\\\")
+		case '\x00':
+			buf.WriteString("\\0")
+		case '\'':
+			buf.WriteString("\\'")
+		case '"':
+			buf.WriteString("\\\"")
+		default:
+			if r < 0x20 || r == 0x7F {
+				// Control characters: use \xNN hex escape (2 hex digits)
+				buf.WriteString(fmt.Sprintf("\\x%02x", r))
+			} else if r > 0x7E && r < 0xA0 {
+				// Extended control characters: use \xNN
+				buf.WriteString(fmt.Sprintf("\\x%02x", r))
+			} else if r > utf8.MaxRune {
+				// Invalid rune
+				buf.WriteString("\\x00")
+			} else {
+				// Printable character
+				buf.WriteRune(r)
+			}
+		}
+	}
+	buf.WriteByte('"')
+	return buf.String()
 }
