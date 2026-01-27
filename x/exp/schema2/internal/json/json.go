@@ -355,7 +355,7 @@ func addActionToNamespace(ns *Namespace, a ast.ActionNode, entityNames map[strin
 				}
 			}
 			if hasContext {
-				ja.AppliesTo.Context = typeToJSON(a.AppliesToVal.Context, entityNames)
+				ja.AppliesTo.Context = typeToJSONFromContext(a.AppliesToVal.Context, entityNames, true)
 			}
 		}
 	}
@@ -375,6 +375,10 @@ func addCommonTypeToNamespace(ns *Namespace, ct ast.CommonTypeNode, entityNames 
 }
 
 func typeToJSON(t ast.IsType, entityNames map[string]bool) *Type {
+	return typeToJSONFromContext(t, entityNames, false)
+}
+
+func typeToJSONFromContext(t ast.IsType, entityNames map[string]bool, fromContext bool) *Type {
 	switch v := t.(type) {
 	case ast.StringType:
 		return &Type{TypeName: "EntityOrCommon", Name: "String"}
@@ -405,54 +409,23 @@ func typeToJSON(t ast.IsType, entityNames map[string]bool) *Type {
 	case ast.TypeRef:
 		// Check if this type name refers to an entity
 		name := string(v.Name)
-		// if entityNames[name] {
-		// 	return &Type{TypeName: "Entity", Name: name}
-		// }
-		// Common type reference - use EntityOrCommon format
-		return &Type{TypeName: "EntityOrCommon", Name: name}
+		if !fromContext {
+			return &Type{TypeName: "EntityOrCommon", Name: name}
+		}
+		// Common type reference
+		return &Type{TypeName: name}
 	default:
 		return nil
 	}
 }
 
 func attrToJSON(t ast.IsType, entityNames map[string]bool) *Attr {
-	switch v := t.(type) {
-	case ast.StringType:
-		return &Attr{TypeName: "EntityOrCommon", Name: "String"}
-	case ast.LongType:
-		return &Attr{TypeName: "EntityOrCommon", Name: "Long"}
-	case ast.BoolType:
-		return &Attr{TypeName: "EntityOrCommon", Name: "Bool"}
-	case ast.ExtensionType:
-		return &Attr{TypeName: "Extension", Name: string(v.Name)}
-	case ast.SetType:
-		return &Attr{TypeName: "Set", Element: typeToJSON(v.Element, entityNames)}
-	case ast.RecordType:
-		ja := &Attr{
-			TypeName:   "Record",
-			Attributes: make(map[string]*Attr),
-		}
-		for _, pair := range v.Pairs {
-			attr := attrToJSON(pair.Type, entityNames)
-			if pair.Optional {
-				f := false
-				attr.Required = &f
-			}
-			ja.Attributes[string(pair.Key)] = attr
-		}
-		return ja
-	case ast.EntityTypeRef:
-		return &Attr{TypeName: "EntityOrCommon", Name: string(v.Name)}
-	case ast.TypeRef:
-		// Check if this type name refers to an entity
-		name := string(v.Name)
-		// if entityNames[name] {
-		// 	return &Attr{TypeName: "Entity", Name: name}
-		// }
-		// Common type reference - use EntityOrCommon format
-		return &Attr{TypeName: "EntityOrCommon", Name: name}
-	default:
-		return nil
+	typ := typeToJSON(t, entityNames)
+	return &Attr{
+		TypeName:   typ.TypeName,
+		Name:       typ.Name,
+		Element:    typ.Element,
+		Attributes: typ.Attributes,
 	}
 }
 
