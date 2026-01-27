@@ -742,9 +742,9 @@ func jsonAttrToType(ja *Attr) (ast.IsType, error) {
 			}
 			optional := attr.Required != nil && !*attr.Required
 			var annotations []ast.Annotation
-			annKeys := slices.Sorted(maps.Keys(ja.Annotations))
+			annKeys := slices.Sorted(maps.Keys(attr.Annotations))
 			for _, key := range annKeys {
-				annotations = append(annotations, ast.Annotation{Key: types.Ident(key), Value: types.String(ja.Annotations[key])})
+				annotations = append(annotations, ast.Annotation{Key: types.Ident(key), Value: types.String(attr.Annotations[key])})
 			}
 			pairs = append(pairs, ast.Pair{
 				Key:         types.String(name),
