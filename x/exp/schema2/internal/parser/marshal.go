@@ -9,85 +9,48 @@ import (
 	"github.com/cedar-policy/cedar-go/x/exp/schema2/ast"
 )
 
+// marshalMapSorted extracts keys from a map, sorts them, and calls the marshal function for each key-value pair.
+// It handles the "first" flag to add newlines between items.
+func marshalMapSorted[K ~string, V any](
+	buf *bytes.Buffer,
+	m map[K]V,
+	first *bool,
+	marshalFunc func(*bytes.Buffer, K, V, string),
+	indent string,
+) {
+	if len(m) == 0 {
+		return
+	}
+
+	// Extract and sort keys
+	keys := make([]string, 0, len(m))
+	for key := range m {
+		keys = append(keys, string(key))
+	}
+	sort.Strings(keys)
+
+	// Marshal each item
+	for _, keyStr := range keys {
+		if !*first {
+			buf.WriteString("\n")
+		}
+		*first = false
+		key := K(keyStr)
+		marshalFunc(buf, key, m[key], indent)
+	}
+}
+
 // MarshalSchema converts the schema to Cedar human-readable format.
 func MarshalSchema(s *ast.Schema) []byte {
 	var buf bytes.Buffer
 	first := true
 
-	// Marshal top-level common types
-	ctNames := make([]string, 0, len(s.CommonTypes))
-	for name := range s.CommonTypes {
-		ctNames = append(ctNames, string(name))
-	}
-	sort.Strings(ctNames)
-
-	for _, name := range ctNames {
-		if !first {
-			buf.WriteString("\n")
-		}
-		first = false
-		marshalCommonType(&buf, types.Ident(name), s.CommonTypes[types.Ident(name)], "")
-	}
-
-	// Marshal top-level entities
-	entityNames := make([]string, 0, len(s.Entities))
-	for name := range s.Entities {
-		entityNames = append(entityNames, string(name))
-	}
-	sort.Strings(entityNames)
-
-	for _, name := range entityNames {
-		if !first {
-			buf.WriteString("\n")
-		}
-		first = false
-		marshalEntity(&buf, types.EntityType(name), s.Entities[types.EntityType(name)], "")
-	}
-
-	// Marshal top-level enums
-	enumNames := make([]string, 0, len(s.Enums))
-	for name := range s.Enums {
-		enumNames = append(enumNames, string(name))
-	}
-	sort.Strings(enumNames)
-
-	for _, name := range enumNames {
-		if !first {
-			buf.WriteString("\n")
-		}
-		first = false
-		marshalEnum(&buf, types.EntityType(name), s.Enums[types.EntityType(name)], "")
-	}
-
-	// Marshal top-level actions
-	actionNames := make([]string, 0, len(s.Actions))
-	for name := range s.Actions {
-		actionNames = append(actionNames, string(name))
-	}
-	sort.Strings(actionNames)
-
-	for _, name := range actionNames {
-		if !first {
-			buf.WriteString("\n")
-		}
-		first = false
-		marshalAction(&buf, types.String(name), s.Actions[types.String(name)], "")
-	}
-
-	// Sort and marshal namespaces
-	nsNames := make([]string, 0, len(s.Namespaces))
-	for name := range s.Namespaces {
-		nsNames = append(nsNames, string(name))
-	}
-	sort.Strings(nsNames)
-
-	for _, name := range nsNames {
-		if !first {
-			buf.WriteString("\n")
-		}
-		first = false
-		marshalNamespace(&buf, types.Path(name), s.Namespaces[types.Path(name)], "")
-	}
+	// Marshal top-level declarations in order
+	marshalMapSorted(&buf, s.CommonTypes, &first, marshalCommonType, "")
+	marshalMapSorted(&buf, s.Entities, &first, marshalEntity, "")
+	marshalMapSorted(&buf, s.Enums, &first, marshalEnum, "")
+	marshalMapSorted(&buf, s.Actions, &first, marshalAction, "")
+	marshalMapSorted(&buf, s.Namespaces, &first, marshalNamespace, "")
 
 	return buf.Bytes()
 }
@@ -124,65 +87,11 @@ func marshalNamespace(buf *bytes.Buffer, name types.Path, ns ast.NamespaceNode, 
 	innerIndent := indent + "  "
 	first := true
 
-	// Marshal common types
-	ctNames := make([]string, 0, len(ns.CommonTypes))
-	for ctName := range ns.CommonTypes {
-		ctNames = append(ctNames, string(ctName))
-	}
-	sort.Strings(ctNames)
-
-	for _, ctName := range ctNames {
-		if !first {
-			buf.WriteString("\n")
-		}
-		first = false
-		marshalCommonType(buf, types.Ident(ctName), ns.CommonTypes[types.Ident(ctName)], innerIndent)
-	}
-
-	// Marshal entities
-	entityNames := make([]string, 0, len(ns.Entities))
-	for entityName := range ns.Entities {
-		entityNames = append(entityNames, string(entityName))
-	}
-	sort.Strings(entityNames)
-
-	for _, entityName := range entityNames {
-		if !first {
-			buf.WriteString("\n")
-		}
-		first = false
-		marshalEntity(buf, types.EntityType(entityName), ns.Entities[types.EntityType(entityName)], innerIndent)
-	}
-
-	// Marshal enums
-	enumNames := make([]string, 0, len(ns.Enums))
-	for enumName := range ns.Enums {
-		enumNames = append(enumNames, string(enumName))
-	}
-	sort.Strings(enumNames)
-
-	for _, enumName := range enumNames {
-		if !first {
-			buf.WriteString("\n")
-		}
-		first = false
-		marshalEnum(buf, types.EntityType(enumName), ns.Enums[types.EntityType(enumName)], innerIndent)
-	}
-
-	// Marshal actions
-	actionNames := make([]string, 0, len(ns.Actions))
-	for actionName := range ns.Actions {
-		actionNames = append(actionNames, string(actionName))
-	}
-	sort.Strings(actionNames)
-
-	for _, actionName := range actionNames {
-		if !first {
-			buf.WriteString("\n")
-		}
-		first = false
-		marshalAction(buf, types.String(actionName), ns.Actions[types.String(actionName)], innerIndent)
-	}
+	// Marshal namespace declarations in order
+	marshalMapSorted(buf, ns.CommonTypes, &first, marshalCommonType, innerIndent)
+	marshalMapSorted(buf, ns.Entities, &first, marshalEntity, innerIndent)
+	marshalMapSorted(buf, ns.Enums, &first, marshalEnum, innerIndent)
+	marshalMapSorted(buf, ns.Actions, &first, marshalAction, innerIndent)
 
 	buf.WriteString(indent)
 	buf.WriteString("}\n")
