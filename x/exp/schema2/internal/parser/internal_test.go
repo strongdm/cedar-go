@@ -49,6 +49,13 @@ func TestParserInternals(t *testing.T) {
 		testutil.Equals(t, err != nil, true)
 	})
 
+	t.Run("peekAhead beyond end", func(t *testing.T) {
+		t.Parallel()
+		p := &Parser{tokens: []Token{{Type: TokenIdent, Text: "foo"}}, pos: 0}
+		tok := p.peekAhead(10)
+		testutil.Equals(t, tok.Type, TokenEOF)
+	})
+
 	t.Run("parseEntityRef with identifier only", func(t *testing.T) {
 		t.Parallel()
 		p, err := New("", []byte("someActionName"))
@@ -128,6 +135,8 @@ func TestParserErrorPaths(t *testing.T) {
 		{"namespace entity shape error", `namespace MyApp { entity User { 123 }; }`},
 		{"action appliesTo principal list close error", `action view appliesTo { principal: [User };`},
 		{"action appliesTo resource list close error", `action view appliesTo { resource: [Doc };`},
+		{"namespace with enum conflict after entity", `namespace MyApp { entity Status; entity Status enum ["a"]; }`},
+		{"namespace with enum parse error in values", `namespace MyApp { entity Status enum [; }`},
 	}
 
 	for _, tt := range tests {
@@ -159,23 +168,23 @@ func TestDirectMethodCallErrors(t *testing.T) {
 			name:  "parseCommonType type parse error",
 			input: "type Foo = 123",
 			testFunc: func(t *testing.T, p *Parser) {
-				_, err := p.parseCommonType(nil)
+				_, _, err := p.parseCommonType(nil)
 				testutil.Equals(t, err != nil, true)
 			},
 		},
 		{
-			name:  "parseRecordPairs error in pair",
+			name:  "parseAttributes error in pair",
 			input: "{ 123 }",
 			testFunc: func(t *testing.T, p *Parser) {
-				_, err := p.parseRecordPairs()
+				_, err := p.parseAttributes()
 				testutil.Equals(t, err != nil, true)
 			},
 		},
 		{
-			name:  "parseRecordPairs unterminated",
+			name:  "parseAttributes unterminated",
 			input: "{ name: String",
 			testFunc: func(t *testing.T, p *Parser) {
-				_, err := p.parseRecordPairs()
+				_, err := p.parseAttributes()
 				testutil.Equals(t, err != nil, true)
 			},
 		},
@@ -183,7 +192,7 @@ func TestDirectMethodCallErrors(t *testing.T) {
 			name:  "parseNamespace directly without namespace keyword",
 			input: "foo { entity User; }",
 			testFunc: func(t *testing.T, p *Parser) {
-				_, err := p.parseNamespace(nil)
+				_, _, err := p.parseNamespace(nil)
 				testutil.Equals(t, err != nil, true)
 			},
 		},
@@ -215,15 +224,15 @@ func TestDirectMethodCallErrors(t *testing.T) {
 			name:  "parseCommonType directly without type keyword",
 			input: "foo = String;",
 			testFunc: func(t *testing.T, p *Parser) {
-				_, err := p.parseCommonType(nil)
+				_, _, err := p.parseCommonType(nil)
 				testutil.Equals(t, err != nil, true)
 			},
 		},
 		{
-			name:  "parseRecordPairs without opening brace",
+			name:  "parseAttributes without opening brace",
 			input: "name: String",
 			testFunc: func(t *testing.T, p *Parser) {
-				_, err := p.parseRecordPairs()
+				_, err := p.parseAttributes()
 				testutil.Equals(t, err != nil, true)
 			},
 		},
@@ -234,6 +243,30 @@ func TestDirectMethodCallErrors(t *testing.T) {
 				ref, err := p.parseEntityRef()
 				testutil.OK(t, err)
 				testutil.Equals(t, ref.ID, "someAction")
+			},
+		},
+		{
+			name:  "parseEnum directly without entity keyword",
+			input: `Status enum ["a"]`,
+			testFunc: func(t *testing.T, p *Parser) {
+				_, _, err := p.parseEnum(nil)
+				testutil.Equals(t, err != nil, true)
+			},
+		},
+		{
+			name:  "parseEnum with invalid name token",
+			input: `entity 123 enum ["a"]`,
+			testFunc: func(t *testing.T, p *Parser) {
+				_, _, err := p.parseEnum(nil)
+				testutil.Equals(t, err != nil, true)
+			},
+		},
+		{
+			name:  "parseEnum without enum keyword",
+			input: `entity Status ["a"]`,
+			testFunc: func(t *testing.T, p *Parser) {
+				_, _, err := p.parseEnum(nil)
+				testutil.Equals(t, err != nil, true)
 			},
 		},
 	}
@@ -448,26 +481,27 @@ func TestCommaSeparatedDeclarations(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name      string
-		input     string
-		wantNodes int
-		wantErr   bool
+		name        string
+		input       string
+		wantEntities int
+		wantActions  int
+		wantErr     bool
 	}{
-		{"multiple entities", `entity User, Admin, Guest;`, 3, false},
-		{"multiple entities with shared in clause", `entity Group; entity User, Admin in [Group];`, 3, false},
-		{"multiple entities with shared shape", `entity User, Admin { name: String };`, 2, false},
-		{"multiple actions", `action read, write, delete;`, 3, false},
-		{"multiple actions with shared appliesTo", `entity User; entity Doc; action read, write appliesTo { principal: User, resource: Doc };`, 4, false},
-		{"multiple actions with shared memberOf", `action baseAction; action read, write in ["baseAction"];`, 3, false},
-		{"multiple quoted action names", `action "view doc", "edit doc", "delete doc";`, 3, false},
-		{"enum cannot have multiple names", `entity Status, OtherStatus enum ["a", "b"];`, 0, true},
-		{"entity comma followed by invalid token", `entity User, 123;`, 0, true},
-		{"action comma followed by invalid token", `action read, 123;`, 0, true},
-		{"namespace with comma-separated entities", `namespace App { entity User, Admin; }`, 1, false},
-		{"namespace with comma-separated actions", `namespace App { action read, write; }`, 1, false},
-		{"trailing comma in memberOf list", `entity Group; entity User in [Group,];`, 0, true},
-		{"trailing comma in action memberOf list", `action parent; action view in ["parent",];`, 0, true},
-		{"reserved identifier 'in' as entity name", `entity in;`, 0, true},
+		{"multiple entities", `entity User, Admin, Guest;`, 3, 0, false},
+		{"multiple entities with shared in clause", `entity Group; entity User, Admin in [Group];`, 3, 0, false},
+		{"multiple entities with shared shape", `entity User, Admin { name: String };`, 2, 0, false},
+		{"multiple actions", `action read, write, delete;`, 0, 3, false},
+		{"multiple actions with shared appliesTo", `entity User; entity Doc; action read, write appliesTo { principal: User, resource: Doc };`, 2, 2, false},
+		{"multiple actions with shared memberOf", `action baseAction; action read, write in ["baseAction"];`, 0, 3, false},
+		{"multiple quoted action names", `action "view doc", "edit doc", "delete doc";`, 0, 3, false},
+		{"enum cannot have multiple names", `entity Status, OtherStatus enum ["a", "b"];`, 0, 0, true},
+		{"entity comma followed by invalid token", `entity User, 123;`, 0, 0, true},
+		{"action comma followed by invalid token", `action read, 123;`, 0, 0, true},
+		{"namespace with comma-separated entities", `namespace App { entity User, Admin; }`, 0, 0, false},
+		{"namespace with comma-separated actions", `namespace App { action read, write; }`, 0, 0, false},
+		{"trailing comma in memberOf list", `entity Group; entity User in [Group,];`, 0, 0, true},
+		{"trailing comma in action memberOf list", `action parent; action view in ["parent",];`, 0, 0, true},
+		{"reserved identifier 'in' as entity name", `entity in;`, 0, 0, true},
 	}
 
 	for _, tt := range tests {
@@ -478,7 +512,8 @@ func TestCommaSeparatedDeclarations(t *testing.T) {
 				testutil.Equals(t, err != nil, true)
 			} else {
 				testutil.OK(t, err)
-				testutil.Equals(t, len(schema.Nodes), tt.wantNodes)
+				testutil.Equals(t, len(schema.Entities), tt.wantEntities)
+				testutil.Equals(t, len(schema.Actions), tt.wantActions)
 			}
 		})
 	}

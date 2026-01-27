@@ -13,24 +13,29 @@ func TestParseSchema(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name      string
-		input     string
-		wantNodes int
-		validate  func(t *testing.T, schema *ast.Schema)
+		name     string
+		input    string
+		validate func(t *testing.T, schema *ast.Schema)
 	}{
 		{
-			name:      "empty schema",
-			input:     "",
-			wantNodes: 0,
+			name:  "empty schema",
+			input: "",
+			validate: func(t *testing.T, schema *ast.Schema) {
+				testutil.Equals(t, len(schema.Entities), 0)
+				testutil.Equals(t, len(schema.Enums), 0)
+				testutil.Equals(t, len(schema.Actions), 0)
+				testutil.Equals(t, len(schema.CommonTypes), 0)
+				testutil.Equals(t, len(schema.Namespaces), 0)
+			},
 		},
 		{
-			name:      "simple entity",
-			input:     `entity User;`,
-			wantNodes: 1,
+			name:  "simple entity",
+			input: `entity User;`,
 			validate: func(t *testing.T, schema *ast.Schema) {
-				entity, ok := schema.Nodes[0].(ast.EntityNode)
+				testutil.Equals(t, len(schema.Entities), 1)
+				entity, ok := schema.Entities[types.EntityType("User")]
 				testutil.Equals(t, ok, true)
-				testutil.Equals(t, entity.Name, types.EntityType("User"))
+				testutil.Equals(t, entity.ShapeVal == nil, true)
 			},
 		},
 		{
@@ -39,12 +44,14 @@ func TestParseSchema(t *testing.T) {
 				name: String,
 				age: Long,
 			};`,
-			wantNodes: 1,
 			validate: func(t *testing.T, schema *ast.Schema) {
-				entity, ok := schema.Nodes[0].(ast.EntityNode)
-				testutil.Equals(t, ok, true)
+				entity := schema.Entities[types.EntityType("User")]
 				testutil.Equals(t, entity.ShapeVal != nil, true)
-				testutil.Equals(t, len(entity.ShapeVal.Pairs), 2)
+				testutil.Equals(t, len(entity.ShapeVal.Attributes), 2)
+				_, ok := entity.ShapeVal.Attributes["name"].Type.(ast.StringType)
+				testutil.Equals(t, ok, true)
+				_, ok = entity.ShapeVal.Attributes["age"].Type.(ast.LongType)
+				testutil.Equals(t, ok, true)
 			},
 		},
 		{
@@ -53,44 +60,36 @@ func TestParseSchema(t *testing.T) {
 				name: String,
 				email?: String,
 			};`,
-			wantNodes: 1,
 			validate: func(t *testing.T, schema *ast.Schema) {
-				entity, ok := schema.Nodes[0].(ast.EntityNode)
-				testutil.Equals(t, ok, true)
-				testutil.Equals(t, entity.ShapeVal.Pairs[0].Optional, false)
-				testutil.Equals(t, entity.ShapeVal.Pairs[1].Optional, true)
+				entity := schema.Entities[types.EntityType("User")]
+				testutil.Equals(t, entity.ShapeVal.Attributes["name"].Optional, false)
+				testutil.Equals(t, entity.ShapeVal.Attributes["email"].Optional, true)
 			},
 		},
 		{
-			name:      "entity with memberOf",
-			input:     `entity User in [Group, Team];`,
-			wantNodes: 1,
+			name:  "entity with memberOf",
+			input: `entity User in [Group, Team];`,
 			validate: func(t *testing.T, schema *ast.Schema) {
-				entity, ok := schema.Nodes[0].(ast.EntityNode)
-				testutil.Equals(t, ok, true)
+				entity := schema.Entities[types.EntityType("User")]
 				testutil.Equals(t, len(entity.MemberOfVal), 2)
 				testutil.Equals(t, entity.MemberOfVal[0].Name, types.EntityType("Group"))
 				testutil.Equals(t, entity.MemberOfVal[1].Name, types.EntityType("Team"))
 			},
 		},
 		{
-			name:      "entity with single memberOf",
-			input:     `entity User in Group;`,
-			wantNodes: 1,
+			name:  "entity with single memberOf",
+			input: `entity User in Group;`,
 			validate: func(t *testing.T, schema *ast.Schema) {
-				entity, ok := schema.Nodes[0].(ast.EntityNode)
-				testutil.Equals(t, ok, true)
+				entity := schema.Entities[types.EntityType("User")]
 				testutil.Equals(t, len(entity.MemberOfVal), 1)
 			},
 		},
 		{
-			name:      "entity with tags",
-			input:     `entity Document tags String;`,
-			wantNodes: 1,
+			name:  "entity with tags",
+			input: `entity Document tags String;`,
 			validate: func(t *testing.T, schema *ast.Schema) {
-				entity, ok := schema.Nodes[0].(ast.EntityNode)
-				testutil.Equals(t, ok, true)
-				_, ok = entity.TagsVal.(ast.StringType)
+				entity := schema.Entities[types.EntityType("Document")]
+				_, ok := entity.TagsVal.(ast.StringType)
 				testutil.Equals(t, ok, true)
 			},
 		},
@@ -99,43 +98,35 @@ func TestParseSchema(t *testing.T) {
 			input: `entity User = {
 				name: String,
 			};`,
-			wantNodes: 1,
 			validate: func(t *testing.T, schema *ast.Schema) {
-				entity, ok := schema.Nodes[0].(ast.EntityNode)
-				testutil.Equals(t, ok, true)
+				entity := schema.Entities[types.EntityType("User")]
 				testutil.Equals(t, entity.ShapeVal != nil, true)
 			},
 		},
 		{
-			name:      "enum entity",
-			input:     `entity Status enum ["active", "inactive", "pending"];`,
-			wantNodes: 1,
+			name:  "enum entity",
+			input: `entity Status enum ["active", "inactive", "pending"];`,
 			validate: func(t *testing.T, schema *ast.Schema) {
-				enum, ok := schema.Nodes[0].(ast.EnumNode)
-				testutil.Equals(t, ok, true)
-				testutil.Equals(t, enum.Name, types.EntityType("Status"))
+				enum := schema.Enums[types.EntityType("Status")]
 				testutil.Equals(t, len(enum.Values), 3)
 				testutil.Equals(t, enum.Values[0], types.String("active"))
 			},
 		},
 		{
-			name:      "simple action",
-			input:     `action view;`,
-			wantNodes: 1,
+			name:  "simple action",
+			input: `action view;`,
 			validate: func(t *testing.T, schema *ast.Schema) {
-				action, ok := schema.Nodes[0].(ast.ActionNode)
+				action, ok := schema.Actions[types.String("view")]
 				testutil.Equals(t, ok, true)
-				testutil.Equals(t, action.Name, types.String("view"))
+				testutil.Equals(t, action.AppliesToVal == nil, true)
 			},
 		},
 		{
-			name:      "action with quoted name",
-			input:     `action "view document";`,
-			wantNodes: 1,
+			name:  "action with quoted name",
+			input: `action "view document";`,
 			validate: func(t *testing.T, schema *ast.Schema) {
-				action, ok := schema.Nodes[0].(ast.ActionNode)
+				_, ok := schema.Actions[types.String("view document")]
 				testutil.Equals(t, ok, true)
-				testutil.Equals(t, action.Name, types.String("view document"))
 			},
 		},
 		{
@@ -144,10 +135,8 @@ func TestParseSchema(t *testing.T) {
 				principal: User,
 				resource: Document,
 			};`,
-			wantNodes: 1,
 			validate: func(t *testing.T, schema *ast.Schema) {
-				action, ok := schema.Nodes[0].(ast.ActionNode)
-				testutil.Equals(t, ok, true)
+				action := schema.Actions[types.String("view")]
 				testutil.Equals(t, action.AppliesToVal != nil, true)
 				testutil.Equals(t, len(action.AppliesToVal.PrincipalTypes), 1)
 				testutil.Equals(t, len(action.AppliesToVal.ResourceTypes), 1)
@@ -160,43 +149,34 @@ func TestParseSchema(t *testing.T) {
 				resource: Document,
 				context: { ip: __cedar::ipaddr },
 			};`,
-			wantNodes: 1,
 			validate: func(t *testing.T, schema *ast.Schema) {
-				action, ok := schema.Nodes[0].(ast.ActionNode)
-				testutil.Equals(t, ok, true)
+				action := schema.Actions[types.String("view")]
 				testutil.Equals(t, action.AppliesToVal.Context != nil, true)
 			},
 		},
 		{
-			name:      "action with memberOf",
-			input:     `action view in "readActions";`,
-			wantNodes: 1,
+			name:  "action with memberOf",
+			input: `action view in "readActions";`,
 			validate: func(t *testing.T, schema *ast.Schema) {
-				action, ok := schema.Nodes[0].(ast.ActionNode)
-				testutil.Equals(t, ok, true)
+				action := schema.Actions[types.String("view")]
 				testutil.Equals(t, len(action.MemberOfVal), 1)
 				testutil.Equals(t, action.MemberOfVal[0].ID, types.String("readActions"))
 			},
 		},
 		{
-			name:      "action with memberOf list",
-			input:     `action view in ["readActions", "viewActions"];`,
-			wantNodes: 1,
+			name:  "action with memberOf list",
+			input: `action view in ["readActions", "viewActions"];`,
 			validate: func(t *testing.T, schema *ast.Schema) {
-				action, ok := schema.Nodes[0].(ast.ActionNode)
-				testutil.Equals(t, ok, true)
+				action := schema.Actions[types.String("view")]
 				testutil.Equals(t, len(action.MemberOfVal), 2)
 			},
 		},
 		{
-			name:      "common type",
-			input:     `type Name = String;`,
-			wantNodes: 1,
+			name:  "common type",
+			input: `type Name = String;`,
 			validate: func(t *testing.T, schema *ast.Schema) {
-				ct, ok := schema.Nodes[0].(ast.CommonTypeNode)
-				testutil.Equals(t, ok, true)
-				testutil.Equals(t, ct.Name, types.Ident("Name"))
-				_, ok = ct.Type.(ast.StringType)
+				ct := schema.CommonTypes[types.Ident("Name")]
+				_, ok := ct.Type.(ast.StringType)
 				testutil.Equals(t, ok, true)
 			},
 		},
@@ -206,13 +186,11 @@ func TestParseSchema(t *testing.T) {
 				street: String,
 				city: String,
 			};`,
-			wantNodes: 1,
 			validate: func(t *testing.T, schema *ast.Schema) {
-				ct, ok := schema.Nodes[0].(ast.CommonTypeNode)
-				testutil.Equals(t, ok, true)
+				ct := schema.CommonTypes[types.Ident("Address")]
 				rt, ok := ct.Type.(ast.RecordType)
 				testutil.Equals(t, ok, true)
-				testutil.Equals(t, len(rt.Pairs), 2)
+				testutil.Equals(t, len(rt.Attributes), 2)
 			},
 		},
 		{
@@ -221,12 +199,9 @@ func TestParseSchema(t *testing.T) {
 				entity User;
 				entity Document;
 			}`,
-			wantNodes: 1,
 			validate: func(t *testing.T, schema *ast.Schema) {
-				ns, ok := schema.Nodes[0].(ast.NamespaceNode)
-				testutil.Equals(t, ok, true)
-				testutil.Equals(t, ns.Name, types.Path("MyApp"))
-				testutil.Equals(t, len(ns.Declarations), 2)
+				ns := schema.Namespaces[types.Path("MyApp")]
+				testutil.Equals(t, len(ns.Entities), 2)
 			},
 		},
 		{
@@ -234,37 +209,29 @@ func TestParseSchema(t *testing.T) {
 			input: `namespace MyApp::Core {
 				entity User;
 			}`,
-			wantNodes: 1,
 			validate: func(t *testing.T, schema *ast.Schema) {
-				ns, ok := schema.Nodes[0].(ast.NamespaceNode)
+				_, ok := schema.Namespaces[types.Path("MyApp::Core")]
 				testutil.Equals(t, ok, true)
-				testutil.Equals(t, ns.Name, types.Path("MyApp::Core"))
 			},
 		},
 		{
 			name: "annotation",
 			input: `@doc("A user entity")
 entity User;`,
-			wantNodes: 1,
 			validate: func(t *testing.T, schema *ast.Schema) {
-				entity, ok := schema.Nodes[0].(ast.EntityNode)
-				testutil.Equals(t, ok, true)
+				entity := schema.Entities[types.EntityType("User")]
 				testutil.Equals(t, len(entity.Annotations), 1)
-				testutil.Equals(t, entity.Annotations[0].Key, types.Ident("doc"))
-				testutil.Equals(t, entity.Annotations[0].Value, types.String("A user entity"))
+				testutil.Equals(t, entity.Annotations[types.Ident("doc")], types.String("A user entity"))
 			},
 		},
 		{
 			name: "annotation without value",
 			input: `@deprecated
 entity User;`,
-			wantNodes: 1,
 			validate: func(t *testing.T, schema *ast.Schema) {
-				entity, ok := schema.Nodes[0].(ast.EntityNode)
-				testutil.Equals(t, ok, true)
+				entity := schema.Entities[types.EntityType("User")]
 				testutil.Equals(t, len(entity.Annotations), 1)
-				testutil.Equals(t, entity.Annotations[0].Key, types.Ident("deprecated"))
-				testutil.Equals(t, entity.Annotations[0].Value, types.String(""))
+				testutil.Equals(t, entity.Annotations[types.Ident("deprecated")], types.String(""))
 			},
 		},
 		{
@@ -272,20 +239,16 @@ entity User;`,
 			input: `@doc("A user")
 @deprecated
 entity User;`,
-			wantNodes: 1,
 			validate: func(t *testing.T, schema *ast.Schema) {
-				entity, ok := schema.Nodes[0].(ast.EntityNode)
-				testutil.Equals(t, ok, true)
+				entity := schema.Entities[types.EntityType("User")]
 				testutil.Equals(t, len(entity.Annotations), 2)
 			},
 		},
 		{
-			name:      "set type",
-			input:     `type Tags = Set<String>;`,
-			wantNodes: 1,
+			name:  "set type",
+			input: `type Tags = Set<String>;`,
 			validate: func(t *testing.T, schema *ast.Schema) {
-				ct, ok := schema.Nodes[0].(ast.CommonTypeNode)
-				testutil.Equals(t, ok, true)
+				ct := schema.CommonTypes[types.Ident("Tags")]
 				st, ok := ct.Type.(ast.SetType)
 				testutil.Equals(t, ok, true)
 				_, ok = st.Element.(ast.StringType)
@@ -293,12 +256,10 @@ entity User;`,
 			},
 		},
 		{
-			name:      "extension types",
-			input:     `type IP = __cedar::ipaddr;`,
-			wantNodes: 1,
+			name:  "extension types",
+			input: `type IP = __cedar::ipaddr;`,
 			validate: func(t *testing.T, schema *ast.Schema) {
-				ct, ok := schema.Nodes[0].(ast.CommonTypeNode)
-				testutil.Equals(t, ok, true)
+				ct := schema.CommonTypes[types.Ident("IP")]
 				// Parser now treats __cedar::ipaddr as a TypeRef
 				ref, ok := ct.Type.(ast.TypeRef)
 				testutil.Equals(t, ok, true)
@@ -306,12 +267,10 @@ entity User;`,
 			},
 		},
 		{
-			name:      "entity type reference",
-			input:     `type UserRef = MyApp::User;`,
-			wantNodes: 1,
+			name:  "entity type reference",
+			input: `type UserRef = MyApp::User;`,
 			validate: func(t *testing.T, schema *ast.Schema) {
-				ct, ok := schema.Nodes[0].(ast.CommonTypeNode)
-				testutil.Equals(t, ok, true)
+				ct := schema.CommonTypes[types.Ident("UserRef")]
 				// Parser now treats MyApp::User as a TypeRef
 				ref, ok := ct.Type.(ast.TypeRef)
 				testutil.Equals(t, ok, true)
@@ -319,12 +278,10 @@ entity User;`,
 			},
 		},
 		{
-			name:      "common type reference",
-			input:     `type AliasedName = Name;`,
-			wantNodes: 1,
+			name:  "common type reference",
+			input: `type AliasedName = Name;`,
 			validate: func(t *testing.T, schema *ast.Schema) {
-				ct, ok := schema.Nodes[0].(ast.CommonTypeNode)
-				testutil.Equals(t, ok, true)
+				ct := schema.CommonTypes[types.Ident("AliasedName")]
 				ref, ok := ct.Type.(ast.TypeRef)
 				testutil.Equals(t, ok, true)
 				testutil.Equals(t, ref.Name, types.Path("Name"))
@@ -338,25 +295,21 @@ entity User;`,
 					city: String,
 				},
 			};`,
-			wantNodes: 1,
 			validate: func(t *testing.T, schema *ast.Schema) {
-				ct, ok := schema.Nodes[0].(ast.CommonTypeNode)
-				testutil.Equals(t, ok, true)
+				ct := schema.CommonTypes[types.Ident("Contact")]
 				rt, ok := ct.Type.(ast.RecordType)
 				testutil.Equals(t, ok, true)
-				inner, ok := rt.Pairs[0].Type.(ast.RecordType)
+				inner, ok := rt.Attributes["address"].Type.(ast.RecordType)
 				testutil.Equals(t, ok, true)
-				testutil.Equals(t, len(inner.Pairs), 2)
+				testutil.Equals(t, len(inner.Attributes), 2)
 			},
 		},
 		{
-			name: "bool type",
+			name:  "bool type",
 			input: `type Flag = Bool;`,
-			wantNodes: 1,
 			validate: func(t *testing.T, schema *ast.Schema) {
-				ct, ok := schema.Nodes[0].(ast.CommonTypeNode)
-				testutil.Equals(t, ok, true)
-				_, ok = ct.Type.(ast.BoolType)
+				ct := schema.CommonTypes[types.Ident("Flag")]
+				_, ok := ct.Type.(ast.BoolType)
 				testutil.Equals(t, ok, true)
 			},
 		},
@@ -366,10 +319,8 @@ entity User;`,
 namespace MyApp {
 	entity User;
 }`,
-			wantNodes: 1,
 			validate: func(t *testing.T, schema *ast.Schema) {
-				ns, ok := schema.Nodes[0].(ast.NamespaceNode)
-				testutil.Equals(t, ok, true)
+				ns := schema.Namespaces[types.Path("MyApp")]
 				testutil.Equals(t, len(ns.Annotations), 1)
 			},
 		},
@@ -380,11 +331,9 @@ namespace MyApp {
 				resource: Document,
 				context: RequestContext,
 			};`,
-			wantNodes: 1,
 			validate: func(t *testing.T, schema *ast.Schema) {
-				action, ok := schema.Nodes[0].(ast.ActionNode)
-				testutil.Equals(t, ok, true)
-				_, ok = action.AppliesToVal.Context.(ast.TypeRef)
+				action := schema.Actions[types.String("view")]
+				_, ok := action.AppliesToVal.Context.(ast.TypeRef)
 				testutil.Equals(t, ok, true)
 			},
 		},
@@ -394,20 +343,16 @@ namespace MyApp {
 				principal: [User, Admin, ServiceAccount],
 				resource: Document,
 			};`,
-			wantNodes: 1,
 			validate: func(t *testing.T, schema *ast.Schema) {
-				action, ok := schema.Nodes[0].(ast.ActionNode)
-				testutil.Equals(t, ok, true)
+				action := schema.Actions[types.String("view")]
 				testutil.Equals(t, len(action.AppliesToVal.PrincipalTypes), 3)
 			},
 		},
 		{
-			name:      "set of entity refs",
-			input:     `type UserSet = Set<MyApp::User>;`,
-			wantNodes: 1,
+			name:  "set of entity refs",
+			input: `type UserSet = Set<MyApp::User>;`,
 			validate: func(t *testing.T, schema *ast.Schema) {
-				ct, ok := schema.Nodes[0].(ast.CommonTypeNode)
-				testutil.Equals(t, ok, true)
+				ct := schema.CommonTypes[types.Ident("UserSet")]
 				st, ok := ct.Type.(ast.SetType)
 				testutil.Equals(t, ok, true)
 				// Parser now treats MyApp::User as a TypeRef
@@ -416,24 +361,20 @@ namespace MyApp {
 			},
 		},
 		{
-			name:      "action with explicit entity ref",
-			input:     `action view in Action::"allActions";`,
-			wantNodes: 1,
+			name:  "action with explicit entity ref",
+			input: `action view in Action::"allActions";`,
 			validate: func(t *testing.T, schema *ast.Schema) {
-				action, ok := schema.Nodes[0].(ast.ActionNode)
-				testutil.Equals(t, ok, true)
+				action := schema.Actions[types.String("view")]
 				testutil.Equals(t, len(action.MemberOfVal), 1)
 				testutil.Equals(t, action.MemberOfVal[0].Type.Name, types.EntityType("Action"))
 				testutil.Equals(t, action.MemberOfVal[0].ID, types.String("allActions"))
 			},
 		},
 		{
-			name:      "action with full entity ref in memberOf",
-			input:     `action view in MyApp::Action::"allActions";`,
-			wantNodes: 1,
+			name:  "action with full entity ref in memberOf",
+			input: `action view in MyApp::Action::"allActions";`,
 			validate: func(t *testing.T, schema *ast.Schema) {
-				action, ok := schema.Nodes[0].(ast.ActionNode)
-				testutil.Equals(t, ok, true)
+				action := schema.Actions[types.String("view")]
 				testutil.Equals(t, action.MemberOfVal[0].Type.Name, types.EntityType("MyApp::Action"))
 			},
 		},
@@ -442,13 +383,12 @@ namespace MyApp {
 			input: `type Data = {
 				"special-key": String,
 			};`,
-			wantNodes: 1,
 			validate: func(t *testing.T, schema *ast.Schema) {
-				ct, ok := schema.Nodes[0].(ast.CommonTypeNode)
-				testutil.Equals(t, ok, true)
+				ct := schema.CommonTypes[types.Ident("Data")]
 				rt, ok := ct.Type.(ast.RecordType)
 				testutil.Equals(t, ok, true)
-				testutil.Equals(t, rt.Pairs[0].Key, types.String("special-key"))
+				_, ok = rt.Attributes[types.String("special-key")].Type.(ast.StringType)
+				testutil.Equals(t, ok, true)
 			},
 		},
 		{
@@ -484,12 +424,11 @@ namespace MyApp {
 	};
 }
 `,
-			wantNodes: 1,
 			validate: func(t *testing.T, schema *ast.Schema) {
-				ns, ok := schema.Nodes[0].(ast.NamespaceNode)
-				testutil.Equals(t, ok, true)
-				testutil.Equals(t, ns.Name, types.Path("MyApp"))
-				testutil.Equals(t, len(ns.Declarations), 7)
+				ns := schema.Namespaces[types.Path("MyApp")]
+				testutil.Equals(t, len(ns.CommonTypes), 1)
+				testutil.Equals(t, len(ns.Entities), 4)
+				testutil.Equals(t, len(ns.Actions), 2)
 			},
 		},
 		{
@@ -498,15 +437,15 @@ namespace MyApp {
 				"first-name": String,
 				"last-name": String,
 			};`,
-			wantNodes: 1,
 			validate: func(t *testing.T, schema *ast.Schema) {
-				ct, ok := schema.Nodes[0].(ast.CommonTypeNode)
-				testutil.Equals(t, ok, true)
+				ct := schema.CommonTypes[types.Ident("Data")]
 				rt, ok := ct.Type.(ast.RecordType)
 				testutil.Equals(t, ok, true)
-				testutil.Equals(t, len(rt.Pairs), 2)
-				testutil.Equals(t, rt.Pairs[0].Key, types.String("first-name"))
-				testutil.Equals(t, rt.Pairs[1].Key, types.String("last-name"))
+				testutil.Equals(t, len(rt.Attributes), 2)
+				_, ok = rt.Attributes[types.String("first-name")]
+				testutil.Equals(t, ok, true)
+				_, ok = rt.Attributes[types.String("last-name")]
+				testutil.Equals(t, ok, true)
 			},
 		},
 		{
@@ -514,15 +453,12 @@ namespace MyApp {
 			input: `type Data = {
 				"email"?: String,
 			};`,
-			wantNodes: 1,
 			validate: func(t *testing.T, schema *ast.Schema) {
-				ct, ok := schema.Nodes[0].(ast.CommonTypeNode)
-				testutil.Equals(t, ok, true)
+				ct := schema.CommonTypes[types.Ident("Data")]
 				rt, ok := ct.Type.(ast.RecordType)
 				testutil.Equals(t, ok, true)
-				testutil.Equals(t, len(rt.Pairs), 1)
-				testutil.Equals(t, rt.Pairs[0].Key, types.String("email"))
-				testutil.Equals(t, rt.Pairs[0].Optional, true)
+				testutil.Equals(t, len(rt.Attributes), 1)
+				testutil.Equals(t, rt.Attributes[types.String("email")].Optional, true)
 			},
 		},
 	}
@@ -532,7 +468,6 @@ namespace MyApp {
 			t.Parallel()
 			schema, err := ParseSchema("", []byte(tt.input))
 			testutil.OK(t, err)
-			testutil.Equals(t, len(schema.Nodes), tt.wantNodes)
 			if tt.validate != nil {
 				tt.validate(t, schema)
 			}
@@ -599,6 +534,25 @@ func TestParserErrors(t *testing.T) {
 		{"common type semicolon error", `type Foo = String`},
 		{"record pair in shape error", `entity User { ?: String };`},
 		{"record pair annotation error", `type Data = { @123 name: String };`},
+
+		// Duplicate key errors
+		{"duplicate annotation", `@doc("first") @doc("second") entity User;`},
+		{"duplicate entity", `entity User; entity User;`},
+		{"duplicate action", `action view; action view;`},
+		{"duplicate common type", `type Name = String; type Name = Long;`},
+		{"duplicate namespace", `namespace App {} namespace App {}`},
+		{"duplicate enum", `entity Status enum ["a"]; entity Status enum ["b"];`},
+		{"entity conflicts with enum", `entity Status enum ["a"]; entity Status;`},
+		{"enum conflicts with entity", `entity Status; entity Status enum ["a"];`},
+		{"duplicate attribute in record", `type User = { name: String, name: Long };`},
+		{"duplicate attribute in entity shape", `entity User { name: String, name: Long };`},
+		{"duplicate entity in namespace", `namespace App { entity User; entity User; }`},
+		{"duplicate action in namespace", `namespace App { action view; action view; }`},
+		{"duplicate common type in namespace", `namespace App { type Name = String; type Name = Long; }`},
+		{"duplicate enum in namespace", `namespace App { entity Status enum ["a"]; entity Status enum ["b"]; }`},
+		{"entity conflicts with enum in namespace", `namespace App { entity Status enum ["a"]; entity Status; }`},
+		{"enum conflicts with entity in namespace", `namespace App { entity Status; entity Status enum ["a"]; }`},
+		{"duplicate annotation on attribute", `type User = { @doc("a") @doc("b") name: String };`},
 	}
 
 	for _, tt := range tests {
@@ -625,6 +579,6 @@ func TestParseFromReader(t *testing.T) {
 		testutil.OK(t, err)
 		schema, err := p.Parse()
 		testutil.OK(t, err)
-		testutil.Equals(t, len(schema.Nodes), 1)
+		testutil.Equals(t, len(schema.Entities), 1)
 	})
 }

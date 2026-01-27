@@ -19,14 +19,14 @@ type ResolvedSchema struct {
 // All declarations have been moved into the other maps.
 type ResolvedNamespace struct {
 	Name        types.Path
-	Annotations []ast.Annotation
+	Annotations ast.Annotations
 }
 
 // ResolvedEntity represents an entity type with all type references fully resolved.
 // All EntityTypeRef references have been converted to types.EntityType.
 type ResolvedEntity struct {
 	Name        types.EntityType   // Fully qualified entity type
-	Annotations []ast.Annotation   // Entity annotations
+	Annotations ast.Annotations    // Entity annotations
 	MemberOf    []types.EntityType // Fully qualified parent entity types
 	Shape       *ast.RecordType    // Entity shape (with all type references resolved)
 	Tags        ast.IsType         // Tags type (with all type references resolved)
@@ -35,7 +35,7 @@ type ResolvedEntity struct {
 // ResolvedEnum represents an enum type with all references fully resolved.
 type ResolvedEnum struct {
 	Name        types.EntityType // Fully qualified enum type
-	Annotations []ast.Annotation // Enum annotations
+	Annotations ast.Annotations  // Enum annotations
 	Values      []types.String   // Enum values
 }
 
@@ -63,7 +63,7 @@ type ResolvedAppliesTo struct {
 // All EntityTypeRef and EntityRef references have been converted to types.EntityType and types.EntityUID.
 type ResolvedAction struct {
 	Name        types.String       // Action name (local, not qualified)
-	Annotations []ast.Annotation   // Action annotations
+	Annotations ast.Annotations    // Action annotations
 	MemberOf    []types.EntityUID  // Fully qualified parent action UIDs
 	AppliesTo   *ResolvedAppliesTo // AppliesTo clause with all type references resolved
 }

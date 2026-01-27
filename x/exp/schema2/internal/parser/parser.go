@@ -40,6 +40,14 @@ func (p *Parser) peek() Token {
 	return p.tokens[p.pos]
 }
 
+func (p *Parser) peekAhead(n int) Token {
+	pos := p.pos + n - 1
+	if pos >= len(p.tokens) {
+		return Token{Type: TokenEOF}
+	}
+	return p.tokens[pos]
+}
+
 func (p *Parser) advance() Token {
 	tok := p.peek()
 	if p.pos < len(p.tokens) {
@@ -104,8 +112,8 @@ func (p *Parser) consumeString() string {
 	return val
 }
 
-func (p *Parser) parseAnnotations() ([]ast.Annotation, error) {
-	var annotations []ast.Annotation
+func (p *Parser) parseAnnotations() (ast.Annotations, error) {
+	var annotations ast.Annotations
 
 	// Parse annotations
 	for p.peek().Text == "@" {
@@ -113,14 +121,22 @@ func (p *Parser) parseAnnotations() ([]ast.Annotation, error) {
 		if err != nil {
 			return nil, err
 		}
-		annotations = append(annotations, ann)
+		// Lazily initialize map on first annotation
+		if annotations == nil {
+			annotations = make(ast.Annotations)
+		}
+		// Check for duplicate annotation keys
+		if _, exists := annotations[ann.Key]; exists {
+			return nil, fmt.Errorf("duplicate annotation %q at %s", ann.Key, fmtPos(p.peek().Pos))
+		}
+		annotations[ann.Key] = ann.Value
 	}
 	return annotations, nil
 }
 
 // Parse parses a complete Cedar schema.
 func (p *Parser) Parse() (*ast.Schema, error) {
-	var nodes []ast.IsNode
+	schema := &ast.Schema{}
 
 	for !p.peek().isEOF() {
 		annotations, err := p.parseAnnotations()
@@ -132,49 +148,101 @@ func (p *Parser) Parse() (*ast.Schema, error) {
 		tok := p.peek()
 		switch tok.Text {
 		case "namespace":
-			ns, err := p.parseNamespace(annotations)
+			ns, name, err := p.parseNamespace(annotations)
 			if err != nil {
 				return nil, err
 			}
-			nodes = append(nodes, ns)
+			if schema.Namespaces == nil {
+				schema.Namespaces = make(ast.Namespaces)
+			}
+			if _, exists := schema.Namespaces[name]; exists {
+				return nil, fmt.Errorf("duplicate namespace %q at %s", name, fmtPos(tok.Pos))
+			}
+			schema.Namespaces[name] = ns
 		case "entity":
-			entities, err := p.parseEntity(annotations)
-			if err != nil {
-				return nil, err
-			}
-			for _, entity := range entities {
-				nodes = append(nodes, entity)
+			// Check if it's an enum by peeking ahead
+			// After "entity", the next token is the name, and the token after that might be "enum"
+			// We need to peek at position+2 (skip "entity" at pos, skip name at pos+1, check pos+2)
+			if p.peekAhead(3).Text == "enum" {
+				enum, name, err := p.parseEnum(annotations)
+				if err != nil {
+					return nil, err
+				}
+				if schema.Enums == nil {
+					schema.Enums = make(ast.Enums)
+				}
+				if _, exists := schema.Enums[name]; exists {
+					return nil, fmt.Errorf("duplicate enum %q at %s", name, fmtPos(tok.Pos))
+				}
+				if _, exists := schema.Entities[name]; exists {
+					return nil, fmt.Errorf("enum %q conflicts with entity at %s", name, fmtPos(tok.Pos))
+				}
+				schema.Enums[name] = enum
+			} else {
+				entities, err := p.parseEntity(annotations)
+				if err != nil {
+					return nil, err
+				}
+				if schema.Entities == nil {
+					schema.Entities = make(ast.Entities)
+				}
+				for name, entity := range entities {
+					if _, exists := schema.Entities[name]; exists {
+						return nil, fmt.Errorf("duplicate entity %q at %s", name, fmtPos(tok.Pos))
+					}
+					if _, exists := schema.Enums[name]; exists {
+						return nil, fmt.Errorf("entity %q conflicts with enum at %s", name, fmtPos(tok.Pos))
+					}
+					schema.Entities[name] = entity
+				}
 			}
 		case "action":
 			actions, err := p.parseAction(annotations)
 			if err != nil {
 				return nil, err
 			}
-			for _, action := range actions {
-				nodes = append(nodes, action)
+			if schema.Actions == nil {
+				schema.Actions = make(ast.Actions)
+			}
+			for name, action := range actions {
+				if _, exists := schema.Actions[name]; exists {
+					return nil, fmt.Errorf("duplicate action %q at %s", name, fmtPos(tok.Pos))
+				}
+				schema.Actions[name] = action
 			}
 		case "type":
-			ct, err := p.parseCommonType(annotations)
+			ct, name, err := p.parseCommonType(annotations)
 			if err != nil {
 				return nil, err
 			}
-			nodes = append(nodes, ct)
+			if schema.CommonTypes == nil {
+				schema.CommonTypes = make(ast.CommonTypes)
+			}
+			if _, exists := schema.CommonTypes[name]; exists {
+				return nil, fmt.Errorf("duplicate common type %q at %s", name, fmtPos(tok.Pos))
+			}
+			schema.CommonTypes[name] = ct
 		default:
 			return nil, fmt.Errorf("unexpected token %q at %s", tok.Text, fmtPos(tok.Pos))
 		}
 	}
 
-	return ast.NewSchema(nodes...), nil
+	return schema, nil
 }
 
-func (p *Parser) parseAnnotation() (ast.Annotation, error) {
+type Annotation struct {
+	Key   types.Ident
+	Value types.String
+}
+
+func (p *Parser) parseAnnotation() (Annotation, error) {
 	if _, err := p.expect("@"); err != nil {
-		return ast.Annotation{}, err
+		return Annotation{}, err
 	}
 
 	key, err := p.expectAnyIdent()
 	if err != nil {
-		return ast.Annotation{}, err
+		return Annotation{}, err
 	}
 
 	var value string
@@ -182,75 +250,146 @@ func (p *Parser) parseAnnotation() (ast.Annotation, error) {
 		p.advance()
 		value, err = p.expectString()
 		if err != nil {
-			return ast.Annotation{}, err
+			return Annotation{}, err
 		}
 		if _, err := p.expect(")"); err != nil {
-			return ast.Annotation{}, err
+			return Annotation{}, err
 		}
 	}
 
-	return ast.Annotation{Key: types.Ident(key), Value: types.String(value)}, nil
+	return Annotation{Key: types.Ident(key), Value: types.String(value)}, nil
 }
 
-func (p *Parser) parseNamespace(annotations []ast.Annotation) (ast.NamespaceNode, error) {
+func (p *Parser) parseNamespace(annotations ast.Annotations) (ast.NamespaceNode, types.Path, error) {
 	if _, err := p.expect("namespace"); err != nil {
-		return ast.NamespaceNode{}, err
+		return ast.NamespaceNode{}, "", err
 	}
 
 	path, err := p.parsePath()
 	if err != nil {
-		return ast.NamespaceNode{}, err
+		return ast.NamespaceNode{}, "", err
 	}
 
 	if _, err := p.expect("{"); err != nil {
-		return ast.NamespaceNode{}, err
+		return ast.NamespaceNode{}, "", err
 	}
 
-	var decls []ast.IsDeclaration
+	ns := ast.NamespaceNode{
+		Annotations: annotations,
+	}
 
 	for p.peek().Text != "}" && !p.peek().isEOF() {
 		declAnnotations, err := p.parseAnnotations()
 		if err != nil {
-			return ast.NamespaceNode{}, err
+			return ast.NamespaceNode{}, "", err
 		}
 
 		tok := p.peek()
 		switch tok.Text {
 		case "entity":
-			entities, err := p.parseEntity(declAnnotations)
-			if err != nil {
-				return ast.NamespaceNode{}, err
+			// Check if it's an enum by peeking ahead
+			// After "entity", the next token is the name, and the token after that might be "enum"
+			if p.peekAhead(3).Text == "enum" {
+				enum, name, err := p.parseEnum(declAnnotations)
+				if err != nil {
+					return ast.NamespaceNode{}, "", err
+				}
+				if ns.Enums == nil {
+					ns.Enums = make(ast.Enums)
+				}
+				if _, exists := ns.Enums[name]; exists {
+					return ast.NamespaceNode{}, "", fmt.Errorf("duplicate enum %q in namespace at %s", name, fmtPos(tok.Pos))
+				}
+				if _, exists := ns.Entities[name]; exists {
+					return ast.NamespaceNode{}, "", fmt.Errorf("enum %q conflicts with entity in namespace at %s", name, fmtPos(tok.Pos))
+				}
+				ns.Enums[name] = enum
+			} else {
+				entities, err := p.parseEntity(declAnnotations)
+				if err != nil {
+					return ast.NamespaceNode{}, "", err
+				}
+				if ns.Entities == nil {
+					ns.Entities = make(ast.Entities)
+				}
+				for name, entity := range entities {
+					if _, exists := ns.Entities[name]; exists {
+						return ast.NamespaceNode{}, "", fmt.Errorf("duplicate entity %q in namespace at %s", name, fmtPos(tok.Pos))
+					}
+					if _, exists := ns.Enums[name]; exists {
+						return ast.NamespaceNode{}, "", fmt.Errorf("entity %q conflicts with enum in namespace at %s", name, fmtPos(tok.Pos))
+					}
+					ns.Entities[name] = entity
+				}
 			}
-			decls = append(decls, entities...)
 		case "action":
 			actions, err := p.parseAction(declAnnotations)
 			if err != nil {
-				return ast.NamespaceNode{}, err
+				return ast.NamespaceNode{}, "", err
 			}
-			for _, action := range actions {
-				decls = append(decls, action)
+			if ns.Actions == nil {
+				ns.Actions = make(ast.Actions)
+			}
+			for name, action := range actions {
+				if _, exists := ns.Actions[name]; exists {
+					return ast.NamespaceNode{}, "", fmt.Errorf("duplicate action %q in namespace at %s", name, fmtPos(tok.Pos))
+				}
+				ns.Actions[name] = action
 			}
 		case "type":
-			ct, err := p.parseCommonType(declAnnotations)
+			ct, name, err := p.parseCommonType(declAnnotations)
 			if err != nil {
-				return ast.NamespaceNode{}, err
+				return ast.NamespaceNode{}, "", err
 			}
-			decls = append(decls, ct)
+			if ns.CommonTypes == nil {
+				ns.CommonTypes = make(ast.CommonTypes)
+			}
+			if _, exists := ns.CommonTypes[name]; exists {
+				return ast.NamespaceNode{}, "", fmt.Errorf("duplicate common type %q in namespace at %s", name, fmtPos(tok.Pos))
+			}
+			ns.CommonTypes[name] = ct
 		default:
-			return ast.NamespaceNode{}, fmt.Errorf("unexpected token %q in namespace at %s", tok.Text, fmtPos(tok.Pos))
+			return ast.NamespaceNode{}, "", fmt.Errorf("unexpected token %q in namespace at %s", tok.Text, fmtPos(tok.Pos))
 		}
 	}
 
 	if _, err := p.expect("}"); err != nil {
-		return ast.NamespaceNode{}, err
+		return ast.NamespaceNode{}, "", err
 	}
 
-	ns := ast.Namespace(types.Path(path), decls...)
-	ns.Annotations = annotations
-	return ns, nil
+	return ns, types.Path(path), nil
 }
 
-func (p *Parser) parseEntity(annotations []ast.Annotation) ([]ast.IsDeclaration, error) {
+func (p *Parser) parseEnum(annotations ast.Annotations) (ast.EnumNode, types.EntityType, error) {
+	if _, err := p.expect("entity"); err != nil {
+		return ast.EnumNode{}, "", err
+	}
+
+	name, err := p.expectIdent()
+	if err != nil {
+		return ast.EnumNode{}, "", err
+	}
+
+	if _, err := p.expect("enum"); err != nil {
+		return ast.EnumNode{}, "", err
+	}
+
+	values, err := p.parseEnumValues()
+	if err != nil {
+		return ast.EnumNode{}, "", err
+	}
+
+	if _, err := p.expect(";"); err != nil {
+		return ast.EnumNode{}, "", err
+	}
+
+	return ast.EnumNode{
+		Annotations: annotations,
+		Values:      values,
+	}, types.EntityType(name), nil
+}
+
+func (p *Parser) parseEntity(annotations ast.Annotations) (map[types.EntityType]ast.EntityNode, error) {
 	if _, err := p.expect("entity"); err != nil {
 		return nil, err
 	}
@@ -272,28 +411,9 @@ func (p *Parser) parseEntity(annotations []ast.Annotation) ([]ast.IsDeclaration,
 		names = append(names, name)
 	}
 
-	// Check for enum syntax: entity Name enum ["val1", "val2"];
-	// Note: enum only supports single entity name
-	if p.peek().Text == "enum" {
-		if len(names) > 1 {
-			return nil, fmt.Errorf("enum entity cannot have multiple names")
-		}
-		p.advance()
-		values, err := p.parseEnumValues()
-		if err != nil {
-			return nil, err
-		}
-		if _, err := p.expect(";"); err != nil {
-			return nil, err
-		}
-		enum := ast.Enum(types.EntityType(names[0]), values...)
-		enum.Annotations = annotations
-		return []ast.IsDeclaration{enum}, nil
-	}
-
 	// Parse shared modifiers for all entities
 	var parents []ast.EntityTypeRef
-	var pairs []ast.Pair
+	var attrs ast.Attributes
 	var tagsType ast.IsType
 
 	// Parse "in" clause
@@ -312,7 +432,7 @@ func (p *Parser) parseEntity(annotations []ast.Annotation) ([]ast.IsDeclaration,
 
 	// Parse shape
 	if p.peek().Text == "{" {
-		pairs, err = p.parseRecordPairs()
+		attrs, err = p.parseAttributes()
 		if err != nil {
 			return nil, err
 		}
@@ -332,20 +452,17 @@ func (p *Parser) parseEntity(annotations []ast.Annotation) ([]ast.IsDeclaration,
 	}
 
 	// Create entity nodes for each name
-	var entities []ast.IsDeclaration
+	entities := make(map[types.EntityType]ast.EntityNode)
 	for _, n := range names {
-		entity := ast.Entity(types.EntityType(n))
-		entity.Annotations = annotations
-		if len(parents) > 0 {
-			entity = entity.MemberOf(parents...)
+		entity := ast.EntityNode{
+			Annotations: annotations,
+			MemberOfVal: parents,
+			TagsVal:     tagsType,
 		}
-		if len(pairs) > 0 {
-			entity = entity.Shape(pairs...)
+		if attrs != nil {
+			entity.ShapeVal = &ast.RecordType{Attributes: attrs}
 		}
-		if tagsType != nil {
-			entity = entity.Tags(tagsType)
-		}
-		entities = append(entities, entity)
+		entities[types.EntityType(n)] = entity
 	}
 
 	return entities, nil
@@ -413,7 +530,7 @@ func (p *Parser) parseEntityTypeRefs() ([]ast.EntityTypeRef, error) {
 	return []ast.EntityTypeRef{ast.EntityType(types.EntityType(path))}, nil
 }
 
-func (p *Parser) parseAction(annotations []ast.Annotation) ([]ast.ActionNode, error) {
+func (p *Parser) parseAction(annotations ast.Annotations) (map[types.String]ast.ActionNode, error) {
 	if _, err := p.expect("action"); err != nil {
 		return nil, err
 	}
@@ -508,25 +625,20 @@ func (p *Parser) parseAction(annotations []ast.Annotation) ([]ast.ActionNode, er
 	}
 
 	// Create action nodes for each name
-	var actions []ast.ActionNode
+	actions := make(map[types.String]ast.ActionNode)
 	for _, n := range names {
-		action := ast.Action(types.String(n))
-		action.Annotations = annotations
-		if len(memberOf) > 0 {
-			action = action.MemberOf(memberOf...)
+		action := ast.ActionNode{
+			Annotations: annotations,
+			MemberOfVal: memberOf,
 		}
 		if hasAppliesTo {
-			if len(principals) > 0 {
-				action = action.Principal(principals...)
-			}
-			if len(resources) > 0 {
-				action = action.Resource(resources...)
-			}
-			if contextType != nil {
-				action = action.Context(contextType)
+			action.AppliesToVal = &ast.AppliesTo{
+				PrincipalTypes: principals,
+				ResourceTypes:  resources,
+				Context:        contextType,
 			}
 		}
-		actions = append(actions, action)
+		actions[types.String(n)] = action
 	}
 
 	return actions, nil
@@ -609,32 +721,34 @@ func (p *Parser) parseEntityRef() (ast.EntityRef, error) {
 	return ast.UID(types.String(name)), nil
 }
 
-func (p *Parser) parseCommonType(annotations []ast.Annotation) (ast.CommonTypeNode, error) {
+func (p *Parser) parseCommonType(annotations ast.Annotations) (ast.CommonTypeNode, types.Ident, error) {
 	if _, err := p.expect("type"); err != nil {
-		return ast.CommonTypeNode{}, err
+		return ast.CommonTypeNode{}, "", err
 	}
 
 	name, err := p.expectIdent()
 	if err != nil {
-		return ast.CommonTypeNode{}, err
+		return ast.CommonTypeNode{}, "", err
 	}
 
 	if _, err := p.expect("="); err != nil {
-		return ast.CommonTypeNode{}, err
+		return ast.CommonTypeNode{}, "", err
 	}
 
 	t, err := p.parseType()
 	if err != nil {
-		return ast.CommonTypeNode{}, err
+		return ast.CommonTypeNode{}, "", err
 	}
 
 	if _, err := p.expect(";"); err != nil {
-		return ast.CommonTypeNode{}, err
+		return ast.CommonTypeNode{}, "", err
 	}
 
-	ct := ast.CommonType(types.Ident(name), t)
-	ct.Annotations = annotations
-	return ct, nil
+	ct := ast.CommonTypeNode{
+		Annotations: annotations,
+		Type:        t,
+	}
+	return ct, types.Ident(name), nil
 }
 
 func (p *Parser) parseType() (ast.IsType, error) {
@@ -642,11 +756,11 @@ func (p *Parser) parseType() (ast.IsType, error) {
 
 	switch tok.Text {
 	case "{":
-		pairs, err := p.parseRecordPairs()
+		attrs, err := p.parseAttributes()
 		if err != nil {
 			return nil, err
 		}
-		return ast.Record(pairs...), nil
+		return ast.Record(attrs), nil
 	case "String":
 		p.advance()
 		return ast.String(), nil
@@ -697,18 +811,23 @@ func (p *Parser) parseType() (ast.IsType, error) {
 	}
 }
 
-func (p *Parser) parseRecordPairs() ([]ast.Pair, error) {
+func (p *Parser) parseAttributes() (ast.Attributes, error) {
 	if _, err := p.expect("{"); err != nil {
 		return nil, err
 	}
 
-	var pairs []ast.Pair
+	attrs := make(ast.Attributes)
 	for p.peek().Text != "}" && !p.peek().isEOF() {
-		pair, err := p.parseRecordPair()
+		key, attr, err := p.parseAttribute()
 		if err != nil {
 			return nil, err
 		}
-		pairs = append(pairs, pair)
+
+		// Check for duplicate attribute keys
+		if _, exists := attrs[key]; exists {
+			return nil, fmt.Errorf("duplicate attribute %q at %s", key, fmtPos(p.peek().Pos))
+		}
+		attrs[key] = attr
 
 		if p.peek().Text == "," {
 			p.advance()
@@ -719,14 +838,14 @@ func (p *Parser) parseRecordPairs() ([]ast.Pair, error) {
 		return nil, err
 	}
 
-	return pairs, nil
+	return attrs, nil
 }
 
-func (p *Parser) parseRecordPair() (ast.Pair, error) {
+func (p *Parser) parseAttribute() (types.String, ast.Attribute, error) {
 	var err error
 	annotations, err := p.parseAnnotations()
 	if err != nil {
-		return ast.Pair{}, err
+		return "", ast.Attribute{}, err
 	}
 
 	tok := p.peek()
@@ -738,7 +857,7 @@ func (p *Parser) parseRecordPair() (ast.Pair, error) {
 		key, err = p.expectIdent()
 	}
 	if err != nil {
-		return ast.Pair{}, err
+		return "", ast.Attribute{}, err
 	}
 
 	optional := false
@@ -748,18 +867,19 @@ func (p *Parser) parseRecordPair() (ast.Pair, error) {
 	}
 
 	if _, err := p.expect(":"); err != nil {
-		return ast.Pair{}, err
+		return "", ast.Attribute{}, err
 	}
 
 	t, err := p.parseType()
 	if err != nil {
-		return ast.Pair{}, err
+		return "", ast.Attribute{}, err
 	}
 
-	if optional {
-		return ast.Optional(types.String(key), t).Annotate(annotations...), nil
-	}
-	return ast.Attribute(types.String(key), t).Annotate(annotations...), nil
+	return types.String(key), ast.Attribute{
+		Type:        t,
+		Optional:    optional,
+		Annotations: annotations,
+	}, nil
 }
 
 func (p *Parser) parsePath() (string, error) {

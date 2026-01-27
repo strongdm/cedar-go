@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/cedar-policy/cedar-go/internal/testutil"
+	"github.com/cedar-policy/cedar-go/types"
 	"github.com/cedar-policy/cedar-go/x/exp/schema2/ast"
 )
 
@@ -63,68 +64,58 @@ func TestSet(t *testing.T) {
 	testutil.Equals(t, got, want)
 }
 
-func TestAttribute(t *testing.T) {
-	t.Parallel()
-	want := ast.Pair{Key: "name", Type: ast.StringType{}, Optional: false}
-	got := ast.Attribute("name", ast.String())
-	testutil.Equals(t, got, want)
-}
-
-func TestOptional(t *testing.T) {
-	t.Parallel()
-	want := ast.Pair{Key: "email", Type: ast.StringType{}, Optional: true}
-	got := ast.Optional("email", ast.String())
-	testutil.Equals(t, got, want)
-}
-
 func TestRecord(t *testing.T) {
 	t.Parallel()
 	want := ast.RecordType{
-		Pairs: []ast.Pair{
-			{Key: "name", Type: ast.StringType{}, Optional: false},
-			{Key: "age", Type: ast.LongType{}, Optional: true},
+		Attributes: ast.Attributes{
+			"name": ast.Attribute{Type: ast.StringType{}, Optional: false},
+			"age":  ast.Attribute{Type: ast.LongType{}, Optional: true},
 		},
 	}
-	got := ast.Record(
-		ast.Attribute("name", ast.String()),
-		ast.Optional("age", ast.Long()),
-	)
+	got := ast.Record(ast.Attributes{
+		"name": ast.Attribute{Type: ast.String(), Optional: false},
+		"age":  ast.Attribute{Type: ast.Long(), Optional: true},
+	})
+	testutil.Equals(t, got, want)
+}
+
+func TestRecordWithAnnotations(t *testing.T) {
+	t.Parallel()
+	want := ast.RecordType{
+		Attributes: ast.Attributes{
+			"name": ast.Attribute{
+				Type:     ast.StringType{},
+				Optional: false,
+				Annotations: ast.Annotations{
+					"doc":      "User name",
+					"required": "true",
+				},
+			},
+		},
+	}
+	got := ast.Record(ast.Attributes{
+		"name": ast.Attribute{
+			Type:     ast.String(),
+			Optional: false,
+			Annotations: ast.Annotations{
+				"doc":      "User name",
+				"required": "true",
+			},
+		},
+	})
 	testutil.Equals(t, got, want)
 }
 
 func TestEntityType(t *testing.T) {
 	t.Parallel()
-	want := ast.EntityTypeRef{Name: "User"}
+	want := ast.EntityTypeRef{Name: types.EntityType("User")}
 	got := ast.EntityType("User")
-	testutil.Equals(t, got, want)
-}
-
-func TestRef(t *testing.T) {
-	t.Parallel()
-	want := ast.EntityTypeRef{Name: "Photo"}
-	got := ast.Ref("Photo")
 	testutil.Equals(t, got, want)
 }
 
 func TestType(t *testing.T) {
 	t.Parallel()
-	want := ast.TypeRef{Name: "Common::Name"}
+	want := ast.TypeRef{Name: types.Path("Common::Name")}
 	got := ast.Type("Common::Name")
-	testutil.Equals(t, got, want)
-}
-
-func TestPairAnnotate(t *testing.T) {
-	t.Parallel()
-	want := ast.Pair{
-		Key:      "name",
-		Type:     ast.StringType{},
-		Optional: false,
-		Annotations: []ast.Annotation{
-			{Key: "doc", Value: "User name"},
-			{Key: "required", Value: "true"},
-		},
-	}
-	got := ast.Attribute("name", ast.String()).
-		Annotate(ast.Annotation{Key: "doc", Value: "User name"}, ast.Annotation{Key: "required", Value: "true"})
 	testutil.Equals(t, got, want)
 }

@@ -16,25 +16,19 @@ type commonTypeEntry struct {
 // resolveData contains cached information for efficient type resolution.
 type resolveData struct {
 	schema               *ast.Schema
-	namespace            *ast.NamespaceNode
+	namespacePath        types.Path
 	schemaCommonTypes    map[string]*commonTypeEntry // Fully qualified name -> common type entry
 	namespaceCommonTypes map[string]*commonTypeEntry // Unqualified name -> common type entry
 }
 
 // entityExistsInEmptyNamespace checks if an entity with the given name exists in the empty namespace (global scope).
 func (rd *resolveData) entityExistsInEmptyNamespace(name types.EntityType) bool {
-	nameStr := string(name)
-	for _, node := range rd.schema.Nodes {
-		switch n := node.(type) {
-		case ast.EntityNode:
-			if string(n.Name) == nameStr {
-				return true
-			}
-		case ast.EnumNode:
-			if string(n.Name) == nameStr {
-				return true
-			}
-		}
+	// Check in top-level entities and enums
+	if _, exists := rd.schema.Entities[name]; exists {
+		return true
+	}
+	if _, exists := rd.schema.Enums[name]; exists {
+		return true
 	}
 	return false
 }
@@ -43,24 +37,30 @@ func (rd *resolveData) entityExistsInEmptyNamespace(name types.EntityType) bool 
 func newResolveData(schema *ast.Schema) *resolveData {
 	rd := &resolveData{
 		schema:               schema,
-		namespace:            nil,
+		namespacePath:        "",
 		schemaCommonTypes:    make(map[string]*commonTypeEntry),
 		namespaceCommonTypes: make(map[string]*commonTypeEntry),
 	}
 
 	// Build schema-wide common types map (fully qualified names)
-	// Populate with unresolved entries that will be resolved lazily
-	for ns, ct := range schema.CommonTypes() {
+	// Top-level common types (unqualified)
+	for name, ct := range schema.CommonTypes {
 		ctCopy := ct
-		var fullName string
-		if ns == nil {
-			fullName = string(ct.Name)
-		} else {
-			fullName = string(ns.Name) + "::" + string(ct.Name)
-		}
-		rd.schemaCommonTypes[fullName] = &commonTypeEntry{
+		rd.schemaCommonTypes[string(name)] = &commonTypeEntry{
 			resolved: false,
 			node:     ctCopy,
+		}
+	}
+
+	// Namespace common types (fully qualified)
+	for nsPath, ns := range schema.Namespaces {
+		for name, ct := range ns.CommonTypes {
+			ctCopy := ct
+			fullName := string(nsPath) + "::" + string(name)
+			rd.schemaCommonTypes[fullName] = &commonTypeEntry{
+				resolved: false,
+				node:     ctCopy,
+			}
 		}
 	}
 
@@ -68,87 +68,31 @@ func newResolveData(schema *ast.Schema) *resolveData {
 }
 
 // withNamespace returns a new resolveData with the given namespace.
-func (rd *resolveData) withNamespace(namespace *ast.NamespaceNode) *resolveData {
-	if namespace == rd.namespace {
+func (rd *resolveData) withNamespace(namespacePath types.Path) *resolveData {
+	if namespacePath == rd.namespacePath {
 		return rd
 	}
 
 	// Create new namespace-local cache for the new namespace
 	namespaceCommonTypes := make(map[string]*commonTypeEntry)
-	if namespace != nil {
-		for ct := range namespace.CommonTypes() {
-			ctCopy := ct
-			namespaceCommonTypes[string(ct.Name)] = &commonTypeEntry{
-				resolved: false,
-				node:     ctCopy,
+	if namespacePath != "" {
+		if ns, exists := rd.schema.Namespaces[namespacePath]; exists {
+			for name, ct := range ns.CommonTypes {
+				ctCopy := ct
+				namespaceCommonTypes[string(name)] = &commonTypeEntry{
+					resolved: false,
+					node:     ctCopy,
+				}
 			}
 		}
 	}
 
 	return &resolveData{
 		schema:               rd.schema,
-		namespace:            namespace,
+		namespacePath:        namespacePath,
 		schemaCommonTypes:    rd.schemaCommonTypes, // Reuse schema-wide cache
 		namespaceCommonTypes: namespaceCommonTypes, // New namespace-specific cache
 	}
-}
-
-// resolveDeclaration resolves a single declaration node and adds it to the resolved schema.
-// It handles common types, entities, enums, and actions.
-func resolveDeclaration(decl ast.IsDeclaration, rd *resolveData, resolved *ResolvedSchema, namespaceName types.Path) error {
-	switch d := decl.(type) {
-	case ast.CommonTypeNode:
-		// Common types are resolved but not added to the maps
-		_, err := resolveCommonTypeNode(rd, d)
-		if err != nil {
-			return err
-		}
-
-	case ast.EntityNode:
-		resolvedEntity, err := resolveEntityNode(rd, d)
-		if err != nil {
-			return err
-		}
-		// Check for conflicts with existing entities or enums
-		if _, exists := resolved.Entities[resolvedEntity.Name]; exists {
-			return fmt.Errorf("entity type %q is defined multiple times", resolvedEntity.Name)
-		}
-		if _, exists := resolved.Enums[resolvedEntity.Name]; exists {
-			return fmt.Errorf("type %q is defined as both an entity and an enum", resolvedEntity.Name)
-		}
-		resolved.Entities[resolvedEntity.Name] = resolvedEntity
-
-	case ast.EnumNode:
-		resolvedEnum := resolveEnumNode(rd, d)
-		// Check for conflicts with existing enums or entities
-		if _, exists := resolved.Enums[resolvedEnum.Name]; exists {
-			return fmt.Errorf("enum type %q is defined multiple times", resolvedEnum.Name)
-		}
-		if _, exists := resolved.Entities[resolvedEnum.Name]; exists {
-			return fmt.Errorf("type %q is defined as both an entity and an enum", resolvedEnum.Name)
-		}
-		resolved.Enums[resolvedEnum.Name] = resolvedEnum
-
-	case ast.ActionNode:
-		resolvedAction, err := resolveActionNode(rd, d)
-		if err != nil {
-			return err
-		}
-		// Construct EntityUID from qualified action type
-		var actionType types.EntityType
-		if namespaceName == "" {
-			actionType = "Action"
-		} else {
-			actionType = types.EntityType(string(namespaceName) + "::Action")
-		}
-		actionUID := types.NewEntityUID(actionType, resolvedAction.Name)
-		// Check for duplicate actions
-		if _, exists := resolved.Actions[actionUID]; exists {
-			return fmt.Errorf("action %q is defined multiple times", actionUID)
-		}
-		resolved.Actions[actionUID] = resolvedAction
-	}
-	return nil
 }
 
 // Resolve returns a ResolvedSchema with all type references resolved and indexed.
@@ -165,46 +109,90 @@ func Resolve(s *ast.Schema) (*ResolvedSchema, error) {
 
 	rd := newResolveData(s)
 
-	for _, node := range s.Nodes {
-		switch n := node.(type) {
-		case ast.NamespaceNode:
-			// Store namespace annotations
-			if n.Name != "" {
-				resolved.Namespaces[n.Name] = ResolvedNamespace{
-					Name:        n.Name,
-					Annotations: n.Annotations,
-				}
+	// Process top-level common types (resolve but don't add to output)
+	for _, ct := range s.CommonTypes {
+		_ = resolveCommonTypeNode(rd, ct)
+	}
+
+	// Process top-level entities
+	for entityName, entityNode := range s.Entities {
+		resolvedEntity := resolveEntityNode(rd, entityNode, entityName)
+		// No need to check for enum conflicts here since enums are processed after entities
+		resolved.Entities[resolvedEntity.Name] = resolvedEntity
+	}
+
+	// Process top-level enums
+	for enumName, enumNode := range s.Enums {
+		resolvedEnum := resolveEnumNode(rd, enumNode, enumName)
+		// Check for conflicts with entities
+		if _, exists := resolved.Entities[resolvedEnum.Name]; exists {
+			return nil, fmt.Errorf("type %q is defined as both an entity and an enum", resolvedEnum.Name)
+		}
+		resolved.Enums[resolvedEnum.Name] = resolvedEnum
+	}
+
+	// Process top-level actions
+	for actionID, actionNode := range s.Actions {
+		resolvedAction, err := resolveActionNode(rd, actionNode, actionID)
+		if err != nil {
+			return nil, err
+		}
+		actionUID := types.NewEntityUID("Action", actionID)
+		resolved.Actions[actionUID] = resolvedAction
+	}
+
+	// Process namespaces
+	for nsPath, ns := range s.Namespaces {
+		// Store namespace annotations
+		resolved.Namespaces[nsPath] = ResolvedNamespace{
+			Name:        nsPath,
+			Annotations: ns.Annotations,
+		}
+
+		// Create resolve data with this namespace
+		nsRd := rd.withNamespace(nsPath)
+
+		// Process namespace common types
+		for _, ct := range ns.CommonTypes {
+			_ = resolveCommonTypeNode(nsRd, ct)
+		}
+
+		// Process namespace entities
+		for entityName, entityNode := range ns.Entities {
+			qualifiedName := types.EntityType(string(nsPath) + "::" + string(entityName))
+			resolvedEntity := resolveEntityNode(nsRd, entityNode, qualifiedName)
+			// Check for conflicts
+			if _, exists := resolved.Entities[resolvedEntity.Name]; exists {
+				return nil, fmt.Errorf("entity type %q is defined multiple times", resolvedEntity.Name)
 			}
+			// No need to check for enum conflicts here since enums are processed after entities
+			resolved.Entities[resolvedEntity.Name] = resolvedEntity
+		}
 
-			// Create resolve data with this namespace
-			nsRd := rd.withNamespace(&n)
-
-			// Resolve all declarations in the namespace
-			for _, decl := range n.Declarations {
-				if err := resolveDeclaration(decl, nsRd, resolved, n.Name); err != nil {
-					return nil, err
-				}
+		// Process namespace enums
+		for enumName, enumNode := range ns.Enums {
+			qualifiedName := types.EntityType(string(nsPath) + "::" + string(enumName))
+			resolvedEnum := resolveEnumNode(nsRd, enumNode, qualifiedName)
+			// Check for conflicts
+			if _, exists := resolved.Enums[resolvedEnum.Name]; exists {
+				return nil, fmt.Errorf("enum type %q is defined multiple times", resolvedEnum.Name)
 			}
+			if _, exists := resolved.Entities[resolvedEnum.Name]; exists {
+				return nil, fmt.Errorf("type %q is defined as both an entity and an enum", resolvedEnum.Name)
+			}
+			resolved.Enums[resolvedEnum.Name] = resolvedEnum
+		}
 
-		case ast.EntityNode:
-			if err := resolveDeclaration(n, rd, resolved, ""); err != nil {
+		// Process namespace actions
+		for actionID, actionNode := range ns.Actions {
+			resolvedAction, err := resolveActionNode(nsRd, actionNode, actionID)
+			if err != nil {
 				return nil, err
 			}
-
-		case ast.EnumNode:
-			if err := resolveDeclaration(n, rd, resolved, ""); err != nil {
-				return nil, err
-			}
-
-		case ast.ActionNode:
-			if err := resolveDeclaration(n, rd, resolved, ""); err != nil {
-				return nil, err
-			}
-
-		case ast.CommonTypeNode:
-			if err := resolveDeclaration(n, rd, resolved, ""); err != nil {
-				return nil, err
-			}
+			actionType := types.EntityType(string(nsPath) + "::Action")
+			actionUID := types.NewEntityUID(actionType, actionID)
+			// No need to check for duplicate actions - map keys prevent duplicates within a namespace
+			resolved.Actions[actionUID] = resolvedAction
 		}
 	}
 

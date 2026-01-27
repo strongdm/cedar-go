@@ -8,26 +8,16 @@ import (
 )
 
 // resolve returns a new CommonTypeNode with all type references resolved.
-func resolveCommonTypeNode(rd *resolveData, c ast.CommonTypeNode) (ast.CommonTypeNode, error) {
-	resolvedType, err := resolveType(rd, c.Type)
-	if err != nil {
-		return ast.CommonTypeNode{}, err
-	}
+func resolveCommonTypeNode(rd *resolveData, c ast.CommonTypeNode) ast.CommonTypeNode {
+	resolvedType := resolveType(rd, c.Type)
 	return ast.CommonTypeNode{
-		Name:        c.Name,
 		Annotations: c.Annotations,
 		Type:        resolvedType,
-	}, nil
+	}
 }
 
 // resolve returns a ResolvedEntity with all type references resolved and name fully qualified.
-func resolveEntityNode(rd *resolveData, e ast.EntityNode) (ResolvedEntity, error) {
-	// Qualify the entity name with namespace if present
-	name := e.Name
-	if rd.namespace != nil && rd.namespace.Name != "" {
-		name = types.EntityType(string(rd.namespace.Name) + "::" + string(e.Name))
-	}
-
+func resolveEntityNode(rd *resolveData, e ast.EntityNode, name types.EntityType) ResolvedEntity {
 	resolved := ResolvedEntity{
 		Name:        name,
 		Annotations: e.Annotations,
@@ -44,32 +34,21 @@ func resolveEntityNode(rd *resolveData, e ast.EntityNode) (ResolvedEntity, error
 
 	// Resolve Shape
 	if e.ShapeVal != nil {
-		resolvedShape, err := resolveRecord(rd, *e.ShapeVal)
-		if err != nil {
-			return ResolvedEntity{}, err
-		}
+		resolvedShape := resolveRecord(rd, *e.ShapeVal)
 		resolved.Shape = &resolvedShape
 	}
 
 	// Resolve Tags
 	if e.TagsVal != nil {
-		resolvedTags, err := resolveType(rd, e.TagsVal)
-		if err != nil {
-			return ResolvedEntity{}, err
-		}
+		resolvedTags := resolveType(rd, e.TagsVal)
 		resolved.Tags = resolvedTags
 	}
 
-	return resolved, nil
+	return resolved
 }
 
 // resolve returns a ResolvedEnum with name fully qualified.
-func resolveEnumNode(rd *resolveData, e ast.EnumNode) ResolvedEnum {
-	// Qualify the enum name with namespace if present
-	name := e.Name
-	if rd.namespace != nil && rd.namespace.Name != "" {
-		name = types.EntityType(string(rd.namespace.Name) + "::" + string(e.Name))
-	}
+func resolveEnumNode(rd *resolveData, e ast.EnumNode, name types.EntityType) ResolvedEnum {
 	return ResolvedEnum{
 		Name:        name,
 		Annotations: e.Annotations,
@@ -78,9 +57,9 @@ func resolveEnumNode(rd *resolveData, e ast.EnumNode) ResolvedEnum {
 }
 
 // resolve returns a ResolvedAction with all type references resolved and converted to types.EntityType and types.EntityUID.
-func resolveActionNode(rd *resolveData, a ast.ActionNode) (ResolvedAction, error) {
+func resolveActionNode(rd *resolveData, a ast.ActionNode, name types.String) (ResolvedAction, error) {
 	resolved := ResolvedAction{
-		Name:        a.Name,
+		Name:        name,
 		Annotations: a.Annotations,
 	}
 
@@ -117,13 +96,10 @@ func resolveActionNode(rd *resolveData, a ast.ActionNode) (ResolvedAction, error
 
 		// Resolve Context type
 		if a.AppliesToVal.Context != nil {
-			resolvedContext, err := resolveType(rd, a.AppliesToVal.Context)
-			if err != nil {
-				return ResolvedAction{}, err
-			}
+			resolvedContext := resolveType(rd, a.AppliesToVal.Context)
 			recordContext, ok := resolvedContext.(ast.RecordType)
 			if resolvedContext != nil && !ok {
-				return ResolvedAction{}, fmt.Errorf("action %q context resolved to %T", a.Name, resolvedContext)
+				return ResolvedAction{}, fmt.Errorf("action %q context resolved to %T", name, resolvedContext)
 			}
 			resolved.AppliesTo.Context = recordContext
 		}

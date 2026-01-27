@@ -30,11 +30,11 @@ type decimal = {
 
 entity Admin;
 
-entity Role enum ["superuser", "operator"];
-
 entity System in [Admin] = {
   "version": String,
 };
+
+entity Role enum ["superuser", "operator"];
 
 action audit appliesTo {
   principal: [Admin],
@@ -62,8 +62,6 @@ namespace MyApp {
     "name": String,
   };
 
-  entity Status enum ["draft", "published", "archived"];
-
   @doc("User entity")
   entity User in [Group] = {
     "active": Bool,
@@ -71,6 +69,8 @@ namespace MyApp {
     "email": String,
     "level": Long,
   };
+
+  entity Status enum ["draft", "published", "archived"];
 
   @doc("View or edit document")
   action edit appliesTo {
@@ -356,159 +356,154 @@ var wantJSON = `{
 
 // wantAST is the expected AST structure for the test schema.
 // All attributes are in alphabetical order to match the deterministic marshaling.
-// All slices are initialized as empty slices (not nil) to match unmarshaling behavior.
+// All maps are initialized to match unmarshaling behavior.
 var wantAST = &ast.Schema{
-	Nodes: []ast.IsNode{
-		ast.CommonTypeNode{
-			Name: "Address",
-			Annotations: []ast.Annotation{
-				{Key: "doc", Value: "Address information"},
-				{Key: "personal_information", Value: ""},
+	CommonTypes: ast.CommonTypes{
+		"Address": ast.CommonTypeNode{
+			Annotations: ast.Annotations{
+				"doc":                  "Address information",
+				"personal_information": "",
 			},
 			Type: ast.RecordType{
-				Pairs: []ast.Pair{
-					{Key: "city", Type: ast.StringType{}, Annotations: []ast.Annotation{
-						{Key: "also", Value: "town"},
-					}},
-					{Key: "country", Type: ast.TypeRef{Name: "Country"}},
-					{Key: "street", Type: ast.StringType{}},
-					{Key: "zipcode", Type: ast.StringType{}, Optional: true},
+				Attributes: ast.Attributes{
+					"city": ast.Attribute{
+						Type: ast.StringType{},
+						Annotations: ast.Annotations{
+							"also": "town",
+						},
+					},
+					"country": ast.Attribute{Type: ast.TypeRef{Name: "Country"}},
+					"street":  ast.Attribute{Type: ast.StringType{}},
+					"zipcode": ast.Attribute{Type: ast.StringType{}, Optional: true},
 				},
 			},
 		},
-		ast.CommonTypeNode{
-			Name: "decimal",
+		"decimal": ast.CommonTypeNode{
 			Type: ast.RecordType{
-				Pairs: []ast.Pair{
-					{Key: "decimal", Type: ast.LongType{}},
-					{Key: "whole", Type: ast.LongType{}},
+				Attributes: ast.Attributes{
+					"decimal": ast.Attribute{Type: ast.LongType{}},
+					"whole":   ast.Attribute{Type: ast.LongType{}},
 				},
 			},
 		},
-		// Top-level entities (alphabetically)
-		ast.EntityNode{
-			Name: "Admin",
-		},
-		ast.EnumNode{
-			Name:   "Role",
-			Values: []types.String{"superuser", "operator"},
-		},
-		ast.EntityNode{
-			Name:        "System",
+	},
+	Entities: ast.Entities{
+		"Admin": ast.EntityNode{},
+		"System": ast.EntityNode{
 			MemberOfVal: []ast.EntityTypeRef{{Name: "Admin"}},
 			ShapeVal: &ast.RecordType{
-				Pairs: []ast.Pair{
-					{Key: "version", Type: ast.StringType{}},
+				Attributes: ast.Attributes{
+					"version": ast.Attribute{Type: ast.StringType{}},
 				},
 			},
 		},
-		ast.ActionNode{
-			Name: "audit",
+	},
+	Enums: ast.Enums{
+		"Role": ast.EnumNode{
+			Values: []types.String{"superuser", "operator"},
+		},
+	},
+	Actions: ast.Actions{
+		"audit": ast.ActionNode{
 			AppliesToVal: &ast.AppliesTo{
 				PrincipalTypes: []ast.EntityTypeRef{{Name: "Admin"}},
 				ResourceTypes:  []ast.EntityTypeRef{{Name: "MyApp::Document"}, {Name: "System"}},
 			},
 		},
-		// MyApp namespace
-		ast.NamespaceNode{
-			Name: "MyApp",
-			Annotations: []ast.Annotation{
-				{Key: "doc", Value: "Doc manager"},
+	},
+	Namespaces: ast.Namespaces{
+		"MyApp": ast.NamespaceNode{
+			Annotations: ast.Annotations{
+				"doc": "Doc manager",
 			},
-			Declarations: []ast.IsDeclaration{
-				// Common types (alphabetically)
-				ast.CommonTypeNode{
-					Name: "Metadata",
+			CommonTypes: ast.CommonTypes{
+				"Metadata": ast.CommonTypeNode{
 					Type: ast.RecordType{
-						Pairs: []ast.Pair{
-							{Key: "created", Type: ast.TypeRef{Name: "datetime"}},
-							{Key: "tags", Type: ast.SetType{Element: ast.StringType{}}},
+						Attributes: ast.Attributes{
+							"created": ast.Attribute{Type: ast.TypeRef{Name: "datetime"}},
+							"tags":    ast.Attribute{Type: ast.SetType{Element: ast.StringType{}}},
 						},
 					},
 				},
-				// Entities (alphabetically)
-				ast.EntityNode{
-					Name: "Department",
+			},
+			Entities: ast.Entities{
+				"Department": ast.EntityNode{
 					ShapeVal: &ast.RecordType{
-						Pairs: []ast.Pair{
-							{Key: "budget", Type: ast.TypeRef{Name: "decimal"}},
+						Attributes: ast.Attributes{
+							"budget": ast.Attribute{Type: ast.TypeRef{Name: "decimal"}},
 						},
 					},
 				},
-				ast.EntityNode{
-					Name: "Document",
+				"Document": ast.EntityNode{
 					ShapeVal: &ast.RecordType{
-						Pairs: []ast.Pair{
-							{Key: "public", Type: ast.BoolType{}},
-							{Key: "title", Type: ast.StringType{}},
+						Attributes: ast.Attributes{
+							"public": ast.Attribute{Type: ast.BoolType{}},
+							"title":  ast.Attribute{Type: ast.StringType{}},
 						},
 					},
 				},
-				ast.EntityNode{
-					Name:        "Group",
+				"Group": ast.EntityNode{
 					MemberOfVal: []ast.EntityTypeRef{{Name: "Department"}},
 					ShapeVal: &ast.RecordType{
-						Pairs: []ast.Pair{
-							{Key: "metadata", Type: ast.TypeRef{Name: "Metadata"}},
-							{Key: "name", Type: ast.StringType{}},
+						Attributes: ast.Attributes{
+							"metadata": ast.Attribute{Type: ast.TypeRef{Name: "Metadata"}},
+							"name":     ast.Attribute{Type: ast.StringType{}},
 						},
 					},
 				},
-				ast.EnumNode{
-					Name:   "Status",
-					Values: []types.String{"draft", "published", "archived"},
-				},
-				ast.EntityNode{
-					Name:        "User",
+				"User": ast.EntityNode{
 					MemberOfVal: []ast.EntityTypeRef{{Name: "Group"}},
-					Annotations: []ast.Annotation{
-						{Key: "doc", Value: "User entity"},
+					Annotations: ast.Annotations{
+						"doc": "User entity",
 					},
 					ShapeVal: &ast.RecordType{
-						Pairs: []ast.Pair{
-							{Key: "active", Type: ast.BoolType{}},
-							{Key: "address", Type: ast.TypeRef{Name: "Address"}},
-							{Key: "email", Type: ast.StringType{}},
-							{Key: "level", Type: ast.LongType{}},
+						Attributes: ast.Attributes{
+							"active":  ast.Attribute{Type: ast.BoolType{}},
+							"address": ast.Attribute{Type: ast.TypeRef{Name: "Address"}},
+							"email":   ast.Attribute{Type: ast.StringType{}},
+							"level":   ast.Attribute{Type: ast.LongType{}},
 						},
 					},
 				},
-				// Actions (alphabetically)
-				ast.ActionNode{
-					Name: "edit",
-					Annotations: []ast.Annotation{
-						{Key: "doc", Value: "View or edit document"},
+			},
+			Enums: ast.Enums{
+				"Status": ast.EnumNode{
+					Values: []types.String{"draft", "published", "archived"},
+				},
+			},
+			Actions: ast.Actions{
+				"edit": ast.ActionNode{
+					Annotations: ast.Annotations{
+						"doc": "View or edit document",
 					},
 					AppliesToVal: &ast.AppliesTo{
 						PrincipalTypes: []ast.EntityTypeRef{{Name: "User"}},
 						ResourceTypes:  []ast.EntityTypeRef{{Name: "Document"}},
 						Context: ast.RecordType{
-							Pairs: []ast.Pair{
-								{Key: "ip", Type: ast.TypeRef{Name: "ipaddr"}},
-								{Key: "timestamp", Type: ast.TypeRef{Name: "datetime"}},
+							Attributes: ast.Attributes{
+								"ip":        ast.Attribute{Type: ast.TypeRef{Name: "ipaddr"}},
+								"timestamp": ast.Attribute{Type: ast.TypeRef{Name: "datetime"}},
 							},
 						},
 					},
 				},
-				ast.ActionNode{
-					Name: "manage",
+				"manage": ast.ActionNode{
 					AppliesToVal: &ast.AppliesTo{
 						PrincipalTypes: []ast.EntityTypeRef{{Name: "User"}},
 						ResourceTypes:  []ast.EntityTypeRef{{Name: "Document"}, {Name: "Group"}},
 					},
 				},
-				ast.ActionNode{
-					Name: "view",
-					Annotations: []ast.Annotation{
-						{Key: "doc", Value: "View or edit document"},
+				"view": ast.ActionNode{
+					Annotations: ast.Annotations{
+						"doc": "View or edit document",
 					},
 					AppliesToVal: &ast.AppliesTo{
 						PrincipalTypes: []ast.EntityTypeRef{{Name: "User"}},
 						ResourceTypes:  []ast.EntityTypeRef{{Name: "Document"}},
 						Context: ast.RecordType{
-							Pairs: []ast.Pair{
-								{Key: "ip", Type: ast.TypeRef{Name: "ipaddr"}},
-								{Key: "timestamp", Type: ast.TypeRef{Name: "datetime"}},
+							Attributes: ast.Attributes{
+								"ip":        ast.Attribute{Type: ast.TypeRef{Name: "ipaddr"}},
+								"timestamp": ast.Attribute{Type: ast.TypeRef{Name: "datetime"}},
 							},
 						},
 					},
@@ -524,8 +519,8 @@ var wantResolved = &resolver.ResolvedSchema{
 	Namespaces: map[types.Path]resolver.ResolvedNamespace{
 		"MyApp": {
 			Name: "MyApp",
-			Annotations: []ast.Annotation{
-				{Key: "doc", Value: "Doc manager"},
+			Annotations: ast.Annotations{
+				"doc": "Doc manager",
 			},
 		},
 	},
@@ -542,8 +537,8 @@ var wantResolved = &resolver.ResolvedSchema{
 			Annotations: nil,
 			MemberOf:    []types.EntityType{"Admin"},
 			Shape: &ast.RecordType{
-				Pairs: []ast.Pair{
-					{Key: "version", Type: ast.StringType{}},
+				Attributes: ast.Attributes{
+					"version": ast.Attribute{Type: ast.StringType{}},
 				},
 			},
 			Tags: nil,
@@ -553,13 +548,15 @@ var wantResolved = &resolver.ResolvedSchema{
 			Annotations: nil,
 			MemberOf:    nil,
 			Shape: &ast.RecordType{
-				Pairs: []ast.Pair{
-					{Key: "budget", Type: ast.RecordType{
-						Pairs: []ast.Pair{
-							{Key: "decimal", Type: ast.LongType{}},
-							{Key: "whole", Type: ast.LongType{}},
+				Attributes: ast.Attributes{
+					"budget": ast.Attribute{
+						Type: ast.RecordType{
+							Attributes: ast.Attributes{
+								"decimal": ast.Attribute{Type: ast.LongType{}},
+								"whole":   ast.Attribute{Type: ast.LongType{}},
+							},
 						},
-					}},
+					},
 				},
 			},
 			Tags: nil,
@@ -569,9 +566,9 @@ var wantResolved = &resolver.ResolvedSchema{
 			Annotations: nil,
 			MemberOf:    nil,
 			Shape: &ast.RecordType{
-				Pairs: []ast.Pair{
-					{Key: "public", Type: ast.BoolType{}},
-					{Key: "title", Type: ast.StringType{}},
+				Attributes: ast.Attributes{
+					"public": ast.Attribute{Type: ast.BoolType{}},
+					"title":  ast.Attribute{Type: ast.StringType{}},
 				},
 			},
 			Tags: nil,
@@ -581,38 +578,45 @@ var wantResolved = &resolver.ResolvedSchema{
 			Annotations: nil,
 			MemberOf:    []types.EntityType{"MyApp::Department"},
 			Shape: &ast.RecordType{
-				Pairs: []ast.Pair{
-					{Key: "metadata", Type: ast.RecordType{
-						Pairs: []ast.Pair{
-							{Key: "created", Type: ast.ExtensionType{Name: "datetime"}},
-							{Key: "tags", Type: ast.SetType{Element: ast.StringType{}}},
+				Attributes: ast.Attributes{
+					"metadata": ast.Attribute{
+						Type: ast.RecordType{
+							Attributes: ast.Attributes{
+								"created": ast.Attribute{Type: ast.ExtensionType{Name: "datetime"}},
+								"tags":    ast.Attribute{Type: ast.SetType{Element: ast.StringType{}}},
+							},
 						},
-					}},
-					{Key: "name", Type: ast.StringType{}},
+					},
+					"name": ast.Attribute{Type: ast.StringType{}},
 				},
 			},
 			Tags: nil,
 		},
 		"MyApp::User": {
 			Name:        "MyApp::User",
-			Annotations: []ast.Annotation{{Key: "doc", Value: "User entity"}},
+			Annotations: ast.Annotations{"doc": "User entity"},
 			MemberOf:    []types.EntityType{"MyApp::Group"},
 			Shape: &ast.RecordType{
-				Pairs: []ast.Pair{
-					{Key: "active", Type: ast.BoolType{}},
-					{Key: "address", Type: ast.RecordType{
-						// TODO: include annotations of the type?
-						Pairs: []ast.Pair{
-							{Key: "city", Type: ast.StringType{}, Annotations: []ast.Annotation{
-								{Key: "also", Value: "town"},
-							}},
-							{Key: "country", Type: ast.EntityTypeRef{Name: types.EntityType("Country")}},
-							{Key: "street", Type: ast.StringType{}},
-							{Key: "zipcode", Type: ast.StringType{}, Optional: true},
+				Attributes: ast.Attributes{
+					"active": ast.Attribute{Type: ast.BoolType{}},
+					"address": ast.Attribute{
+						Type: ast.RecordType{
+							// TODO: include annotations of the type?
+							Attributes: ast.Attributes{
+								"city": ast.Attribute{
+									Type: ast.StringType{},
+									Annotations: ast.Annotations{
+										"also": "town",
+									},
+								},
+								"country": ast.Attribute{Type: ast.EntityTypeRef{Name: types.EntityType("Country")}},
+								"street":  ast.Attribute{Type: ast.StringType{}},
+								"zipcode": ast.Attribute{Type: ast.StringType{}, Optional: true},
+							},
 						},
-					}},
-					{Key: "email", Type: ast.StringType{}},
-					{Key: "level", Type: ast.LongType{}},
+					},
+					"email": ast.Attribute{Type: ast.StringType{}},
+					"level": ast.Attribute{Type: ast.LongType{}},
 				},
 			},
 			Tags: nil,
@@ -643,15 +647,15 @@ var wantResolved = &resolver.ResolvedSchema{
 		},
 		types.NewEntityUID("MyApp::Action", "edit"): {
 			Name:        "edit",
-			Annotations: []ast.Annotation{{Key: "doc", Value: "View or edit document"}},
+			Annotations: ast.Annotations{"doc": "View or edit document"},
 			MemberOf:    nil,
 			AppliesTo: &resolver.ResolvedAppliesTo{
 				PrincipalTypes: []types.EntityType{"MyApp::User"},
 				ResourceTypes:  []types.EntityType{"MyApp::Document"},
 				Context: ast.RecordType{
-					Pairs: []ast.Pair{
-						{Key: "ip", Type: ast.ExtensionType{Name: "ipaddr"}},
-						{Key: "timestamp", Type: ast.ExtensionType{Name: "datetime"}},
+					Attributes: ast.Attributes{
+						"ip":        ast.Attribute{Type: ast.ExtensionType{Name: "ipaddr"}},
+						"timestamp": ast.Attribute{Type: ast.ExtensionType{Name: "datetime"}},
 					},
 				},
 			},
@@ -668,15 +672,15 @@ var wantResolved = &resolver.ResolvedSchema{
 		},
 		types.NewEntityUID("MyApp::Action", "view"): {
 			Name:        "view",
-			Annotations: []ast.Annotation{{Key: "doc", Value: "View or edit document"}},
+			Annotations: ast.Annotations{"doc": "View or edit document"},
 			MemberOf:    nil,
 			AppliesTo: &resolver.ResolvedAppliesTo{
 				PrincipalTypes: []types.EntityType{"MyApp::User"},
 				ResourceTypes:  []types.EntityType{"MyApp::Document"},
 				Context: ast.RecordType{
-					Pairs: []ast.Pair{
-						{Key: "ip", Type: ast.ExtensionType{Name: "ipaddr"}},
-						{Key: "timestamp", Type: ast.ExtensionType{Name: "datetime"}},
+					Attributes: ast.Attributes{
+						"ip":        ast.Attribute{Type: ast.ExtensionType{Name: "ipaddr"}},
+						"timestamp": ast.Attribute{Type: ast.ExtensionType{Name: "datetime"}},
 					},
 				},
 			},

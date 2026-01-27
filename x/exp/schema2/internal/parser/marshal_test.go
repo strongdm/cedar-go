@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/cedar-policy/cedar-go/internal/testutil"
+	"github.com/cedar-policy/cedar-go/types"
 	"github.com/cedar-policy/cedar-go/x/exp/schema2/ast"
 	"github.com/cedar-policy/cedar-go/x/exp/schema2/internal/parser"
 )
@@ -17,99 +18,141 @@ func TestSchemaMarshalCedar(t *testing.T) {
 		expected string
 	}{
 		{
-			name:     "empty schema",
-			schema:   ast.NewSchema(),
+			name: "empty schema",
+			schema: &ast.Schema{
+			},
 			expected: "",
 		},
 		{
-			name:     "simple entity",
-			schema:   ast.NewSchema(ast.Entity("User")),
+			name: "simple entity",
+			schema: &ast.Schema{
+				Entities: ast.Entities{
+					types.EntityType("User"): ast.EntityNode{},
+				},
+			},
 			expected: "entity User;\n",
 		},
 		{
 			name: "entity with shape",
-			schema: ast.NewSchema(
-				ast.Entity("User").Shape(
-					ast.Attribute("name", ast.String()),
-					ast.Optional("email", ast.String()),
-				),
-			),
+			schema: &ast.Schema{
+				Entities: ast.Entities{
+					types.EntityType("User"): ast.EntityNode{
+						ShapeVal: &ast.RecordType{
+							Attributes: ast.Attributes{
+								"email": ast.Attribute{Type: ast.String(), Optional: true},
+								"name":  ast.Attribute{Type: ast.String(), Optional: false},
+							},
+						},
+					},
+				},
+			},
 			expected: `entity User = {
-  "name": String,
   "email"?: String,
+  "name": String,
 };
 `,
 		},
 		{
 			name: "entity with memberOf",
-			schema: ast.NewSchema(
-				ast.Entity("User").MemberOf(ast.EntityType("Group")),
-			),
+			schema: &ast.Schema{
+				Entities: ast.Entities{
+					types.EntityType("User"): ast.EntityNode{
+						MemberOfVal: []ast.EntityTypeRef{ast.EntityType(types.EntityType("Group"))},
+					},
+				},
+			},
 			expected: "entity User in [Group];\n",
 		},
 		{
 			name: "entity with multiple parents",
-			schema: ast.NewSchema(
-				ast.Entity("User").MemberOf(
-					ast.EntityType("Group"),
-					ast.EntityType("Team"),
-				),
-			),
+			schema: &ast.Schema{
+				Entities: ast.Entities{
+					types.EntityType("User"): ast.EntityNode{
+						MemberOfVal: []ast.EntityTypeRef{
+							ast.EntityType(types.EntityType("Group")),
+							ast.EntityType(types.EntityType("Team")),
+						},
+					},
+				},
+			},
 			expected: "entity User in [Group, Team];\n",
 		},
 		{
 			name: "entity with tags",
-			schema: ast.NewSchema(
-				ast.Entity("Document").Tags(ast.String()),
-			),
+			schema: &ast.Schema{
+				Entities: ast.Entities{
+					types.EntityType("Document"): ast.EntityNode{
+						TagsVal: ast.String(),
+					},
+				},
+			},
 			expected: "entity Document tags String;\n",
 		},
 		{
 			name: "enum entity",
-			schema: ast.NewSchema(
-				ast.Enum("Status", "active", "inactive"),
-			),
+			schema: &ast.Schema{
+				Enums: ast.Enums{
+					types.EntityType("Status"): ast.EnumNode{
+						Values: []types.String{"active", "inactive"},
+					},
+				},
+			},
 			expected: `entity Status enum ["active", "inactive"];
 `,
 		},
 		{
 			name: "common type",
-			schema: ast.NewSchema(
-				ast.CommonType("Name", ast.String()),
-			),
+			schema: &ast.Schema{
+				CommonTypes: ast.CommonTypes{
+					types.Ident("Name"): ast.CommonTypeNode{
+						Type: ast.String(),
+					},
+				},
+			},
 			expected: "type Name = String;\n",
 		},
 		{
 			name: "common type with record",
-			schema: ast.NewSchema(
-				ast.CommonType("Address", ast.Record(
-					ast.Attribute("street", ast.String()),
-					ast.Attribute("city", ast.String()),
-				)),
-			),
+			schema: &ast.Schema{
+				CommonTypes: ast.CommonTypes{
+					types.Ident("Address"): ast.CommonTypeNode{
+						Type: ast.Record(ast.Attributes{
+							"city":   ast.Attribute{Type: ast.String()},
+							"street": ast.Attribute{Type: ast.String()},
+						}),
+					},
+				},
+			},
 			expected: `type Address = {
-  "street": String,
   "city": String,
+  "street": String,
 };
 `,
 		},
 		{
 			name: "action",
-			schema: ast.NewSchema(
-				ast.Action("view"),
-			),
+			schema: &ast.Schema{
+				Actions: ast.Actions{
+					types.String("view"): ast.ActionNode{},
+				},
+			},
 			expected: "action view;\n",
 		},
 		{
 			name: "action with appliesTo",
-			schema: ast.NewSchema(
-				ast.Action("view").
-					Principal(ast.EntityType("User")).
-					Resource(ast.EntityType("Document")).
-					Context(ast.Record(
-						ast.Attribute("ip", ast.IPAddr()),
-					)),
-			),
+			schema: &ast.Schema{
+				Actions: ast.Actions{
+					types.String("view"): ast.ActionNode{
+						AppliesToVal: &ast.AppliesTo{
+							PrincipalTypes: []ast.EntityTypeRef{ast.EntityType(types.EntityType("User"))},
+							ResourceTypes:  []ast.EntityTypeRef{ast.EntityType(types.EntityType("Document"))},
+							Context: ast.Record(ast.Attributes{
+								"ip": ast.Attribute{Type: ast.IPAddr()},
+							}),
+						},
+					},
+				},
+			},
 			expected: `action view appliesTo {
   principal: [User],
   resource: [Document],
@@ -121,110 +164,164 @@ func TestSchemaMarshalCedar(t *testing.T) {
 		},
 		{
 			name: "action with memberOf",
-			schema: ast.NewSchema(
-				ast.Action("view").MemberOf(ast.UID("readActions")),
-			),
+			schema: &ast.Schema{
+				Actions: ast.Actions{
+					types.String("view"): ast.ActionNode{
+						MemberOfVal: []ast.EntityRef{ast.UID("readActions")},
+					},
+				},
+			},
 			expected: `action view in "readActions";
 `,
 		},
 		{
 			name: "action with quoted name",
-			schema: ast.NewSchema(
-				ast.Action("view document"),
-			),
+			schema: &ast.Schema{
+				Actions: ast.Actions{
+					types.String("view document"): ast.ActionNode{},
+				},
+			},
 			expected: `action "view document";
 `,
 		},
 		{
 			name: "namespace",
-			schema: ast.NewSchema(
-				ast.Namespace("MyApp",
-					ast.Entity("User"),
-					ast.Entity("Document"),
-				),
-			),
+			schema: &ast.Schema{
+				Namespaces: ast.Namespaces{
+					types.Path("MyApp"): ast.NamespaceNode{
+						Entities: ast.Entities{
+							types.EntityType("Document"): ast.EntityNode{},
+							types.EntityType("User"):     ast.EntityNode{},
+						},
+					},
+				},
+			},
 			expected: `namespace MyApp {
-  entity User;
-
   entity Document;
+
+  entity User;
 }
 `,
 		},
 		{
 			name: "annotation",
-			schema: ast.NewSchema(
-				ast.Entity("User").Annotate("doc", "A user entity"),
-			),
+			schema: &ast.Schema{
+				Entities: ast.Entities{
+					types.EntityType("User"): ast.EntityNode{
+						Annotations: ast.Annotations{
+							types.Ident("doc"): types.String("A user entity"),
+						},
+					},
+				},
+			},
 			expected: `@doc("A user entity")
 entity User;
 `,
 		},
 		{
 			name: "annotation without value",
-			schema: ast.NewSchema(
-				ast.Entity("User").Annotate("deprecated", ""),
-			),
+			schema: &ast.Schema{
+				Entities: ast.Entities{
+					types.EntityType("User"): ast.EntityNode{
+						Annotations: ast.Annotations{
+							types.Ident("deprecated"): types.String(""),
+						},
+					},
+				},
+			},
 			expected: `@deprecated
 entity User;
 `,
 		},
 		{
 			name: "set type",
-			schema: ast.NewSchema(
-				ast.CommonType("Tags", ast.Set(ast.String())),
-			),
+			schema: &ast.Schema{
+				CommonTypes: ast.CommonTypes{
+					types.Ident("Tags"): ast.CommonTypeNode{
+						Type: ast.Set(ast.String()),
+					},
+				},
+			},
 			expected: "type Tags = Set<String>;\n",
 		},
 		{
 			name: "extension types",
-			schema: ast.NewSchema(
-				ast.CommonType("IP", ast.IPAddr()),
-			),
+			schema: &ast.Schema{
+				CommonTypes: ast.CommonTypes{
+					types.Ident("IP"): ast.CommonTypeNode{
+						Type: ast.IPAddr(),
+					},
+				},
+			},
 			expected: "type IP = __cedar::ipaddr;\n",
 		},
 		{
 			name: "entity type reference",
-			schema: ast.NewSchema(
-				ast.CommonType("UserRef", ast.EntityType("MyApp::User")),
-			),
+			schema: &ast.Schema{
+				CommonTypes: ast.CommonTypes{
+					types.Ident("UserRef"): ast.CommonTypeNode{
+						Type: ast.EntityType(types.EntityType("MyApp::User")),
+					},
+				},
+			},
 			expected: "type UserRef = MyApp::User;\n",
 		},
 		{
 			name: "type reference",
-			schema: ast.NewSchema(
-				ast.CommonType("AliasedName", ast.Type("Name")),
-			),
+			schema: &ast.Schema{
+				CommonTypes: ast.CommonTypes{
+					types.Ident("AliasedName"): ast.CommonTypeNode{
+						Type: ast.Type("Name"),
+					},
+				},
+			},
 			expected: "type AliasedName = Name;\n",
 		},
 		{
 			name: "long type",
-			schema: ast.NewSchema(
-				ast.CommonType("Count", ast.Long()),
-			),
+			schema: &ast.Schema{
+				CommonTypes: ast.CommonTypes{
+					types.Ident("Count"): ast.CommonTypeNode{
+						Type: ast.Long(),
+					},
+				},
+			},
 			expected: "type Count = Long;\n",
 		},
 		{
 			name: "bool type",
-			schema: ast.NewSchema(
-				ast.CommonType("Flag", ast.Bool()),
-			),
+			schema: &ast.Schema{
+				CommonTypes: ast.CommonTypes{
+					types.Ident("Flag"): ast.CommonTypeNode{
+						Type: ast.Bool(),
+					},
+				},
+			},
 			expected: "type Flag = Bool;\n",
 		},
 		{
 			name: "action with explicit entity ref",
-			schema: ast.NewSchema(
-				ast.Action("view").MemberOf(ast.EntityUID("MyApp::Action", "allActions")),
-			),
+			schema: &ast.Schema{
+				Actions: ast.Actions{
+					types.String("view"): ast.ActionNode{
+						MemberOfVal: []ast.EntityRef{ast.EntityUID(types.EntityType("MyApp::Action"), "allActions")},
+					},
+				},
+			},
 			expected: `action view in MyApp::Action::"allActions";
 `,
 		},
 		{
 			name: "record with quoted keys",
-			schema: ast.NewSchema(
-				ast.CommonType("Data", ast.Record(
-					ast.Attribute("special-key", ast.String()),
-				)),
-			),
+			schema: &ast.Schema{
+				CommonTypes: ast.CommonTypes{
+					types.Ident("Data"): ast.CommonTypeNode{
+						Type: ast.Record(ast.Attributes{
+							"special-key": ast.Attribute{Type: ast.String()},
+						}),
+					},
+				},
+			},
 			expected: `type Data = {
   "special-key": String,
 };
@@ -232,18 +329,26 @@ entity User;
 		},
 		{
 			name: "empty record",
-			schema: ast.NewSchema(
-				ast.CommonType("Empty", ast.Record()),
-			),
+			schema: &ast.Schema{
+				CommonTypes: ast.CommonTypes{
+					types.Ident("Empty"): ast.CommonTypeNode{
+						Type: ast.Record(ast.Attributes{}),
+					},
+				},
+			},
 			expected: "type Empty = {};\n",
 		},
 		{
 			name: "nested empty record",
-			schema: ast.NewSchema(
-				ast.CommonType("Outer", ast.Record(
-					ast.Attribute("inner", ast.Record()),
-				)),
-			),
+			schema: &ast.Schema{
+				CommonTypes: ast.CommonTypes{
+					types.Ident("Outer"): ast.CommonTypeNode{
+						Type: ast.Record(ast.Attributes{
+							"inner": ast.Attribute{Type: ast.Record(ast.Attributes{})},
+						}),
+					},
+				},
+			},
 			expected: `type Outer = {
   "inner": {},
 };
@@ -251,13 +356,19 @@ entity User;
 		},
 		{
 			name: "nested record with optional field",
-			schema: ast.NewSchema(
-				ast.CommonType("Outer", ast.Record(
-					ast.Attribute("inner", ast.Record(
-						ast.Optional("optField", ast.String()),
-					)),
-				)),
-			),
+			schema: &ast.Schema{
+				CommonTypes: ast.CommonTypes{
+					types.Ident("Outer"): ast.CommonTypeNode{
+						Type: ast.Record(ast.Attributes{
+							"inner": ast.Attribute{
+								Type: ast.Record(ast.Attributes{
+									"optField": ast.Attribute{Type: ast.String(), Optional: true},
+								}),
+							},
+						}),
+					},
+				},
+			},
 			expected: `type Outer = {
   "inner": {
     "optField"?: String,
@@ -267,76 +378,106 @@ entity User;
 		},
 		{
 			name: "action with multiple principals",
-			schema: ast.NewSchema(
-				ast.Action("view").
-					Principal(ast.EntityType("User"), ast.EntityType("Admin")).
-					Resource(ast.EntityType("Document")),
-			),
+			schema: &ast.Schema{
+				Actions: ast.Actions{
+					types.String("view"): ast.ActionNode{
+						AppliesToVal: &ast.AppliesTo{
+							PrincipalTypes: []ast.EntityTypeRef{
+								ast.EntityType(types.EntityType("Admin")),
+								ast.EntityType(types.EntityType("User")),
+							},
+							ResourceTypes: []ast.EntityTypeRef{ast.EntityType(types.EntityType("Document"))},
+						},
+					},
+				},
+			},
 			expected: `action view appliesTo {
-  principal: [User, Admin],
+  principal: [Admin, User],
   resource: [Document],
 };
 `,
 		},
 		{
 			name: "action with multiple memberOf",
-			schema: ast.NewSchema(
-				ast.Action("view").MemberOf(
-					ast.UID("readActions"),
-					ast.UID("viewActions"),
-				),
-			),
+			schema: &ast.Schema{
+				Actions: ast.Actions{
+					types.String("view"): ast.ActionNode{
+						MemberOfVal: []ast.EntityRef{
+							ast.UID("readActions"),
+							ast.UID("viewActions"),
+						},
+					},
+				},
+			},
 			expected: `action view in ["readActions", "viewActions"];
 `,
 		},
 		{
 			name: "multiple top-level entities",
-			schema: ast.NewSchema(
-				ast.Entity("User"),
-				ast.Entity("Document"),
-			),
-			expected: `entity User;
+			schema: &ast.Schema{
+				Entities: ast.Entities{
+					types.EntityType("Document"): ast.EntityNode{},
+					types.EntityType("User"):     ast.EntityNode{},
+				},
+			},
+			expected: `entity Document;
 
-entity Document;
+entity User;
 `,
 		},
 		{
 			name: "multiple top-level mixed nodes",
-			schema: ast.NewSchema(
-				ast.Entity("User"),
-				ast.Action("view"),
-				ast.CommonType("Name", ast.String()),
-			),
-			expected: `entity User;
+			schema: &ast.Schema{
+				Entities: ast.Entities{
+					types.EntityType("User"): ast.EntityNode{},
+				},
+				Actions: ast.Actions{
+					types.String("view"): ast.ActionNode{},
+				},
+				CommonTypes: ast.CommonTypes{
+					types.Ident("Name"): ast.CommonTypeNode{
+						Type: ast.String(),
+					},
+				},
+			},
+			expected: `type Name = String;
+
+entity User;
 
 action view;
-
-type Name = String;
 `,
 		},
 		{
 			name: "action with empty name",
-			schema: ast.NewSchema(
-				ast.Action(""),
-			),
+			schema: &ast.Schema{
+				Actions: ast.Actions{
+					types.String(""): ast.ActionNode{},
+				},
+			},
 			expected: `action "";
 `,
 		},
 		{
 			name: "action name starting with digit",
-			schema: ast.NewSchema(
-				ast.Action("123action"),
-			),
+			schema: &ast.Schema{
+				Actions: ast.Actions{
+					types.String("123action"): ast.ActionNode{},
+				},
+			},
 			expected: `action "123action";
 `,
 		},
 		{
 			name: "record key starting with digit",
-			schema: ast.NewSchema(
-				ast.CommonType("Data", ast.Record(
-					ast.Attribute("123key", ast.String()),
-				)),
-			),
+			schema: &ast.Schema{
+				CommonTypes: ast.CommonTypes{
+					types.Ident("Data"): ast.CommonTypeNode{
+						Type: ast.Record(ast.Attributes{
+							"123key": ast.Attribute{Type: ast.String()},
+						}),
+					},
+				},
+			},
 			expected: `type Data = {
   "123key": String,
 };
@@ -344,11 +485,15 @@ type Name = String;
 		},
 		{
 			name: "record key with empty name",
-			schema: ast.NewSchema(
-				ast.CommonType("Data", ast.Record(
-					ast.Attribute("", ast.String()),
-				)),
-			),
+			schema: &ast.Schema{
+				CommonTypes: ast.CommonTypes{
+					types.Ident("Data"): ast.CommonTypeNode{
+						Type: ast.Record(ast.Attributes{
+							"": ast.Attribute{Type: ast.String()},
+						}),
+					},
+				},
+			},
 			expected: `type Data = {
   "": String,
 };
@@ -356,92 +501,155 @@ type Name = String;
 		},
 		{
 			name: "action name with reserved keyword 'in'",
-			schema: ast.NewSchema(
-				ast.Action("in"),
-			),
+			schema: &ast.Schema{
+				Actions: ast.Actions{
+					types.String("in"): ast.ActionNode{},
+				},
+			},
 			expected: `action "in";
 `,
 		},
 		{
 			name: "string with newline escape",
-			schema: ast.NewSchema(
-				ast.Entity("User").Annotate("doc", "Line1\nLine2"),
-			),
+			schema: &ast.Schema{
+				Entities: ast.Entities{
+					types.EntityType("User"): ast.EntityNode{
+						Annotations: ast.Annotations{
+							types.Ident("doc"): types.String("Line1\nLine2"),
+						},
+					},
+				},
+			},
 			expected: `@doc("Line1\nLine2")
 entity User;
 `,
 		},
 		{
 			name: "string with carriage return escape",
-			schema: ast.NewSchema(
-				ast.Entity("User").Annotate("doc", "Line1\rLine2"),
-			),
+			schema: &ast.Schema{
+				Entities: ast.Entities{
+					types.EntityType("User"): ast.EntityNode{
+						Annotations: ast.Annotations{
+							types.Ident("doc"): types.String("Line1\rLine2"),
+						},
+					},
+				},
+			},
 			expected: `@doc("Line1\rLine2")
 entity User;
 `,
 		},
 		{
 			name: "string with tab escape",
-			schema: ast.NewSchema(
-				ast.Entity("User").Annotate("doc", "Col1\tCol2"),
-			),
+			schema: &ast.Schema{
+				Entities: ast.Entities{
+					types.EntityType("User"): ast.EntityNode{
+						Annotations: ast.Annotations{
+							types.Ident("doc"): types.String("Col1\tCol2"),
+						},
+					},
+				},
+			},
 			expected: `@doc("Col1\tCol2")
 entity User;
 `,
 		},
 		{
 			name: "string with backslash escape",
-			schema: ast.NewSchema(
-				ast.Entity("User").Annotate("doc", "path\\to\\file"),
-			),
+			schema: &ast.Schema{
+				Entities: ast.Entities{
+					types.EntityType("User"): ast.EntityNode{
+						Annotations: ast.Annotations{
+							types.Ident("doc"): types.String("path\\to\\file"),
+						},
+					},
+				},
+			},
 			expected: `@doc("path\\to\\file")
 entity User;
 `,
 		},
 		{
 			name: "string with null character escape",
-			schema: ast.NewSchema(
-				ast.Entity("User").Annotate("doc", "null\x00char"),
-			),
+			schema: &ast.Schema{
+				Entities: ast.Entities{
+					types.EntityType("User"): ast.EntityNode{
+						Annotations: ast.Annotations{
+							types.Ident("doc"): types.String("null\x00char"),
+						},
+					},
+				},
+			},
 			expected: `@doc("null\0char")
 entity User;
 `,
 		},
 		{
 			name: "string with single quote escape",
-			schema: ast.NewSchema(
-				ast.Entity("User").Annotate("doc", "It's fine"),
-			),
+			schema: &ast.Schema{
+				Entities: ast.Entities{
+					types.EntityType("User"): ast.EntityNode{
+						Annotations: ast.Annotations{
+							types.Ident("doc"): types.String("It's fine"),
+						},
+					},
+				},
+			},
 			expected: "@doc(\"It\\'s fine\")\nentity User;\n",
 		},
 		{
 			name: "string with control character",
-			schema: ast.NewSchema(
-				ast.Entity("User").Annotate("doc", "test\x01control"),
-			),
+			schema: &ast.Schema{
+				Entities: ast.Entities{
+					types.EntityType("User"): ast.EntityNode{
+						Annotations: ast.Annotations{
+							types.Ident("doc"): types.String("test\x01control"),
+						},
+					},
+				},
+			},
 			expected: "@doc(\"test\\x01control\")\nentity User;\n",
 		},
 		{
 			name: "string with DEL character",
-			schema: ast.NewSchema(
-				ast.Entity("User").Annotate("doc", "test\x7Fdel"),
-			),
+			schema: &ast.Schema{
+				Entities: ast.Entities{
+					types.EntityType("User"): ast.EntityNode{
+						Annotations: ast.Annotations{
+							types.Ident("doc"): types.String("test\x7Fdel"),
+						},
+					},
+				},
+			},
 			expected: "@doc(\"test\\x7fdel\")\nentity User;\n",
 		},
 		{
 			name: "string with extended control character",
-			schema: ast.NewSchema(
-				ast.Entity("User").Annotate("doc", "test\u0085ext"),
-			),
+			schema: &ast.Schema{
+				Entities: ast.Entities{
+					types.EntityType("User"): ast.EntityNode{
+						Annotations: ast.Annotations{
+							types.Ident("doc"): types.String("test\u0085ext"),
+						},
+					},
+				},
+			},
 			expected: "@doc(\"test\\x85ext\")\nentity User;\n",
 		},
 		{
 			name: "namespace with annotations",
-			schema: ast.NewSchema(
-				ast.Namespace("MyApp",
-					ast.Entity("User"),
-				).Annotate("doc", "My application namespace"),
-			),
+			schema: &ast.Schema{
+				Namespaces: ast.Namespaces{
+					types.Path("MyApp"): ast.NamespaceNode{
+						Annotations: ast.Annotations{
+							types.Ident("doc"): types.String("My application namespace"),
+						},
+						Entities: ast.Entities{
+							types.EntityType("User"): ast.EntityNode{},
+						},
+					},
+				},
+			},
 			expected: `@doc("My application namespace")
 namespace MyApp {
   entity User;
@@ -450,55 +658,94 @@ namespace MyApp {
 		},
 		{
 			name: "enum with annotations",
-			schema: ast.NewSchema(
-				ast.Enum("Status", "active", "inactive").Annotate("doc", "Status values"),
-			),
+			schema: &ast.Schema{
+				Enums: ast.Enums{
+					types.EntityType("Status"): ast.EnumNode{
+						Annotations: ast.Annotations{
+							types.Ident("doc"): types.String("Status values"),
+						},
+						Values: []types.String{"active", "inactive"},
+					},
+				},
+			},
 			expected: `@doc("Status values")
 entity Status enum ["active", "inactive"];
 `,
 		},
 		{
 			name: "common type with annotations",
-			schema: ast.NewSchema(
-				ast.CommonType("Name", ast.String()).Annotate("doc", "A name type"),
-			),
+			schema: &ast.Schema{
+				CommonTypes: ast.CommonTypes{
+					types.Ident("Name"): ast.CommonTypeNode{
+						Annotations: ast.Annotations{
+							types.Ident("doc"): types.String("A name type"),
+						},
+						Type: ast.String(),
+					},
+				},
+			},
 			expected: `@doc("A name type")
 type Name = String;
 `,
 		},
 		{
 			name: "action with annotations",
-			schema: ast.NewSchema(
-				ast.Action("view").Annotate("doc", "View action"),
-			),
+			schema: &ast.Schema{
+				Actions: ast.Actions{
+					types.String("view"): ast.ActionNode{
+						Annotations: ast.Annotations{
+							types.Ident("doc"): types.String("View action"),
+						},
+					},
+				},
+			},
 			expected: `@doc("View action")
 action view;
 `,
 		},
 		{
 			name: "record with annotated attribute",
-			schema: ast.NewSchema(
-				ast.CommonType("User", ast.Record(
-					ast.Attribute("name", ast.String()).Annotate(ast.Annotation{Key: "doc", Value: "User's name"}),
-				)),
-			),
+			schema: &ast.Schema{
+				CommonTypes: ast.CommonTypes{
+					types.Ident("User"): ast.CommonTypeNode{
+						Type: ast.Record(ast.Attributes{
+							"name": ast.Attribute{
+								Type: ast.String(),
+								Annotations: ast.Annotations{
+									types.Ident("doc"): types.String("User's name"),
+								},
+							},
+						}),
+					},
+				},
+			},
 			expected: "type User = {\n  @doc(\"User\\'s name\")\n  \"name\": String,\n};\n",
 		},
 		{
 			name: "entity ref without type",
-			schema: ast.NewSchema(
-				ast.Action("view").MemberOf(ast.EntityUID("", "someAction")),
-			),
+			schema: &ast.Schema{
+				Actions: ast.Actions{
+					types.String("view"): ast.ActionNode{
+						MemberOfVal: []ast.EntityRef{ast.EntityUID("", "someAction")},
+					},
+				},
+			},
 			expected: `action view in "someAction";
 `,
 		},
 		{
 			name: "action with only context in appliesTo",
-			schema: ast.NewSchema(
-				ast.Action("view").Context(ast.Record(
-					ast.Attribute("timestamp", ast.Long()),
-				)),
-			),
+			schema: &ast.Schema{
+				Actions: ast.Actions{
+					types.String("view"): ast.ActionNode{
+						AppliesToVal: &ast.AppliesTo{
+							Context: ast.Record(ast.Attributes{
+								"timestamp": ast.Attribute{Type: ast.Long()},
+							}),
+						},
+					},
+				},
+			},
 			expected: `action view appliesTo {
   context: {
     "timestamp": Long,
@@ -508,9 +755,15 @@ action view;
 		},
 		{
 			name: "action with only principal in appliesTo",
-			schema: ast.NewSchema(
-				ast.Action("view").Principal(ast.EntityType("User")),
-			),
+			schema: &ast.Schema{
+				Actions: ast.Actions{
+					types.String("view"): ast.ActionNode{
+						AppliesToVal: &ast.AppliesTo{
+							PrincipalTypes: []ast.EntityTypeRef{ast.EntityType(types.EntityType("User"))},
+						},
+					},
+				},
+			},
 			expected: `action view appliesTo {
   principal: [User],
 };
@@ -518,9 +771,15 @@ action view;
 		},
 		{
 			name: "action with only resource in appliesTo",
-			schema: ast.NewSchema(
-				ast.Action("view").Resource(ast.EntityType("Document")),
-			),
+			schema: &ast.Schema{
+				Actions: ast.Actions{
+					types.String("view"): ast.ActionNode{
+						AppliesToVal: &ast.AppliesTo{
+							ResourceTypes: []ast.EntityTypeRef{ast.EntityType(types.EntityType("Document"))},
+						},
+					},
+				},
+			},
 			expected: `action view appliesTo {
   resource: [Document],
 };
@@ -528,11 +787,18 @@ action view;
 		},
 		{
 			name: "entity with shape and memberOf",
-			schema: ast.NewSchema(
-				ast.Entity("User").
-					MemberOf(ast.EntityType("Group")).
-					Shape(ast.Attribute("name", ast.String())),
-			),
+			schema: &ast.Schema{
+				Entities: ast.Entities{
+					types.EntityType("User"): ast.EntityNode{
+						MemberOfVal: []ast.EntityTypeRef{ast.EntityType(types.EntityType("Group"))},
+						ShapeVal: &ast.RecordType{
+							Attributes: ast.Attributes{
+								"name": ast.Attribute{Type: ast.String()},
+							},
+						},
+					},
+				},
+			},
 			expected: `entity User in [Group] = {
   "name": String,
 };
@@ -540,11 +806,18 @@ action view;
 		},
 		{
 			name: "entity with shape and tags",
-			schema: ast.NewSchema(
-				ast.Entity("Document").
-					Shape(ast.Attribute("title", ast.String())).
-					Tags(ast.String()),
-			),
+			schema: &ast.Schema{
+				Entities: ast.Entities{
+					types.EntityType("Document"): ast.EntityNode{
+						ShapeVal: &ast.RecordType{
+							Attributes: ast.Attributes{
+								"title": ast.Attribute{Type: ast.String()},
+							},
+						},
+						TagsVal: ast.String(),
+					},
+				},
+			},
 			expected: `entity Document = {
   "title": String,
 } tags String;
@@ -552,22 +825,32 @@ action view;
 		},
 		{
 			name: "entity with memberOf and tags",
-			schema: ast.NewSchema(
-				ast.Entity("Document").
-					MemberOf(ast.EntityType("Folder")).
-					Tags(ast.String()),
-			),
+			schema: &ast.Schema{
+				Entities: ast.Entities{
+					types.EntityType("Document"): ast.EntityNode{
+						MemberOfVal: []ast.EntityTypeRef{ast.EntityType(types.EntityType("Folder"))},
+						TagsVal:     ast.String(),
+					},
+				},
+			},
 			expected: `entity Document in [Folder] tags String;
 `,
 		},
 		{
 			name: "entity with all features",
-			schema: ast.NewSchema(
-				ast.Entity("Document").
-					MemberOf(ast.EntityType("Folder")).
-					Shape(ast.Attribute("title", ast.String())).
-					Tags(ast.String()),
-			),
+			schema: &ast.Schema{
+				Entities: ast.Entities{
+					types.EntityType("Document"): ast.EntityNode{
+						MemberOfVal: []ast.EntityTypeRef{ast.EntityType(types.EntityType("Folder"))},
+						ShapeVal: &ast.RecordType{
+							Attributes: ast.Attributes{
+								"title": ast.Attribute{Type: ast.String()},
+							},
+						},
+						TagsVal: ast.String(),
+					},
+				},
+			},
 			expected: `entity Document in [Folder] = {
   "title": String,
 } tags String;
@@ -575,17 +858,210 @@ action view;
 		},
 		{
 			name: "decimal type",
-			schema: ast.NewSchema(
-				ast.CommonType("Price", ast.Decimal()),
-			),
+			schema: &ast.Schema{
+				CommonTypes: ast.CommonTypes{
+					types.Ident("Price"): ast.CommonTypeNode{
+						Type: ast.Decimal(),
+					},
+				},
+			},
 			expected: "type Price = __cedar::decimal;\n",
 		},
 		{
 			name: "string with double quote escape",
-			schema: ast.NewSchema(
-				ast.Entity("User").Annotate("doc", `He said "hello"`),
-			),
+			schema: &ast.Schema{
+				Entities: ast.Entities{
+					types.EntityType("User"): ast.EntityNode{
+						Annotations: ast.Annotations{
+							types.Ident("doc"): types.String(`He said "hello"`),
+						},
+					},
+				},
+			},
 			expected: "@doc(\"He said \\\"hello\\\"\")\nentity User;\n",
+		},
+		{
+			name: "multiple common types",
+			schema: &ast.Schema{
+				CommonTypes: ast.CommonTypes{
+					types.Ident("Name"):    ast.CommonTypeNode{Type: ast.String()},
+					types.Ident("Age"):     ast.CommonTypeNode{Type: ast.Long()},
+					types.Ident("IsActive"): ast.CommonTypeNode{Type: ast.Bool()},
+				},
+			},
+			expected: `type Age = Long;
+
+type IsActive = Bool;
+
+type Name = String;
+`,
+		},
+		{
+			name: "multiple enums",
+			schema: &ast.Schema{
+				Enums: ast.Enums{
+					types.EntityType("Status"): ast.EnumNode{Values: []types.String{"active", "inactive"}},
+					types.EntityType("Role"):   ast.EnumNode{Values: []types.String{"admin", "user"}},
+				},
+			},
+			expected: `entity Role enum ["admin", "user"];
+
+entity Status enum ["active", "inactive"];
+`,
+		},
+		{
+			name: "multiple actions",
+			schema: &ast.Schema{
+				Actions: ast.Actions{
+					types.String("view"):   ast.ActionNode{},
+					types.String("edit"):   ast.ActionNode{},
+					types.String("delete"): ast.ActionNode{},
+				},
+			},
+			expected: `action delete;
+
+action edit;
+
+action view;
+`,
+		},
+		{
+			name: "namespace with multiple common types",
+			schema: &ast.Schema{
+				Namespaces: ast.Namespaces{
+					types.Path("MyApp"): ast.NamespaceNode{
+						CommonTypes: ast.CommonTypes{
+							types.Ident("Name"): ast.CommonTypeNode{Type: ast.String()},
+							types.Ident("Age"):  ast.CommonTypeNode{Type: ast.Long()},
+						},
+					},
+				},
+			},
+			expected: `namespace MyApp {
+  type Age = Long;
+
+  type Name = String;
+}
+`,
+		},
+		{
+			name: "namespace with multiple entities",
+			schema: &ast.Schema{
+				Namespaces: ast.Namespaces{
+					types.Path("MyApp"): ast.NamespaceNode{
+						Entities: ast.Entities{
+							types.EntityType("User"):     ast.EntityNode{},
+							types.EntityType("Document"): ast.EntityNode{},
+							types.EntityType("Group"):    ast.EntityNode{},
+						},
+					},
+				},
+			},
+			expected: `namespace MyApp {
+  entity Document;
+
+  entity Group;
+
+  entity User;
+}
+`,
+		},
+		{
+			name: "namespace with multiple enums",
+			schema: &ast.Schema{
+				Namespaces: ast.Namespaces{
+					types.Path("MyApp"): ast.NamespaceNode{
+						Enums: ast.Enums{
+							types.EntityType("Status"): ast.EnumNode{Values: []types.String{"active", "inactive"}},
+							types.EntityType("Role"):   ast.EnumNode{Values: []types.String{"admin", "user"}},
+						},
+					},
+				},
+			},
+			expected: `namespace MyApp {
+  entity Role enum ["admin", "user"];
+
+  entity Status enum ["active", "inactive"];
+}
+`,
+		},
+		{
+			name: "namespace with multiple actions",
+			schema: &ast.Schema{
+				Namespaces: ast.Namespaces{
+					types.Path("MyApp"): ast.NamespaceNode{
+						Actions: ast.Actions{
+							types.String("view"):   ast.ActionNode{},
+							types.String("edit"):   ast.ActionNode{},
+							types.String("delete"): ast.ActionNode{},
+						},
+					},
+				},
+			},
+			expected: `namespace MyApp {
+  action delete;
+
+  action edit;
+
+  action view;
+}
+`,
+		},
+		{
+			name: "namespace with mixed types with blank lines",
+			schema: &ast.Schema{
+				Namespaces: ast.Namespaces{
+					types.Path("MyApp"): ast.NamespaceNode{
+						CommonTypes: ast.CommonTypes{
+							types.Ident("Name"): ast.CommonTypeNode{Type: ast.String()},
+						},
+						Entities: ast.Entities{
+							types.EntityType("User"): ast.EntityNode{},
+						},
+						Enums: ast.Enums{
+							types.EntityType("Status"): ast.EnumNode{Values: []types.String{"active"}},
+						},
+						Actions: ast.Actions{
+							types.String("view"): ast.ActionNode{},
+						},
+					},
+				},
+			},
+			expected: `namespace MyApp {
+  type Name = String;
+
+  entity User;
+
+  entity Status enum ["active"];
+
+  action view;
+}
+`,
+		},
+		{
+			name: "multiple namespaces with blank lines",
+			schema: &ast.Schema{
+				Namespaces: ast.Namespaces{
+					types.Path("AppA"): ast.NamespaceNode{
+						Entities: ast.Entities{
+							types.EntityType("User"): ast.EntityNode{},
+						},
+					},
+					types.Path("AppB"): ast.NamespaceNode{
+						Entities: ast.Entities{
+							types.EntityType("Document"): ast.EntityNode{},
+						},
+					},
+				},
+			},
+			expected: `namespace AppA {
+  entity User;
+}
+
+namespace AppB {
+  entity Document;
+}
+`,
 		},
 	}
 

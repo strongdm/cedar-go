@@ -71,40 +71,24 @@ func Set(element IsType) SetType {
 }
 
 // Record types
-
-// Pair represents a key-value pair in a record type.
-type Pair struct {
-	Key         types.String
+type Attribute struct {
 	Type        IsType
 	Optional    bool
-	Annotations []Annotation
+	Annotations Annotations
 }
 
-// Attribute creates a required attribute pair.
-func Attribute(key types.String, t IsType) Pair {
-	return Pair{Key: key, Type: t, Optional: false}
-}
-
-// Optional creates an optional attribute pair.
-func Optional(key types.String, t IsType) Pair {
-	return Pair{Key: key, Type: t, Optional: true}
-}
-
-func (p Pair) Annotate(ann ...Annotation) Pair {
-	p.Annotations = append(p.Annotations, ann...)
-	return p
-}
+type Attributes map[types.String]Attribute
 
 // RecordType represents a Cedar Record type with attributes.
 type RecordType struct {
-	Pairs []Pair
+	Attributes Attributes
 }
 
 func (RecordType) isType() { _ = 0 }
 
 // Record returns a RecordType with the given pairs.
-func Record(pairs ...Pair) RecordType {
-	return RecordType{Pairs: pairs}
+func Record(attrs Attributes) RecordType {
+	return RecordType{Attributes: attrs}
 }
 
 // Reference types
@@ -119,11 +103,6 @@ func (EntityTypeRef) isType() { _ = 0 }
 // EntityType creates an EntityTypeRef from an entity type name.
 func EntityType(name types.EntityType) EntityTypeRef {
 	return EntityTypeRef{Name: name}
-}
-
-// Ref is an alias for EntityType for more concise syntax.
-func Ref(name types.EntityType) EntityTypeRef {
-	return EntityType(name)
 }
 
 // TypeRef represents a reference to a common type by name.

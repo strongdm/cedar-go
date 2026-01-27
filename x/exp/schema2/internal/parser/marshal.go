@@ -3,92 +3,213 @@ package parser
 import (
 	"bytes"
 	"fmt"
+	"sort"
 
+	"github.com/cedar-policy/cedar-go/types"
 	"github.com/cedar-policy/cedar-go/x/exp/schema2/ast"
 )
 
 // MarshalSchema converts the schema to Cedar human-readable format.
 func MarshalSchema(s *ast.Schema) []byte {
 	var buf bytes.Buffer
-	for i, node := range s.Nodes {
-		if i > 0 {
+	first := true
+
+	// Marshal top-level common types
+	ctNames := make([]string, 0, len(s.CommonTypes))
+	for name := range s.CommonTypes {
+		ctNames = append(ctNames, string(name))
+	}
+	sort.Strings(ctNames)
+
+	for _, name := range ctNames {
+		if !first {
 			buf.WriteString("\n")
 		}
-		marshalNode(&buf, node, "")
+		first = false
+		marshalCommonType(&buf, types.Ident(name), s.CommonTypes[types.Ident(name)], "")
 	}
+
+	// Marshal top-level entities
+	entityNames := make([]string, 0, len(s.Entities))
+	for name := range s.Entities {
+		entityNames = append(entityNames, string(name))
+	}
+	sort.Strings(entityNames)
+
+	for _, name := range entityNames {
+		if !first {
+			buf.WriteString("\n")
+		}
+		first = false
+		marshalEntity(&buf, types.EntityType(name), s.Entities[types.EntityType(name)], "")
+	}
+
+	// Marshal top-level enums
+	enumNames := make([]string, 0, len(s.Enums))
+	for name := range s.Enums {
+		enumNames = append(enumNames, string(name))
+	}
+	sort.Strings(enumNames)
+
+	for _, name := range enumNames {
+		if !first {
+			buf.WriteString("\n")
+		}
+		first = false
+		marshalEnum(&buf, types.EntityType(name), s.Enums[types.EntityType(name)], "")
+	}
+
+	// Marshal top-level actions
+	actionNames := make([]string, 0, len(s.Actions))
+	for name := range s.Actions {
+		actionNames = append(actionNames, string(name))
+	}
+	sort.Strings(actionNames)
+
+	for _, name := range actionNames {
+		if !first {
+			buf.WriteString("\n")
+		}
+		first = false
+		marshalAction(&buf, types.String(name), s.Actions[types.String(name)], "")
+	}
+
+	// Sort and marshal namespaces
+	nsNames := make([]string, 0, len(s.Namespaces))
+	for name := range s.Namespaces {
+		nsNames = append(nsNames, string(name))
+	}
+	sort.Strings(nsNames)
+
+	for _, name := range nsNames {
+		if !first {
+			buf.WriteString("\n")
+		}
+		first = false
+		marshalNamespace(&buf, types.Path(name), s.Namespaces[types.Path(name)], "")
+	}
+
 	return buf.Bytes()
 }
 
-func marshalNode(buf *bytes.Buffer, node ast.IsNode, indent string) {
-	switch n := node.(type) {
-	case ast.NamespaceNode:
-		marshalNamespace(buf, n, indent)
-	case ast.CommonTypeNode:
-		marshalCommonType(buf, n, indent)
-	case ast.EntityNode:
-		marshalEntity(buf, n, indent)
-	case ast.EnumNode:
-		marshalEnum(buf, n, indent)
-	case ast.ActionNode:
-		marshalAction(buf, n, indent)
+func marshalAnnotations(buf *bytes.Buffer, annotations ast.Annotations, indent string) {
+	// Sort annotation keys for consistent output
+	keys := make([]string, 0, len(annotations))
+	for key := range annotations {
+		keys = append(keys, string(key))
 	}
-}
+	sort.Strings(keys)
 
-func marshalAnnotations(buf *bytes.Buffer, annotations []ast.Annotation, indent string) {
-	for _, ann := range annotations {
+	for _, key := range keys {
 		buf.WriteString(indent)
 		buf.WriteString("@")
-		buf.WriteString(string(ann.Key))
-		if ann.Value != "" {
+		buf.WriteString(key)
+		value := annotations[types.Ident(key)]
+		if value != "" {
 			buf.WriteString("(")
-			buf.WriteString(quoteString(string(ann.Value)))
+			buf.WriteString(quoteString(string(value)))
 			buf.WriteString(")")
 		}
 		buf.WriteString("\n")
 	}
 }
 
-func marshalNamespace(buf *bytes.Buffer, ns ast.NamespaceNode, indent string) {
+func marshalNamespace(buf *bytes.Buffer, name types.Path, ns ast.NamespaceNode, indent string) {
 	marshalAnnotations(buf, ns.Annotations, indent)
 	buf.WriteString(indent)
 	buf.WriteString("namespace ")
-	buf.WriteString(string(ns.Name))
+	buf.WriteString(string(name))
 	buf.WriteString(" {\n")
 
 	innerIndent := indent + "  "
-	for i, decl := range ns.Declarations {
-		if i > 0 {
+	first := true
+
+	// Marshal common types
+	ctNames := make([]string, 0, len(ns.CommonTypes))
+	for ctName := range ns.CommonTypes {
+		ctNames = append(ctNames, string(ctName))
+	}
+	sort.Strings(ctNames)
+
+	for _, ctName := range ctNames {
+		if !first {
 			buf.WriteString("\n")
 		}
-		marshalNode(buf, decl, innerIndent)
+		first = false
+		marshalCommonType(buf, types.Ident(ctName), ns.CommonTypes[types.Ident(ctName)], innerIndent)
+	}
+
+	// Marshal entities
+	entityNames := make([]string, 0, len(ns.Entities))
+	for entityName := range ns.Entities {
+		entityNames = append(entityNames, string(entityName))
+	}
+	sort.Strings(entityNames)
+
+	for _, entityName := range entityNames {
+		if !first {
+			buf.WriteString("\n")
+		}
+		first = false
+		marshalEntity(buf, types.EntityType(entityName), ns.Entities[types.EntityType(entityName)], innerIndent)
+	}
+
+	// Marshal enums
+	enumNames := make([]string, 0, len(ns.Enums))
+	for enumName := range ns.Enums {
+		enumNames = append(enumNames, string(enumName))
+	}
+	sort.Strings(enumNames)
+
+	for _, enumName := range enumNames {
+		if !first {
+			buf.WriteString("\n")
+		}
+		first = false
+		marshalEnum(buf, types.EntityType(enumName), ns.Enums[types.EntityType(enumName)], innerIndent)
+	}
+
+	// Marshal actions
+	actionNames := make([]string, 0, len(ns.Actions))
+	for actionName := range ns.Actions {
+		actionNames = append(actionNames, string(actionName))
+	}
+	sort.Strings(actionNames)
+
+	for _, actionName := range actionNames {
+		if !first {
+			buf.WriteString("\n")
+		}
+		first = false
+		marshalAction(buf, types.String(actionName), ns.Actions[types.String(actionName)], innerIndent)
 	}
 
 	buf.WriteString(indent)
 	buf.WriteString("}\n")
 }
 
-func marshalCommonType(buf *bytes.Buffer, ct ast.CommonTypeNode, indent string) {
+func marshalCommonType(buf *bytes.Buffer, name types.Ident, ct ast.CommonTypeNode, indent string) {
 	marshalAnnotations(buf, ct.Annotations, indent)
 	buf.WriteString(indent)
 	buf.WriteString("type ")
-	buf.WriteString(string(ct.Name))
+	buf.WriteString(string(name))
 	buf.WriteString(" = ")
 	marshalTypeIndented(buf, ct.Type, indent)
 	buf.WriteString(";\n")
 }
 
-func marshalEntity(buf *bytes.Buffer, e ast.EntityNode, indent string) {
+func marshalEntity(buf *bytes.Buffer, name types.EntityType, e ast.EntityNode, indent string) {
 	marshalAnnotations(buf, e.Annotations, indent)
 	buf.WriteString(indent)
 	buf.WriteString("entity ")
-	buf.WriteString(string(e.Name))
+	buf.WriteString(string(name))
 
 	if len(e.MemberOfVal) > 0 {
 		buf.WriteString(" in ")
 		marshalEntityTypeRefs(buf, e.MemberOfVal)
 	}
 
-	if e.ShapeVal != nil && len(e.ShapeVal.Pairs) > 0 {
+	if e.ShapeVal != nil && len(e.ShapeVal.Attributes) > 0 {
 		buf.WriteString(" = ")
 		marshalRecordType(buf, *e.ShapeVal, indent)
 	}
@@ -101,11 +222,11 @@ func marshalEntity(buf *bytes.Buffer, e ast.EntityNode, indent string) {
 	buf.WriteString(";\n")
 }
 
-func marshalEnum(buf *bytes.Buffer, e ast.EnumNode, indent string) {
+func marshalEnum(buf *bytes.Buffer, name types.EntityType, e ast.EnumNode, indent string) {
 	marshalAnnotations(buf, e.Annotations, indent)
 	buf.WriteString(indent)
 	buf.WriteString("entity ")
-	buf.WriteString(string(e.Name))
+	buf.WriteString(string(name))
 	buf.WriteString(" enum [")
 
 	for i, v := range e.Values {
@@ -118,11 +239,11 @@ func marshalEnum(buf *bytes.Buffer, e ast.EnumNode, indent string) {
 	buf.WriteString("];\n")
 }
 
-func marshalAction(buf *bytes.Buffer, a ast.ActionNode, indent string) {
+func marshalAction(buf *bytes.Buffer, name types.String, a ast.ActionNode, indent string) {
 	marshalAnnotations(buf, a.Annotations, indent)
 	buf.WriteString(indent)
 	buf.WriteString("action ")
-	marshalActionName(buf, string(a.Name))
+	marshalActionName(buf, string(name))
 
 	if len(a.MemberOfVal) > 0 {
 		buf.WriteString(" in ")
@@ -230,25 +351,33 @@ func marshalTypeIndented(buf *bytes.Buffer, t ast.IsType, indent string) {
 
 func marshalRecordType(buf *bytes.Buffer, r ast.RecordType, indent string) {
 	buf.WriteString("{")
-	if len(r.Pairs) == 0 {
+	if len(r.Attributes) == 0 {
 		buf.WriteString("}")
 		return
 	}
 
+	// Sort attribute keys for consistent output
+	keys := make([]string, 0, len(r.Attributes))
+	for key := range r.Attributes {
+		keys = append(keys, string(key))
+	}
+	sort.Strings(keys)
+
 	buf.WriteString("\n")
 	innerIndent := indent + "  "
-	for i, pair := range r.Pairs {
+	for i, key := range keys {
 		if i > 0 {
 			buf.WriteString(",\n")
 		}
-		marshalAnnotations(buf, pair.Annotations, innerIndent)
+		attr := r.Attributes[types.String(key)]
+		marshalAnnotations(buf, attr.Annotations, innerIndent)
 		buf.WriteString(innerIndent)
-		buf.WriteString(quoteString(string(pair.Key)))
-		if pair.Optional {
+		buf.WriteString(quoteString(key))
+		if attr.Optional {
 			buf.WriteString("?")
 		}
 		buf.WriteString(": ")
-		marshalTypeIndented(buf, pair.Type, innerIndent)
+		marshalTypeIndented(buf, attr.Type, innerIndent)
 	}
 	buf.WriteString(",\n")
 	buf.WriteString(indent)
