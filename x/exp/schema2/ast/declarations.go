@@ -142,8 +142,7 @@ type EntityRef struct {
 // UID creates an EntityRef with just an ID (type is inferred as Action).
 func UID(id types.String) EntityRef {
 	return EntityRef{
-		Type: EntityTypeRef{Name: "Action"},
-		ID:   id,
+		ID: id,
 	}
 }
 

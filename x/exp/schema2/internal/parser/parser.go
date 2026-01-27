@@ -4,7 +4,6 @@ package parser
 import (
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/cedar-policy/cedar-go/types"
 	"github.com/cedar-policy/cedar-go/x/exp/schema2/ast"
@@ -659,17 +658,17 @@ func (p *Parser) parseType() (ast.IsType, error) {
 			return nil, err
 		}
 		return ast.Set(elem), nil
-	case "__cedar":
-		// Extension type: __cedar::ipaddr, __cedar::decimal, etc.
-		p.advance()
-		if _, err := p.expect("::"); err != nil {
-			return nil, err
-		}
-		name, err := p.expectIdent()
-		if err != nil {
-			return nil, err
-		}
-		return ast.ExtensionType{Name: types.Ident(name)}, nil
+	// case "__cedar":
+	// 	// Extension type: __cedar::ipaddr, __cedar::decimal, etc.
+	// 	p.advance()
+	// 	if _, err := p.expect("::"); err != nil {
+	// 		return nil, err
+	// 	}
+	// 	name, err := p.expectIdent()
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	return ast.ExtensionType{Name: types.Ident(name)}, nil
 	default:
 		// Could be an entity reference or a type reference
 		if tok.Type == TokenIdent {
@@ -678,9 +677,9 @@ func (p *Parser) parseType() (ast.IsType, error) {
 				return nil, err
 			}
 			// If it contains "::", treat as entity type ref, otherwise common type ref
-			if strings.Contains(path, "::") {
-				return ast.EntityType(types.EntityType(path)), nil
-			}
+			// if strings.Contains(path, "::") {
+			// 	return ast.EntityType(types.EntityType(path)), nil
+			// }
 			return ast.Type(types.Path(path)), nil
 		}
 		return nil, fmt.Errorf("expected type, got %q at %s", tok.Text, fmtPos(tok.Pos))

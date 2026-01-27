@@ -147,14 +147,14 @@ type Action struct {
 
 // EntityUID represents an entity reference in JSON format.
 type EntityUID struct {
-	Type string `json:"type"`
+	Type string `json:"type,omitempty"`
 	ID   string `json:"id"`
 }
 
 // AppliesTo represents action constraints in JSON format.
 type AppliesTo struct {
-	PrincipalTypes []string `json:"principalTypes,omitempty"`
-	ResourceTypes  []string `json:"resourceTypes,omitempty"`
+	PrincipalTypes []string `json:"principalTypes"`
+	ResourceTypes  []string `json:"resourceTypes"`
 	Context        *Type    `json:"context,omitempty"`
 }
 
@@ -324,9 +324,9 @@ func addActionToNamespace(ns *Namespace, a ast.ActionNode, entityNames map[strin
 		for i, ref := range a.MemberOfVal {
 			// Action memberOf always refers to actions, use "Action" as type
 			refType := string(ref.Type.Name)
-			if refType == "" {
-				refType = "Action"
-			}
+			// if refType == "" {
+			// 	refType = "Action"
+			// }
 			ja.MemberOf[i] = EntityUID{
 				Type: refType,
 				ID:   string(ref.ID),
@@ -405,9 +405,9 @@ func typeToJSON(t ast.IsType, entityNames map[string]bool) *Type {
 	case ast.TypeRef:
 		// Check if this type name refers to an entity
 		name := string(v.Name)
-		if entityNames[name] {
-			return &Type{TypeName: "Entity", Name: name}
-		}
+		// if entityNames[name] {
+		// 	return &Type{TypeName: "Entity", Name: name}
+		// }
 		// Common type reference - use EntityOrCommon format
 		return &Type{TypeName: "EntityOrCommon", Name: name}
 	default:
@@ -446,9 +446,9 @@ func attrToJSON(t ast.IsType, entityNames map[string]bool) *Attr {
 	case ast.TypeRef:
 		// Check if this type name refers to an entity
 		name := string(v.Name)
-		if entityNames[name] {
-			return &Attr{TypeName: "Entity", Name: name}
-		}
+		// if entityNames[name] {
+		// 	return &Attr{TypeName: "Entity", Name: name}
+		// }
 		// Common type reference - use EntityOrCommon format
 		return &Attr{TypeName: "EntityOrCommon", Name: name}
 	default:
@@ -573,9 +573,9 @@ func parseAction(name string, ja *Action) (ast.IsDeclaration, error) {
 		for i, ref := range ja.MemberOf {
 			// Action memberOf always refers to actions, default to "Action" if type is empty
 			refType := ref.Type
-			if refType == "" {
-				refType = "Action"
-			}
+			// if refType == "" {
+			// 	refType = "Action"
+			// }
 			a.MemberOfVal[i] = ast.EntityRef{
 				Type: ast.EntityTypeRef{Name: types.EntityType(refType)},
 				ID:   types.String(ref.ID),
@@ -687,21 +687,21 @@ func jsonToType(jt *Type) (ast.IsType, error) {
 // Rust may output primitives as "__cedar::String" etc.
 func resolveEntityOrCommon(name string) (ast.IsType, error) {
 	// Handle __cedar:: prefix for all types
-	if len(name) > 9 && name[:9] == "__cedar::" {
-		extName := name[9:]
-		// Check if it's a primitive type with __cedar:: prefix
-		switch extName {
-		case "String":
-			return ast.StringType{}, nil
-		case "Long":
-			return ast.LongType{}, nil
-		case "Bool":
-			return ast.BoolType{}, nil
-		default:
-			// It's a real extension type (ipaddr, datetime, decimal, duration)
-			return ast.ExtensionType{Name: types.Ident(extName)}, nil
-		}
-	}
+	// if len(name) > 9 && name[:9] == "__cedar::" {
+	// 	extName := name[9:]
+	// 	// Check if it's a primitive type with __cedar:: prefix
+	// 	switch extName {
+	// 	case "String":
+	// 		return ast.StringType{}, nil
+	// 	case "Long":
+	// 		return ast.LongType{}, nil
+	// 	case "Bool":
+	// 		return ast.BoolType{}, nil
+	// 	default:
+	// 		// It's a real extension type (ipaddr, datetime, decimal, duration)
+	// 		return ast.ExtensionType{Name: types.Ident(extName)}, nil
+	// 	}
+	// }
 
 	// Handle unprefixed primitive types
 	switch name {

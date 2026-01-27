@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/cedar-policy/cedar-go/types"
 	"github.com/cedar-policy/cedar-go/x/exp/schema2/ast"
 )
 
@@ -198,7 +197,7 @@ func marshalEntityRefs(buf *bytes.Buffer, refs []ast.EntityRef) {
 }
 
 func marshalEntityRef(buf *bytes.Buffer, ref ast.EntityRef) {
-	if ref.Type.Name != types.EntityType("Action") {
+	if ref.Type.Name != "" {
 		buf.WriteString(string(ref.Type.Name))
 		buf.WriteString("::")
 	}
