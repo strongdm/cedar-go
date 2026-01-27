@@ -1,1 +1,0 @@
-{"":{"entityTypes":{"Photo":{"shape":{"type":"Record","attributes":{"owner":{"type":"EntityOrCommon","name":"User"}}}},"ScreenTime":{},"User":{}},"actions":{"edit":{"appliesTo":{"resourceTypes":["Photo"],"principalTypes":["User"]}},"view":{"appliesTo":{"resourceTypes":["Photo","ScreenTime"],"principalTypes":["User"]}}}}}

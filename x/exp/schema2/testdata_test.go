@@ -1,37 +1,63 @@
 package schema2_test
 
 import (
+	"archive/zip"
 	"bytes"
-	"embed"
 	_ "embed"
-	"io/fs"
 	"testing"
 
 	"github.com/cedar-policy/cedar-go/internal/testutil"
 	"github.com/cedar-policy/cedar-go/x/exp/schema2"
 )
 
-//go:embed testdata/*
-var testdata embed.FS
+// These Cedar schema files were collected from the Rust reference implementation
+// repository found at https://github.com/cedar-policy/cedar
 
-func mustRead(t testing.TB, src fs.FS, name string) []byte {
+//go:embed testdata.zip
+var testdataZip []byte
+
+func mustReadZip(t testing.TB, files map[string]*zip.File, name string) []byte {
 	t.Helper()
-	out, err := fs.ReadFile(src, name)
+	file, ok := files[name]
+	if !ok {
+		t.Fatalf("file %s not found in zip", name)
+	}
+	rc, err := file.Open()
 	testutil.OK(t, err)
-	return out
+	defer rc.Close()
+	var buf bytes.Buffer
+	_, err = buf.ReadFrom(rc)
+	testutil.OK(t, err)
+	return buf.Bytes()
 }
 
-func TestCorpus(t *testing.T) {
+func TestData(t *testing.T) {
 	t.Parallel()
 
-	schemas, err := fs.Glob(testdata, "testdata/*.cedarschema")
+	// Open the embedded zip file
+	zipReader, err := zip.NewReader(bytes.NewReader(testdataZip), int64(len(testdataZip)))
 	testutil.OK(t, err)
+
+	// Create a map of files from the zip
+	files := make(map[string]*zip.File)
+	for _, file := range zipReader.File {
+		files[file.Name] = file
+	}
+
+	// Find all .cedarschema files
+	var schemas []string
+	for name := range files {
+		if len(name) > len("testdata/") && name[len(name)-13:] == ".cedarschema" {
+			schemas = append(schemas, name)
+		}
+	}
+
 	for _, name := range schemas {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			cedarBytes := mustRead(t, testdata, name)
+			cedarBytes := mustReadZip(t, files, name)
 			cedarBytes = bytes.ReplaceAll(cedarBytes, []byte("context: {}\n"), nil) // Rust converted JSON never contains the empty context record
-			jsonBytes := mustRead(t, testdata, name+".json")
+			jsonBytes := mustReadZip(t, files, name+".json")
 			jsonBytes = bytes.ReplaceAll(jsonBytes, []byte(`"appliesTo":{"resourceTypes":[],"principalTypes":[]}`), nil) // appliesTo is optional
 
 			// UnmarshalCedar
