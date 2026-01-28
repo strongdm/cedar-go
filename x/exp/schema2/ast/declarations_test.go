@@ -12,7 +12,7 @@ func TestUID(t *testing.T) {
 	want := ast.EntityRef{
 		ID: "view",
 	}
-	got := ast.UID("view")
+	got := ast.EntityRefFromID("view")
 	testutil.Equals(t, got, want)
 }
 
@@ -22,6 +22,6 @@ func TestEntityUID(t *testing.T) {
 		Type: ast.EntityTypeRef{Name: "User"},
 		ID:   "alice",
 	}
-	got := ast.EntityUID("User", "alice")
+	got := ast.NewEntityRef("User", "alice")
 	testutil.Equals(t, got, want)
 }

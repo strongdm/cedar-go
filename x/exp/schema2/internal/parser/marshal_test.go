@@ -166,7 +166,7 @@ func TestSchemaMarshalCedar(t *testing.T) {
 			schema: &ast.Schema{
 				Actions: ast.Actions{
 					types.String("view"): ast.ActionNode{
-						MemberOfVal: []ast.EntityRef{ast.UID("readActions")},
+						MemberOfVal: []ast.EntityRef{ast.EntityRefFromID("readActions")},
 					},
 				},
 			},
@@ -303,7 +303,7 @@ entity User;
 			schema: &ast.Schema{
 				Actions: ast.Actions{
 					types.String("view"): ast.ActionNode{
-						MemberOfVal: []ast.EntityRef{ast.EntityUID(types.EntityType("MyApp::Action"), "allActions")},
+						MemberOfVal: []ast.EntityRef{ast.NewEntityRef(types.EntityType("MyApp::Action"), "allActions")},
 					},
 				},
 			},
@@ -402,8 +402,8 @@ entity User;
 				Actions: ast.Actions{
 					types.String("view"): ast.ActionNode{
 						MemberOfVal: []ast.EntityRef{
-							ast.UID("readActions"),
-							ast.UID("viewActions"),
+							ast.EntityRefFromID("readActions"),
+							ast.EntityRefFromID("viewActions"),
 						},
 					},
 				},
@@ -725,7 +725,7 @@ action view;
 			schema: &ast.Schema{
 				Actions: ast.Actions{
 					types.String("view"): ast.ActionNode{
-						MemberOfVal: []ast.EntityRef{ast.EntityUID("", "someAction")},
+						MemberOfVal: []ast.EntityRef{ast.NewEntityRef("", "someAction")},
 					},
 				},
 			},

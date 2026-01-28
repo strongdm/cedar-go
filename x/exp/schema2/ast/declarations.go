@@ -44,15 +44,15 @@ type EntityRef struct {
 	ID   types.String
 }
 
-// UID creates an EntityRef with just an ID (type is inferred as Action).
-func UID(id types.String) EntityRef {
+// EntityRefFromID creates an EntityRef with just an ID (type is inferred as Action).
+func EntityRefFromID(id types.String) EntityRef {
 	return EntityRef{
 		ID: id,
 	}
 }
 
-// EntityUID creates an EntityRef with an explicit type and ID.
-func EntityUID(typ types.EntityType, id types.String) EntityRef {
+// NewEntityRef creates an EntityRef with an explicit type and ID.
+func NewEntityRef(typ types.EntityType, id types.String) EntityRef {
 	return EntityRef{
 		Type: EntityTypeRef{Name: typ},
 		ID:   id,

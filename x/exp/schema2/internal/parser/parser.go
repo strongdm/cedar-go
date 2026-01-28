@@ -692,7 +692,7 @@ func (p *Parser) parseEntityRef() (ast.EntityRef, error) {
 	if tok.Type == TokenString {
 		// We've verified it's a string, so use consumeString
 		id := p.consumeString()
-		return ast.UID(types.String(id)), nil
+		return ast.EntityRefFromID(types.String(id)), nil
 	}
 
 	// Parse path components manually so we can stop before a string ID
@@ -707,7 +707,7 @@ func (p *Parser) parseEntityRef() (ast.EntityRef, error) {
 		if p.peek().Type == TokenString {
 			// We've verified it's a string, so use consumeString
 			id := p.consumeString()
-			return ast.EntityUID(types.EntityType(name), types.String(id)), nil
+			return ast.NewEntityRef(types.EntityType(name), types.String(id)), nil
 		}
 		// Otherwise it's another path component
 		next, err := p.expectIdent()
@@ -718,7 +718,7 @@ func (p *Parser) parseEntityRef() (ast.EntityRef, error) {
 	}
 
 	// Just a name implies it's an Action::"name"
-	return ast.UID(types.String(name)), nil
+	return ast.EntityRefFromID(types.String(name)), nil
 }
 
 func (p *Parser) parseCommonType(annotations ast.Annotations) (ast.CommonTypeNode, types.Ident, error) {
