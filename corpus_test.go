@@ -16,7 +16,7 @@ import (
 	"github.com/cedar-policy/cedar-go/internal/testutil"
 	"github.com/cedar-policy/cedar-go/types"
 	"github.com/cedar-policy/cedar-go/x/exp/batch"
-	"github.com/cedar-policy/cedar-go/x/exp/schema2"
+	"github.com/cedar-policy/cedar-go/x/exp/schema"
 )
 
 // jsonEntity is not part of entityValue as I can find
@@ -171,7 +171,7 @@ func TestCorpus(t *testing.T) {
 			// Rust converted JSON never contains the empty context record
 			schemaContent = bytes.ReplaceAll(schemaContent, []byte("context: {}\n"), nil)
 
-			var s schema2.Schema
+			var s schema.Schema
 			s.SetFilename("test.schema")
 			if err := s.UnmarshalCedar(schemaContent); err != nil {
 				t.Fatal("error parsing schema", err, "\n===\n", string(schemaContent))
@@ -184,14 +184,14 @@ func TestCorpus(t *testing.T) {
 				js, err := s.MarshalJSON()
 				testutil.OK(t, err)
 
-				var s2 schema2.Schema
+				var s2 schema.Schema
 				err = s2.UnmarshalJSON(js)
 				testutil.OK(t, err)
 
 				sb, err := s2.MarshalCedar()
 				testutil.OK(t, err)
 
-				var s3 schema2.Schema
+				var s3 schema.Schema
 				err = s3.UnmarshalCedar(sb)
 				testutil.OK(t, err)
 
@@ -218,7 +218,7 @@ func TestCorpus(t *testing.T) {
 				rustJSON = bytes.ReplaceAll(rustJSON, []byte(`"appliesTo":{"resourceTypes":[],"principalTypes":[]}`), nil)
 
 				// Unmarshal Rust JSON to handle any syntax issues from replacement
-				var rustSchema schema2.Schema
+				var rustSchema schema.Schema
 				err = rustSchema.UnmarshalJSON(rustJSON)
 				testutil.OK(t, err)
 
