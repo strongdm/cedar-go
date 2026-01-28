@@ -103,7 +103,7 @@ func TestData(t *testing.T) {
 			{
 				r1, err := cedarSchema.Resolve()
 				testutil.OK(t, err)
-				r2, err := cedarSchema.Resolve()
+				r2, err := jsonSchema.Resolve()
 				testutil.OK(t, err)
 				testutil.Equals(t, r1, r2)
 			}
