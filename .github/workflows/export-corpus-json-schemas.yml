@@ -1,0 +1,26 @@
+name: Export Corpus JSON Schemas
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "30 2 * * 0"
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Export JSON schemas
+        run: go run ./cmd/corpus-json-schemas --in corpus-tests.tar.gz --out corpus-tests-json-schemas.tar.gz
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: corpus-tests-json-schemas
+          path: corpus-tests-json-schemas.tar.gz
