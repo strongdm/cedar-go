@@ -1035,8 +1035,8 @@ func TestEntityTypeRefInSet(t *testing.T) {
 	// Construct schema with Set<EntityTypeRef> directly in AST
 	schema := &ast.Schema{
 		Entities: ast.Entities{
-			"User": ast.EntityNode{},
-			"Group": ast.EntityNode{
+			"User": ast.Entity{},
+			"Group": ast.Entity{
 				ShapeVal: &ast.RecordType{
 					Attributes: ast.Attributes{
 						"members": ast.Attribute{Type: ast.Set(ast.EntityType("User"))},
@@ -1074,7 +1074,7 @@ func TestEnumEntityUIDs(t *testing.T) {
 
 	schema := &ast.Schema{
 		Entities:    ast.Entities{},
-		Enums:       ast.Enums{"Status": ast.EnumNode{Values: []types.String{"active", "inactive", "pending"}}},
+		Enums:       ast.Enums{"Status": ast.Enum{Values: []types.String{"active", "inactive", "pending"}}},
 		Actions:     ast.Actions{},
 		CommonTypes: ast.CommonTypes{},
 		Namespaces:  ast.Namespaces{},
@@ -1499,10 +1499,10 @@ func TestDirectAST(t *testing.T) {
 		// Go's map iteration is non-deterministic, so we need multiple variants
 		schema := &ast.Schema{
 			Entities: ast.Entities{
-				"AAA": ast.EntityNode{},
+				"AAA": ast.Entity{},
 			},
 			Enums: ast.Enums{
-				"AAA": ast.EnumNode{Values: []types.String{"value"}},
+				"AAA": ast.Enum{Values: []types.String{"value"}},
 			},
 			Actions:     ast.Actions{},
 			CommonTypes: ast.CommonTypes{},
@@ -1519,10 +1519,10 @@ func TestDirectAST(t *testing.T) {
 		// Another variant with a different name to hit different map iteration order
 		schema := &ast.Schema{
 			Entities: ast.Entities{
-				"ZZZ": ast.EntityNode{},
+				"ZZZ": ast.Entity{},
 			},
 			Enums: ast.Enums{
-				"ZZZ": ast.EnumNode{Values: []types.String{"value"}},
+				"ZZZ": ast.Enum{Values: []types.String{"value"}},
 			},
 			Actions:     ast.Actions{},
 			CommonTypes: ast.CommonTypes{},
@@ -1539,10 +1539,10 @@ func TestDirectAST(t *testing.T) {
 		// Another variant
 		schema := &ast.Schema{
 			Entities: ast.Entities{
-				"Thing123": ast.EntityNode{},
+				"Thing123": ast.Entity{},
 			},
 			Enums: ast.Enums{
-				"Thing123": ast.EnumNode{Values: []types.String{"value"}},
+				"Thing123": ast.Enum{Values: []types.String{"value"}},
 			},
 			Actions:     ast.Actions{},
 			CommonTypes: ast.CommonTypes{},
@@ -1559,10 +1559,10 @@ func TestDirectAST(t *testing.T) {
 		// Create a schema where an enum is defined first, then an entity with same name
 		schema := &ast.Schema{
 			Enums: ast.Enums{
-				"Thing": ast.EnumNode{Values: []types.String{"active"}},
+				"Thing": ast.Enum{Values: []types.String{"active"}},
 			},
 			Entities: ast.Entities{
-				"Thing": ast.EntityNode{},
+				"Thing": ast.Entity{},
 			},
 			Actions:     ast.Actions{},
 			CommonTypes: ast.CommonTypes{},
@@ -1582,12 +1582,12 @@ func TestDirectAST(t *testing.T) {
 			Actions:     ast.Actions{},
 			CommonTypes: ast.CommonTypes{},
 			Namespaces: ast.Namespaces{
-				"App": ast.NamespaceNode{
+				"App": ast.Namespace{
 					Entities: ast.Entities{
-						"User": ast.EntityNode{},
+						"User": ast.Entity{},
 					},
 					Enums: ast.Enums{
-						"User": ast.EnumNode{Values: []types.String{"active"}},
+						"User": ast.Enum{Values: []types.String{"active"}},
 					},
 					Actions:     ast.Actions{},
 					CommonTypes: ast.CommonTypes{},
@@ -1609,12 +1609,12 @@ func TestDirectAST(t *testing.T) {
 			Actions:     ast.Actions{},
 			CommonTypes: ast.CommonTypes{},
 			Namespaces: ast.Namespaces{
-				"App": ast.NamespaceNode{
+				"App": ast.Namespace{
 					Enums: ast.Enums{
-						"Thing": ast.EnumNode{Values: []types.String{"active"}},
+						"Thing": ast.Enum{Values: []types.String{"active"}},
 					},
 					Entities: ast.Entities{
-						"Thing": ast.EntityNode{},
+						"Thing": ast.Entity{},
 					},
 					Actions:     ast.Actions{},
 					CommonTypes: ast.CommonTypes{},
@@ -1634,7 +1634,7 @@ func TestDirectAST(t *testing.T) {
 			Entities: ast.Entities{},
 			Enums:    ast.Enums{},
 			Actions: ast.Actions{
-				"view": ast.ActionNode{
+				"view": ast.Action{
 					AppliesToVal: &ast.AppliesTo{
 						Context: ast.SetType{Element: ast.StringType{}},
 					},
@@ -1658,12 +1658,12 @@ func TestDirectAST(t *testing.T) {
 			Actions:     ast.Actions{},
 			CommonTypes: ast.CommonTypes{},
 			Namespaces: ast.Namespaces{
-				"App": ast.NamespaceNode{
+				"App": ast.Namespace{
 					Entities:    ast.Entities{},
 					Enums:       ast.Enums{},
 					CommonTypes: ast.CommonTypes{},
 					Actions: ast.Actions{
-						"view": ast.ActionNode{
+						"view": ast.Action{
 							AppliesToVal: &ast.AppliesTo{
 								Context: ast.StringType{},
 							},
@@ -1688,15 +1688,15 @@ func TestDirectAST(t *testing.T) {
 			Actions:     ast.Actions{},
 			CommonTypes: ast.CommonTypes{},
 			Namespaces: ast.Namespaces{
-				"App": ast.NamespaceNode{
+				"App": ast.Namespace{
 					Entities:    ast.Entities{},
 					Enums:       ast.Enums{},
 					CommonTypes: ast.CommonTypes{},
 					Actions: ast.Actions{
-						"view": ast.ActionNode{},
+						"view": ast.Action{},
 					},
 				},
-				"App2": ast.NamespaceNode{
+				"App2": ast.Namespace{
 					Entities:    ast.Entities{},
 					Enums:       ast.Enums{},
 					CommonTypes: ast.CommonTypes{},
@@ -1731,15 +1731,15 @@ func TestDirectAST(t *testing.T) {
 
 		schema := &ast.Schema{
 			Entities: ast.Entities{
-				"App::User": ast.EntityNode{}, // Top-level entity with qualified name
+				"App::User": ast.Entity{}, // Top-level entity with qualified name
 			},
 			Enums:       ast.Enums{},
 			Actions:     ast.Actions{},
 			CommonTypes: ast.CommonTypes{},
 			Namespaces: ast.Namespaces{
-				"App": ast.NamespaceNode{
+				"App": ast.Namespace{
 					Entities: ast.Entities{
-						"User": ast.EntityNode{}, // Namespace entity that becomes "App::User"
+						"User": ast.Entity{}, // Namespace entity that becomes "App::User"
 					},
 					Enums:       ast.Enums{},
 					CommonTypes: ast.CommonTypes{},
@@ -1759,15 +1759,15 @@ func TestDirectAST(t *testing.T) {
 		schema := &ast.Schema{
 			Entities: ast.Entities{},
 			Enums: ast.Enums{
-				"App::Status": ast.EnumNode{Values: []types.String{"active"}}, // Top-level enum with qualified name
+				"App::Status": ast.Enum{Values: []types.String{"active"}}, // Top-level enum with qualified name
 			},
 			Actions:     ast.Actions{},
 			CommonTypes: ast.CommonTypes{},
 			Namespaces: ast.Namespaces{
-				"App": ast.NamespaceNode{
+				"App": ast.Namespace{
 					Entities: ast.Entities{},
 					Enums: ast.Enums{
-						"Status": ast.EnumNode{Values: []types.String{"inactive"}}, // Namespace enum that becomes "App::Status"
+						"Status": ast.Enum{Values: []types.String{"inactive"}}, // Namespace enum that becomes "App::Status"
 					},
 					CommonTypes: ast.CommonTypes{},
 					Actions:     ast.Actions{},
@@ -1785,16 +1785,16 @@ func TestDirectAST(t *testing.T) {
 		// Top-level entity conflicts with namespace enum
 		schema := &ast.Schema{
 			Entities: ast.Entities{
-				"App::Thing": ast.EntityNode{}, // Top-level entity with qualified name
+				"App::Thing": ast.Entity{}, // Top-level entity with qualified name
 			},
 			Enums:       ast.Enums{},
 			Actions:     ast.Actions{},
 			CommonTypes: ast.CommonTypes{},
 			Namespaces: ast.Namespaces{
-				"App": ast.NamespaceNode{
+				"App": ast.Namespace{
 					Entities: ast.Entities{},
 					Enums: ast.Enums{
-						"Thing": ast.EnumNode{Values: []types.String{"value"}}, // Namespace enum that becomes "App::Thing"
+						"Thing": ast.Enum{Values: []types.String{"value"}}, // Namespace enum that becomes "App::Thing"
 					},
 					CommonTypes: ast.CommonTypes{},
 					Actions:     ast.Actions{},
@@ -1815,7 +1815,7 @@ func TestDirectAST(t *testing.T) {
 			Enums:       ast.Enums{},
 			CommonTypes: ast.CommonTypes{},
 			Actions: ast.Actions{
-				"view": ast.ActionNode{
+				"view": ast.Action{
 					AppliesToVal: &ast.AppliesTo{
 						Context: ast.SetType{
 							Element: ast.RecordType{Attributes: ast.Attributes{}},
@@ -1837,7 +1837,7 @@ func TestDirectAST(t *testing.T) {
 		// Actually, we can't nest action contexts. Let's create a record that will be used as context.
 		schema := &ast.Schema{
 			Entities: ast.Entities{
-				"User": ast.EntityNode{
+				"User": ast.Entity{
 					ShapeVal: &ast.RecordType{
 						Attributes: ast.Attributes{
 							// Nested records should be fine
@@ -1868,14 +1868,14 @@ func TestDirectAST(t *testing.T) {
 		// Create a common type that's a Set, then use it as action context
 		schema := &ast.Schema{
 			CommonTypes: ast.CommonTypes{
-				"BadContext": ast.CommonTypeNode{
+				"BadContext": ast.CommonType{
 					Type: ast.SetType{Element: ast.StringType{}},
 				},
 			},
 			Entities: ast.Entities{},
 			Enums:    ast.Enums{},
 			Actions: ast.Actions{
-				"view": ast.ActionNode{
+				"view": ast.Action{
 					AppliesToVal: &ast.AppliesTo{
 						Context: ast.TypeRef{Name: "BadContext"},
 					},
@@ -1898,16 +1898,16 @@ func TestDirectAST(t *testing.T) {
 			Actions:     ast.Actions{},
 			CommonTypes: ast.CommonTypes{},
 			Namespaces: ast.Namespaces{
-				"App": ast.NamespaceNode{
+				"App": ast.Namespace{
 					CommonTypes: ast.CommonTypes{
-						"BadContext": ast.CommonTypeNode{
+						"BadContext": ast.CommonType{
 							Type: ast.SetType{Element: ast.StringType{}},
 						},
 					},
 					Entities: ast.Entities{},
 					Enums:    ast.Enums{},
 					Actions: ast.Actions{
-						"view": ast.ActionNode{
+						"view": ast.Action{
 							AppliesToVal: &ast.AppliesTo{
 								Context: ast.TypeRef{Name: "BadContext"},
 							},
@@ -1928,12 +1928,12 @@ func TestDirectAST(t *testing.T) {
 		// Then use that common type as an action context
 		schema := &ast.Schema{
 			CommonTypes: ast.CommonTypes{
-				"BadType": ast.CommonTypeNode{
+				"BadType": ast.CommonType{
 					Type: ast.SetType{Element: ast.StringType{}},
 				},
 			},
 			Entities: ast.Entities{
-				"User": ast.EntityNode{
+				"User": ast.Entity{
 					ShapeVal: &ast.RecordType{
 						Attributes: ast.Attributes{
 							"field": ast.Attribute{Type: ast.TypeRef{Name: "BadType"}},
@@ -1943,7 +1943,7 @@ func TestDirectAST(t *testing.T) {
 			},
 			Enums: ast.Enums{},
 			Actions: ast.Actions{
-				"view": ast.ActionNode{
+				"view": ast.Action{
 					AppliesToVal: &ast.AppliesTo{
 						Context: ast.TypeRef{Name: "BadType"},
 					},
@@ -1962,18 +1962,18 @@ func TestDirectAST(t *testing.T) {
 		// Create an entity that uses tags, and also use that type as action context
 		schema := &ast.Schema{
 			CommonTypes: ast.CommonTypes{
-				"TagType": ast.CommonTypeNode{
+				"TagType": ast.CommonType{
 					Type: ast.SetType{Element: ast.StringType{}},
 				},
 			},
 			Entities: ast.Entities{
-				"User": ast.EntityNode{
+				"User": ast.Entity{
 					TagsVal: ast.TypeRef{Name: "TagType"},
 				},
 			},
 			Enums: ast.Enums{},
 			Actions: ast.Actions{
-				"view": ast.ActionNode{
+				"view": ast.Action{
 					AppliesToVal: &ast.AppliesTo{
 						Context: ast.TypeRef{Name: "TagType"},
 					},
@@ -1996,14 +1996,14 @@ func TestDirectAST(t *testing.T) {
 			Actions:     ast.Actions{},
 			CommonTypes: ast.CommonTypes{},
 			Namespaces: ast.Namespaces{
-				"App": ast.NamespaceNode{
+				"App": ast.Namespace{
 					CommonTypes: ast.CommonTypes{
-						"BadType": ast.CommonTypeNode{
+						"BadType": ast.CommonType{
 							Type: ast.LongType{},
 						},
 					},
 					Entities: ast.Entities{
-						"User": ast.EntityNode{
+						"User": ast.Entity{
 							ShapeVal: &ast.RecordType{
 								Attributes: ast.Attributes{
 									"field": ast.Attribute{Type: ast.TypeRef{Name: "BadType"}},
@@ -2013,7 +2013,7 @@ func TestDirectAST(t *testing.T) {
 					},
 					Enums: ast.Enums{},
 					Actions: ast.Actions{
-						"view": ast.ActionNode{
+						"view": ast.Action{
 							AppliesToVal: &ast.AppliesTo{
 								Context: ast.TypeRef{Name: "BadType"},
 							},
@@ -2037,20 +2037,20 @@ func TestDirectAST(t *testing.T) {
 			Actions:     ast.Actions{},
 			CommonTypes: ast.CommonTypes{},
 			Namespaces: ast.Namespaces{
-				"App": ast.NamespaceNode{
+				"App": ast.Namespace{
 					CommonTypes: ast.CommonTypes{
-						"TagType": ast.CommonTypeNode{
+						"TagType": ast.CommonType{
 							Type: ast.BoolType{},
 						},
 					},
 					Entities: ast.Entities{
-						"User": ast.EntityNode{
+						"User": ast.Entity{
 							TagsVal: ast.TypeRef{Name: "TagType"},
 						},
 					},
 					Enums: ast.Enums{},
 					Actions: ast.Actions{
-						"view": ast.ActionNode{
+						"view": ast.Action{
 							AppliesToVal: &ast.AppliesTo{
 								Context: ast.TypeRef{Name: "TagType"},
 							},

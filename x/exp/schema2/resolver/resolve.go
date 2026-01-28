@@ -10,7 +10,7 @@ import (
 // commonTypeEntry represents a common type that may or may not be resolved yet.
 type commonTypeEntry struct {
 	resolved bool
-	node     ast.CommonTypeNode
+	node     ast.CommonType
 }
 
 // resolveData contains cached information for efficient type resolution.

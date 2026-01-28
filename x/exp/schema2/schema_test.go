@@ -359,7 +359,7 @@ var wantJSON = `{
 // All maps are initialized to match unmarshaling behavior.
 var wantAST = &ast.Schema{
 	CommonTypes: ast.CommonTypes{
-		"Address": ast.CommonTypeNode{
+		"Address": ast.CommonType{
 			Annotations: ast.Annotations{
 				"doc":                  "Address information",
 				"personal_information": "",
@@ -378,7 +378,7 @@ var wantAST = &ast.Schema{
 				},
 			},
 		},
-		"decimal": ast.CommonTypeNode{
+		"decimal": ast.CommonType{
 			Type: ast.RecordType{
 				Attributes: ast.Attributes{
 					"decimal": ast.Attribute{Type: ast.LongType{}},
@@ -388,8 +388,8 @@ var wantAST = &ast.Schema{
 		},
 	},
 	Entities: ast.Entities{
-		"Admin": ast.EntityNode{},
-		"System": ast.EntityNode{
+		"Admin": ast.Entity{},
+		"System": ast.Entity{
 			MemberOfVal: []ast.EntityTypeRef{{Name: "Admin"}},
 			ShapeVal: &ast.RecordType{
 				Attributes: ast.Attributes{
@@ -399,12 +399,12 @@ var wantAST = &ast.Schema{
 		},
 	},
 	Enums: ast.Enums{
-		"Role": ast.EnumNode{
+		"Role": ast.Enum{
 			Values: []types.String{"superuser", "operator"},
 		},
 	},
 	Actions: ast.Actions{
-		"audit": ast.ActionNode{
+		"audit": ast.Action{
 			AppliesToVal: &ast.AppliesTo{
 				PrincipalTypes: []ast.EntityTypeRef{{Name: "Admin"}},
 				ResourceTypes:  []ast.EntityTypeRef{{Name: "MyApp::Document"}, {Name: "System"}},
@@ -412,12 +412,12 @@ var wantAST = &ast.Schema{
 		},
 	},
 	Namespaces: ast.Namespaces{
-		"MyApp": ast.NamespaceNode{
+		"MyApp": ast.Namespace{
 			Annotations: ast.Annotations{
 				"doc": "Doc manager",
 			},
 			CommonTypes: ast.CommonTypes{
-				"Metadata": ast.CommonTypeNode{
+				"Metadata": ast.CommonType{
 					Type: ast.RecordType{
 						Attributes: ast.Attributes{
 							"created": ast.Attribute{Type: ast.TypeRef{Name: "datetime"}},
@@ -427,14 +427,14 @@ var wantAST = &ast.Schema{
 				},
 			},
 			Entities: ast.Entities{
-				"Department": ast.EntityNode{
+				"Department": ast.Entity{
 					ShapeVal: &ast.RecordType{
 						Attributes: ast.Attributes{
 							"budget": ast.Attribute{Type: ast.TypeRef{Name: "decimal"}},
 						},
 					},
 				},
-				"Document": ast.EntityNode{
+				"Document": ast.Entity{
 					ShapeVal: &ast.RecordType{
 						Attributes: ast.Attributes{
 							"public": ast.Attribute{Type: ast.BoolType{}},
@@ -442,7 +442,7 @@ var wantAST = &ast.Schema{
 						},
 					},
 				},
-				"Group": ast.EntityNode{
+				"Group": ast.Entity{
 					MemberOfVal: []ast.EntityTypeRef{{Name: "Department"}},
 					ShapeVal: &ast.RecordType{
 						Attributes: ast.Attributes{
@@ -451,7 +451,7 @@ var wantAST = &ast.Schema{
 						},
 					},
 				},
-				"User": ast.EntityNode{
+				"User": ast.Entity{
 					MemberOfVal: []ast.EntityTypeRef{{Name: "Group"}},
 					Annotations: ast.Annotations{
 						"doc": "User entity",
@@ -467,12 +467,12 @@ var wantAST = &ast.Schema{
 				},
 			},
 			Enums: ast.Enums{
-				"Status": ast.EnumNode{
+				"Status": ast.Enum{
 					Values: []types.String{"draft", "published", "archived"},
 				},
 			},
 			Actions: ast.Actions{
-				"edit": ast.ActionNode{
+				"edit": ast.Action{
 					Annotations: ast.Annotations{
 						"doc": "View or edit document",
 					},
@@ -487,13 +487,13 @@ var wantAST = &ast.Schema{
 						},
 					},
 				},
-				"manage": ast.ActionNode{
+				"manage": ast.Action{
 					AppliesToVal: &ast.AppliesTo{
 						PrincipalTypes: []ast.EntityTypeRef{{Name: "User"}},
 						ResourceTypes:  []ast.EntityTypeRef{{Name: "Document"}, {Name: "Group"}},
 					},
 				},
-				"view": ast.ActionNode{
+				"view": ast.Action{
 					Annotations: ast.Annotations{
 						"doc": "View or edit document",
 					},

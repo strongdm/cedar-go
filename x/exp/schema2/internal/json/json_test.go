@@ -51,7 +51,7 @@ func TestMarshalUnmarshalRoundTrip(t *testing.T) {
 			name: "simple entity",
 			schema: &ast.Schema{
 				Entities: ast.Entities{
-					"User": ast.EntityNode{},
+					"User": ast.Entity{},
 				},
 				Enums:       nil,
 				Actions:     nil,
@@ -63,12 +63,12 @@ func TestMarshalUnmarshalRoundTrip(t *testing.T) {
 			name: "entity with memberOf",
 			schema: &ast.Schema{
 				Entities: ast.Entities{
-					"User": ast.EntityNode{
+					"User": ast.Entity{
 						MemberOfVal: []ast.EntityTypeRef{
 							{Name: types.EntityType("Group")},
 						},
 					},
-					"Group": ast.EntityNode{},
+					"Group": ast.Entity{},
 				},
 				Enums:       nil,
 				Actions:     nil,
@@ -80,7 +80,7 @@ func TestMarshalUnmarshalRoundTrip(t *testing.T) {
 			name: "entity with shape",
 			schema: &ast.Schema{
 				Entities: ast.Entities{
-					"User": ast.EntityNode{
+					"User": ast.Entity{
 						ShapeVal: &ast.RecordType{
 							Attributes: ast.Attributes{
 								"name":   ast.Attribute{Type: ast.StringType{}, Optional: false},
@@ -101,7 +101,7 @@ func TestMarshalUnmarshalRoundTrip(t *testing.T) {
 			name: "entity with tags",
 			schema: &ast.Schema{
 				Entities: ast.Entities{
-					"Resource": ast.EntityNode{
+					"Resource": ast.Entity{
 						TagsVal: ast.StringType{},
 					},
 				},
@@ -116,7 +116,7 @@ func TestMarshalUnmarshalRoundTrip(t *testing.T) {
 			schema: &ast.Schema{
 				Entities: nil,
 				Enums: ast.Enums{
-					"Status": ast.EnumNode{
+					"Status": ast.Enum{
 						Values: []types.String{"active", "inactive", "pending"},
 					},
 				},
@@ -129,12 +129,12 @@ func TestMarshalUnmarshalRoundTrip(t *testing.T) {
 			name: "simple action",
 			schema: &ast.Schema{
 				Entities: ast.Entities{
-					"User": ast.EntityNode{},
-					"Doc":  ast.EntityNode{},
+					"User": ast.Entity{},
+					"Doc":  ast.Entity{},
 				},
 				Enums: nil,
 				Actions: ast.Actions{
-					"view": ast.ActionNode{
+					"view": ast.Action{
 						AppliesToVal: &ast.AppliesTo{
 							PrincipalTypes: []ast.EntityTypeRef{{Name: "User"}},
 							ResourceTypes:  []ast.EntityTypeRef{{Name: "Doc"}},
@@ -151,7 +151,7 @@ func TestMarshalUnmarshalRoundTrip(t *testing.T) {
 				Entities: nil,
 				Enums:    nil,
 				Actions: ast.Actions{
-					"view": ast.ActionNode{
+					"view": ast.Action{
 						MemberOfVal: []ast.EntityRef{
 							{Type: ast.EntityTypeRef{Name: "Action"}, ID: "readOnly"},
 						},
@@ -165,12 +165,12 @@ func TestMarshalUnmarshalRoundTrip(t *testing.T) {
 			name: "action with context",
 			schema: &ast.Schema{
 				Entities: ast.Entities{
-					"User": ast.EntityNode{},
-					"Doc":  ast.EntityNode{},
+					"User": ast.Entity{},
+					"Doc":  ast.Entity{},
 				},
 				Enums: nil,
 				Actions: ast.Actions{
-					"view": ast.ActionNode{
+					"view": ast.Action{
 						AppliesToVal: &ast.AppliesTo{
 							PrincipalTypes: []ast.EntityTypeRef{{Name: "User"}},
 							ResourceTypes:  []ast.EntityTypeRef{{Name: "Doc"}},
@@ -193,7 +193,7 @@ func TestMarshalUnmarshalRoundTrip(t *testing.T) {
 				Enums:    nil,
 				Actions:  nil,
 				CommonTypes: ast.CommonTypes{
-					"Name": ast.CommonTypeNode{
+					"Name": ast.CommonType{
 						Type: ast.StringType{},
 					},
 				},
@@ -207,7 +207,7 @@ func TestMarshalUnmarshalRoundTrip(t *testing.T) {
 				Enums:    nil,
 				Actions:  nil,
 				CommonTypes: ast.CommonTypes{
-					"Names": ast.CommonTypeNode{
+					"Names": ast.CommonType{
 						Type: ast.SetType{Element: ast.StringType{}},
 					},
 				},
@@ -221,7 +221,7 @@ func TestMarshalUnmarshalRoundTrip(t *testing.T) {
 				Enums:    nil,
 				Actions:  nil,
 				CommonTypes: ast.CommonTypes{
-					"Address": ast.CommonTypeNode{
+					"Address": ast.CommonType{
 						Type: ast.RecordType{
 							Attributes: ast.Attributes{
 								"street": ast.Attribute{Type: ast.StringType{}, Optional: false},
@@ -241,13 +241,13 @@ func TestMarshalUnmarshalRoundTrip(t *testing.T) {
 				Actions:     nil,
 				CommonTypes: nil,
 				Namespaces: ast.Namespaces{
-					"App": ast.NamespaceNode{
+					"App": ast.Namespace{
 						Entities: ast.Entities{
-							"User": ast.EntityNode{},
+							"User": ast.Entity{},
 						},
 						Enums: nil,
 						Actions: ast.Actions{
-							"view": ast.ActionNode{},
+							"view": ast.Action{},
 						},
 						CommonTypes: nil,
 					},
@@ -262,18 +262,18 @@ func TestMarshalUnmarshalRoundTrip(t *testing.T) {
 				Actions:     nil,
 				CommonTypes: nil,
 				Namespaces: ast.Namespaces{
-					"App": ast.NamespaceNode{
+					"App": ast.Namespace{
 						CommonTypes: ast.CommonTypes{
-							"Name": ast.CommonTypeNode{Type: ast.StringType{}},
+							"Name": ast.CommonType{Type: ast.StringType{}},
 						},
 						Entities: ast.Entities{
-							"User": ast.EntityNode{},
+							"User": ast.Entity{},
 						},
 						Enums: ast.Enums{
-							"Status": ast.EnumNode{Values: []types.String{"active"}},
+							"Status": ast.Enum{Values: []types.String{"active"}},
 						},
 						Actions: ast.Actions{
-							"view": ast.ActionNode{},
+							"view": ast.Action{},
 						},
 					},
 				},
@@ -283,7 +283,7 @@ func TestMarshalUnmarshalRoundTrip(t *testing.T) {
 			name: "type reference to common type",
 			schema: &ast.Schema{
 				Entities: ast.Entities{
-					"User": ast.EntityNode{
+					"User": ast.Entity{
 						ShapeVal: &ast.RecordType{
 							Attributes: ast.Attributes{
 								"name": ast.Attribute{Type: ast.TypeRef{Name: "Name"}, Optional: false},
@@ -294,7 +294,7 @@ func TestMarshalUnmarshalRoundTrip(t *testing.T) {
 				Enums:   nil,
 				Actions: nil,
 				CommonTypes: ast.CommonTypes{
-					"Name": ast.CommonTypeNode{Type: ast.StringType{}},
+					"Name": ast.CommonType{Type: ast.StringType{}},
 				},
 				Namespaces: nil,
 			},
@@ -303,7 +303,7 @@ func TestMarshalUnmarshalRoundTrip(t *testing.T) {
 			name: "nested records",
 			schema: &ast.Schema{
 				Entities: ast.Entities{
-					"Config": ast.EntityNode{
+					"Config": ast.Entity{
 						ShapeVal: &ast.RecordType{
 							Attributes: ast.Attributes{
 								"nested": ast.Attribute{
@@ -328,7 +328,7 @@ func TestMarshalUnmarshalRoundTrip(t *testing.T) {
 			name: "extension types",
 			schema: &ast.Schema{
 				Entities: ast.Entities{
-					"Request": ast.EntityNode{
+					"Request": ast.Entity{
 						ShapeVal: &ast.RecordType{
 							Attributes: ast.Attributes{
 								"ip":   ast.Attribute{Type: ast.ExtensionType{Name: "ipaddr"}, Optional: false},
@@ -347,7 +347,7 @@ func TestMarshalUnmarshalRoundTrip(t *testing.T) {
 			name: "nested record with optional",
 			schema: &ast.Schema{
 				Entities: ast.Entities{
-					"Config": ast.EntityNode{
+					"Config": ast.Entity{
 						ShapeVal: &ast.RecordType{
 							Attributes: ast.Attributes{
 								"nested": ast.Attribute{
@@ -376,7 +376,7 @@ func TestMarshalUnmarshalRoundTrip(t *testing.T) {
 				Enums:    nil,
 				Actions:  nil,
 				CommonTypes: ast.CommonTypes{
-					"NestedSets": ast.CommonTypeNode{
+					"NestedSets": ast.CommonType{
 						Type: ast.SetType{
 							Element: ast.SetType{
 								Element: ast.StringType{},
@@ -391,7 +391,7 @@ func TestMarshalUnmarshalRoundTrip(t *testing.T) {
 			name: "entity with long tags",
 			schema: &ast.Schema{
 				Entities: ast.Entities{
-					"Resource": ast.EntityNode{
+					"Resource": ast.Entity{
 						TagsVal: ast.LongType{},
 					},
 				},
@@ -408,9 +408,9 @@ func TestMarshalUnmarshalRoundTrip(t *testing.T) {
 				Enums:    nil,
 				Actions:  nil,
 				CommonTypes: ast.CommonTypes{
-					"MyLong": ast.CommonTypeNode{Type: ast.LongType{}},
-					"MyBool": ast.CommonTypeNode{Type: ast.BoolType{}},
-					"MyExt":  ast.CommonTypeNode{Type: ast.ExtensionType{Name: "ipaddr"}},
+					"MyLong": ast.CommonType{Type: ast.LongType{}},
+					"MyBool": ast.CommonType{Type: ast.BoolType{}},
+					"MyExt":  ast.CommonType{Type: ast.ExtensionType{Name: "ipaddr"}},
 				},
 				Namespaces: nil,
 			},
@@ -422,8 +422,8 @@ func TestMarshalUnmarshalRoundTrip(t *testing.T) {
 				Enums:    nil,
 				Actions:  nil,
 				CommonTypes: ast.CommonTypes{
-					"Address": ast.CommonTypeNode{Type: ast.StringType{}},
-					"Person": ast.CommonTypeNode{
+					"Address": ast.CommonType{Type: ast.StringType{}},
+					"Person": ast.CommonType{
 						Type: ast.RecordType{
 							Attributes: ast.Attributes{
 								"addr": ast.Attribute{Type: ast.TypeRef{Name: "Address"}, Optional: false},
@@ -567,7 +567,7 @@ func TestRecordAttributeTypes(t *testing.T) {
 
 			schema := &ast.Schema{
 				Entities: ast.Entities{
-					"User": ast.EntityNode{
+					"User": ast.Entity{
 						ShapeVal: &ast.RecordType{
 							Attributes: ast.Attributes{
 								"field": ast.Attribute{Type: tt.attrType, Optional: false},
@@ -1023,7 +1023,7 @@ func TestMarshalNilTypeInCommonType(t *testing.T) {
 		Enums:    nil,
 		Actions:  nil,
 		CommonTypes: ast.CommonTypes{
-			"BadType": ast.CommonTypeNode{
+			"BadType": ast.CommonType{
 				Type: nil,
 			},
 		},
@@ -1043,7 +1043,7 @@ func TestMarshalNilTypeInRecordAttr(t *testing.T) {
 	// that marshaling handles it gracefully without panicking
 	schema := &ast.Schema{
 		Entities: ast.Entities{
-			"E": ast.EntityNode{
+			"E": ast.Entity{
 				ShapeVal: &ast.RecordType{
 					Attributes: ast.Attributes{
 						"badAttr": ast.Attribute{
@@ -1070,7 +1070,7 @@ func TestMarshalJSONOutput(t *testing.T) {
 
 	schema := &ast.Schema{
 		Entities: ast.Entities{
-			"User": ast.EntityNode{},
+			"User": ast.Entity{},
 		},
 		Enums:       nil,
 		Actions:     nil,
@@ -1097,7 +1097,7 @@ func TestEntityAnnotations(t *testing.T) {
 
 	schema := &ast.Schema{
 		Entities: ast.Entities{
-			"User": ast.EntityNode{
+			"User": ast.Entity{
 				Annotations: ast.Annotations{
 					"doc":    "A user entity",
 					"author": "Alice",
@@ -1128,7 +1128,7 @@ func TestEnumAnnotations(t *testing.T) {
 	schema := &ast.Schema{
 		Entities: nil,
 		Enums: ast.Enums{
-			"Status": ast.EnumNode{
+			"Status": ast.Enum{
 				Values: []types.String{"active", "inactive"},
 				Annotations: ast.Annotations{
 					"doc": "Status enum",
@@ -1157,7 +1157,7 @@ func TestActionAnnotations(t *testing.T) {
 		Entities: nil,
 		Enums:    nil,
 		Actions: ast.Actions{
-			"view": ast.ActionNode{
+			"view": ast.Action{
 				Annotations: ast.Annotations{
 					"doc":     "View action",
 					"version": "1.0",
@@ -1188,7 +1188,7 @@ func TestCommonTypeAnnotations(t *testing.T) {
 		Enums:    nil,
 		Actions:  nil,
 		CommonTypes: ast.CommonTypes{
-			"Address": ast.CommonTypeNode{
+			"Address": ast.CommonType{
 				Type: ast.RecordType{
 					Attributes: ast.Attributes{
 						"street": ast.Attribute{Type: ast.StringType{}, Optional: false},
@@ -1289,16 +1289,16 @@ func TestNamespaceAnnotations(t *testing.T) {
 		Actions:     nil,
 		CommonTypes: nil,
 		Namespaces: ast.Namespaces{
-			"MyApp": ast.NamespaceNode{
+			"MyApp": ast.Namespace{
 				Entities: ast.Entities{
-					"User": ast.EntityNode{
+					"User": ast.Entity{
 						Annotations: ast.Annotations{
 							"doc": "User in MyApp",
 						},
 					},
 				},
 				Enums: ast.Enums{
-					"Status": ast.EnumNode{
+					"Status": ast.Enum{
 						Values: []types.String{"active"},
 						Annotations: ast.Annotations{
 							"doc": "Status in MyApp",
@@ -1306,14 +1306,14 @@ func TestNamespaceAnnotations(t *testing.T) {
 					},
 				},
 				Actions: ast.Actions{
-					"view": ast.ActionNode{
+					"view": ast.Action{
 						Annotations: ast.Annotations{
 							"doc": "View in MyApp",
 						},
 					},
 				},
 				CommonTypes: ast.CommonTypes{
-					"Address": ast.CommonTypeNode{
+					"Address": ast.CommonType{
 						Type: ast.StringType{},
 						Annotations: ast.Annotations{
 							"doc": "Address in MyApp",
@@ -1342,12 +1342,12 @@ func TestEntityTypeRefInCommonType(t *testing.T) {
 	// Test that ast.EntityTypeRef marshals to EntityOrCommon in a common type
 	schema := &ast.Schema{
 		Entities: ast.Entities{
-			"User": ast.EntityNode{},
+			"User": ast.Entity{},
 		},
 		Enums:   nil,
 		Actions: nil,
 		CommonTypes: ast.CommonTypes{
-			"UserRef": ast.CommonTypeNode{
+			"UserRef": ast.CommonType{
 				Type: ast.EntityTypeRef{Name: "User"},
 			},
 		},
@@ -1369,8 +1369,8 @@ func TestEntityTypeRefInRecordAttribute(t *testing.T) {
 	// Test that ast.EntityTypeRef marshals to EntityOrCommon in record attributes
 	schema := &ast.Schema{
 		Entities: ast.Entities{
-			"User": ast.EntityNode{},
-			"Doc": ast.EntityNode{
+			"User": ast.Entity{},
+			"Doc": ast.Entity{
 				ShapeVal: &ast.RecordType{
 					Attributes: ast.Attributes{
 						"owner": ast.Attribute{Type: ast.EntityTypeRef{Name: "User"}, Optional: false},
@@ -1400,12 +1400,12 @@ func TestTypeRefInActionContext(t *testing.T) {
 	// Context can be a TypeRef to a common type that is a record
 	schema := &ast.Schema{
 		Entities: ast.Entities{
-			"User": ast.EntityNode{},
-			"Doc":  ast.EntityNode{},
+			"User": ast.Entity{},
+			"Doc":  ast.Entity{},
 		},
 		Enums: nil,
 		Actions: ast.Actions{
-			"view": ast.ActionNode{
+			"view": ast.Action{
 				AppliesToVal: &ast.AppliesTo{
 					PrincipalTypes: []ast.EntityTypeRef{{Name: "User"}},
 					ResourceTypes:  []ast.EntityTypeRef{{Name: "Doc"}},
@@ -1415,7 +1415,7 @@ func TestTypeRefInActionContext(t *testing.T) {
 			},
 		},
 		CommonTypes: ast.CommonTypes{
-			"ContextType": ast.CommonTypeNode{
+			"ContextType": ast.CommonType{
 				Type: ast.RecordType{
 					Attributes: ast.Attributes{
 						"field": ast.Attribute{Type: ast.StringType{}, Optional: false},
@@ -1678,7 +1678,7 @@ func TestMarshalRecordWithAnnotatedAttributes(t *testing.T) {
 	// This tests the annotation handling path in typeToJSONFromContext (line 408-413)
 	schema := &ast.Schema{
 		Entities: ast.Entities{
-			"User": ast.EntityNode{
+			"User": ast.Entity{
 				ShapeVal: &ast.RecordType{
 					Attributes: ast.Attributes{
 						"name": ast.Attribute{
@@ -1729,7 +1729,7 @@ func TestActionMemberOfEmptyTypeInSchema(t *testing.T) {
 		Entities: nil,
 		Enums:    nil,
 		Actions: ast.Actions{
-			"write": ast.ActionNode{
+			"write": ast.Action{
 				MemberOfVal: []ast.EntityRef{
 					{
 						Type: ast.EntityTypeRef{Name: ""},
@@ -1870,13 +1870,13 @@ func TestMarshalNamespaceWithAnnotations(t *testing.T) {
 		Actions:     nil,
 		CommonTypes: nil,
 		Namespaces: ast.Namespaces{
-			"MyApp": ast.NamespaceNode{
+			"MyApp": ast.Namespace{
 				Annotations: ast.Annotations{
 					"doc":     "My application",
 					"version": "1.0",
 				},
 				Entities: ast.Entities{
-					"User": ast.EntityNode{},
+					"User": ast.Entity{},
 				},
 				Enums:       nil,
 				Actions:     nil,
@@ -1905,16 +1905,16 @@ func TestMarshalDefaultAndExplicitEmptyNamespace(t *testing.T) {
 	schema := &ast.Schema{
 		// Top-level entity (will create default "" namespace)
 		Entities: ast.Entities{
-			"TopUser": ast.EntityNode{},
+			"TopUser": ast.Entity{},
 		},
 		Enums:       nil,
 		Actions:     nil,
 		CommonTypes: nil,
 		// Explicit empty namespace (will try to get existing "" namespace)
 		Namespaces: ast.Namespaces{
-			"": ast.NamespaceNode{
+			"": ast.Namespace{
 				Entities: ast.Entities{
-					"NamespaceUser": ast.EntityNode{},
+					"NamespaceUser": ast.Entity{},
 				},
 				Enums:       nil,
 				Actions:     nil,

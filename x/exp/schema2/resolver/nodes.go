@@ -8,16 +8,16 @@ import (
 )
 
 // resolve returns a new CommonTypeNode with all type references resolved.
-func resolveCommonTypeNode(rd *resolveData, c ast.CommonTypeNode) ast.CommonTypeNode {
+func resolveCommonTypeNode(rd *resolveData, c ast.CommonType) ast.CommonType {
 	resolvedType := resolveType(rd, c.Type)
-	return ast.CommonTypeNode{
+	return ast.CommonType{
 		Annotations: c.Annotations,
 		Type:        resolvedType,
 	}
 }
 
 // resolve returns a ResolvedEntity with all type references resolved and name fully qualified.
-func resolveEntityNode(rd *resolveData, e ast.EntityNode, name types.EntityType) ResolvedEntity {
+func resolveEntityNode(rd *resolveData, e ast.Entity, name types.EntityType) ResolvedEntity {
 	resolved := ResolvedEntity{
 		Name:        name,
 		Annotations: e.Annotations,
@@ -48,7 +48,7 @@ func resolveEntityNode(rd *resolveData, e ast.EntityNode, name types.EntityType)
 }
 
 // resolve returns a ResolvedEnum with name fully qualified.
-func resolveEnumNode(rd *resolveData, e ast.EnumNode, name types.EntityType) ResolvedEnum {
+func resolveEnumNode(rd *resolveData, e ast.Enum, name types.EntityType) ResolvedEnum {
 	return ResolvedEnum{
 		Name:        name,
 		Annotations: e.Annotations,
@@ -57,7 +57,7 @@ func resolveEnumNode(rd *resolveData, e ast.EnumNode, name types.EntityType) Res
 }
 
 // resolve returns a ResolvedAction with all type references resolved and converted to types.EntityType and types.EntityUID.
-func resolveActionNode(rd *resolveData, a ast.ActionNode, name types.String) (ResolvedAction, error) {
+func resolveActionNode(rd *resolveData, a ast.Action, name types.String) (ResolvedAction, error) {
 	resolved := ResolvedAction{
 		Name:        name,
 		Annotations: a.Annotations,

@@ -26,7 +26,7 @@ func TestSchemaMarshalCedar(t *testing.T) {
 			name: "simple entity",
 			schema: &ast.Schema{
 				Entities: ast.Entities{
-					types.EntityType("User"): ast.EntityNode{},
+					types.EntityType("User"): ast.Entity{},
 				},
 			},
 			expected: "entity User;\n",
@@ -35,7 +35,7 @@ func TestSchemaMarshalCedar(t *testing.T) {
 			name: "entity with shape",
 			schema: &ast.Schema{
 				Entities: ast.Entities{
-					types.EntityType("User"): ast.EntityNode{
+					types.EntityType("User"): ast.Entity{
 						ShapeVal: &ast.RecordType{
 							Attributes: ast.Attributes{
 								"email": ast.Attribute{Type: ast.String(), Optional: true},
@@ -55,7 +55,7 @@ func TestSchemaMarshalCedar(t *testing.T) {
 			name: "entity with memberOf",
 			schema: &ast.Schema{
 				Entities: ast.Entities{
-					types.EntityType("User"): ast.EntityNode{
+					types.EntityType("User"): ast.Entity{
 						MemberOfVal: []ast.EntityTypeRef{ast.EntityType(types.EntityType("Group"))},
 					},
 				},
@@ -66,7 +66,7 @@ func TestSchemaMarshalCedar(t *testing.T) {
 			name: "entity with multiple parents",
 			schema: &ast.Schema{
 				Entities: ast.Entities{
-					types.EntityType("User"): ast.EntityNode{
+					types.EntityType("User"): ast.Entity{
 						MemberOfVal: []ast.EntityTypeRef{
 							ast.EntityType(types.EntityType("Group")),
 							ast.EntityType(types.EntityType("Team")),
@@ -80,7 +80,7 @@ func TestSchemaMarshalCedar(t *testing.T) {
 			name: "entity with tags",
 			schema: &ast.Schema{
 				Entities: ast.Entities{
-					types.EntityType("Document"): ast.EntityNode{
+					types.EntityType("Document"): ast.Entity{
 						TagsVal: ast.String(),
 					},
 				},
@@ -91,7 +91,7 @@ func TestSchemaMarshalCedar(t *testing.T) {
 			name: "enum entity",
 			schema: &ast.Schema{
 				Enums: ast.Enums{
-					types.EntityType("Status"): ast.EnumNode{
+					types.EntityType("Status"): ast.Enum{
 						Values: []types.String{"active", "inactive"},
 					},
 				},
@@ -103,7 +103,7 @@ func TestSchemaMarshalCedar(t *testing.T) {
 			name: "common type",
 			schema: &ast.Schema{
 				CommonTypes: ast.CommonTypes{
-					types.Ident("Name"): ast.CommonTypeNode{
+					types.Ident("Name"): ast.CommonType{
 						Type: ast.String(),
 					},
 				},
@@ -114,7 +114,7 @@ func TestSchemaMarshalCedar(t *testing.T) {
 			name: "common type with record",
 			schema: &ast.Schema{
 				CommonTypes: ast.CommonTypes{
-					types.Ident("Address"): ast.CommonTypeNode{
+					types.Ident("Address"): ast.CommonType{
 						Type: ast.Record(ast.Attributes{
 							"city":   ast.Attribute{Type: ast.String()},
 							"street": ast.Attribute{Type: ast.String()},
@@ -132,7 +132,7 @@ func TestSchemaMarshalCedar(t *testing.T) {
 			name: "action",
 			schema: &ast.Schema{
 				Actions: ast.Actions{
-					types.String("view"): ast.ActionNode{},
+					types.String("view"): ast.Action{},
 				},
 			},
 			expected: "action view;\n",
@@ -141,7 +141,7 @@ func TestSchemaMarshalCedar(t *testing.T) {
 			name: "action with appliesTo",
 			schema: &ast.Schema{
 				Actions: ast.Actions{
-					types.String("view"): ast.ActionNode{
+					types.String("view"): ast.Action{
 						AppliesToVal: &ast.AppliesTo{
 							PrincipalTypes: []ast.EntityTypeRef{ast.EntityType(types.EntityType("User"))},
 							ResourceTypes:  []ast.EntityTypeRef{ast.EntityType(types.EntityType("Document"))},
@@ -165,7 +165,7 @@ func TestSchemaMarshalCedar(t *testing.T) {
 			name: "action with memberOf",
 			schema: &ast.Schema{
 				Actions: ast.Actions{
-					types.String("view"): ast.ActionNode{
+					types.String("view"): ast.Action{
 						MemberOfVal: []ast.EntityRef{ast.EntityRefFromID("readActions")},
 					},
 				},
@@ -177,7 +177,7 @@ func TestSchemaMarshalCedar(t *testing.T) {
 			name: "action with quoted name",
 			schema: &ast.Schema{
 				Actions: ast.Actions{
-					types.String("view document"): ast.ActionNode{},
+					types.String("view document"): ast.Action{},
 				},
 			},
 			expected: `action "view document";
@@ -187,10 +187,10 @@ func TestSchemaMarshalCedar(t *testing.T) {
 			name: "namespace",
 			schema: &ast.Schema{
 				Namespaces: ast.Namespaces{
-					types.Path("MyApp"): ast.NamespaceNode{
+					types.Path("MyApp"): ast.Namespace{
 						Entities: ast.Entities{
-							types.EntityType("Document"): ast.EntityNode{},
-							types.EntityType("User"):     ast.EntityNode{},
+							types.EntityType("Document"): ast.Entity{},
+							types.EntityType("User"):     ast.Entity{},
 						},
 					},
 				},
@@ -206,7 +206,7 @@ func TestSchemaMarshalCedar(t *testing.T) {
 			name: "annotation",
 			schema: &ast.Schema{
 				Entities: ast.Entities{
-					types.EntityType("User"): ast.EntityNode{
+					types.EntityType("User"): ast.Entity{
 						Annotations: ast.Annotations{
 							types.Ident("doc"): types.String("A user entity"),
 						},
@@ -221,7 +221,7 @@ entity User;
 			name: "annotation without value",
 			schema: &ast.Schema{
 				Entities: ast.Entities{
-					types.EntityType("User"): ast.EntityNode{
+					types.EntityType("User"): ast.Entity{
 						Annotations: ast.Annotations{
 							types.Ident("deprecated"): types.String(""),
 						},
@@ -236,7 +236,7 @@ entity User;
 			name: "set type",
 			schema: &ast.Schema{
 				CommonTypes: ast.CommonTypes{
-					types.Ident("Tags"): ast.CommonTypeNode{
+					types.Ident("Tags"): ast.CommonType{
 						Type: ast.Set(ast.String()),
 					},
 				},
@@ -247,7 +247,7 @@ entity User;
 			name: "extension types",
 			schema: &ast.Schema{
 				CommonTypes: ast.CommonTypes{
-					types.Ident("IP"): ast.CommonTypeNode{
+					types.Ident("IP"): ast.CommonType{
 						Type: ast.IPAddr(),
 					},
 				},
@@ -258,7 +258,7 @@ entity User;
 			name: "entity type reference",
 			schema: &ast.Schema{
 				CommonTypes: ast.CommonTypes{
-					types.Ident("UserRef"): ast.CommonTypeNode{
+					types.Ident("UserRef"): ast.CommonType{
 						Type: ast.EntityType(types.EntityType("MyApp::User")),
 					},
 				},
@@ -269,7 +269,7 @@ entity User;
 			name: "type reference",
 			schema: &ast.Schema{
 				CommonTypes: ast.CommonTypes{
-					types.Ident("AliasedName"): ast.CommonTypeNode{
+					types.Ident("AliasedName"): ast.CommonType{
 						Type: ast.Type("Name"),
 					},
 				},
@@ -280,7 +280,7 @@ entity User;
 			name: "long type",
 			schema: &ast.Schema{
 				CommonTypes: ast.CommonTypes{
-					types.Ident("Count"): ast.CommonTypeNode{
+					types.Ident("Count"): ast.CommonType{
 						Type: ast.Long(),
 					},
 				},
@@ -291,7 +291,7 @@ entity User;
 			name: "bool type",
 			schema: &ast.Schema{
 				CommonTypes: ast.CommonTypes{
-					types.Ident("Flag"): ast.CommonTypeNode{
+					types.Ident("Flag"): ast.CommonType{
 						Type: ast.Bool(),
 					},
 				},
@@ -302,7 +302,7 @@ entity User;
 			name: "action with explicit entity ref",
 			schema: &ast.Schema{
 				Actions: ast.Actions{
-					types.String("view"): ast.ActionNode{
+					types.String("view"): ast.Action{
 						MemberOfVal: []ast.EntityRef{ast.NewEntityRef(types.EntityType("MyApp::Action"), "allActions")},
 					},
 				},
@@ -314,7 +314,7 @@ entity User;
 			name: "record with quoted keys",
 			schema: &ast.Schema{
 				CommonTypes: ast.CommonTypes{
-					types.Ident("Data"): ast.CommonTypeNode{
+					types.Ident("Data"): ast.CommonType{
 						Type: ast.Record(ast.Attributes{
 							"special-key": ast.Attribute{Type: ast.String()},
 						}),
@@ -330,7 +330,7 @@ entity User;
 			name: "empty record",
 			schema: &ast.Schema{
 				CommonTypes: ast.CommonTypes{
-					types.Ident("Empty"): ast.CommonTypeNode{
+					types.Ident("Empty"): ast.CommonType{
 						Type: ast.Record(ast.Attributes{}),
 					},
 				},
@@ -341,7 +341,7 @@ entity User;
 			name: "nested empty record",
 			schema: &ast.Schema{
 				CommonTypes: ast.CommonTypes{
-					types.Ident("Outer"): ast.CommonTypeNode{
+					types.Ident("Outer"): ast.CommonType{
 						Type: ast.Record(ast.Attributes{
 							"inner": ast.Attribute{Type: ast.Record(ast.Attributes{})},
 						}),
@@ -357,7 +357,7 @@ entity User;
 			name: "nested record with optional field",
 			schema: &ast.Schema{
 				CommonTypes: ast.CommonTypes{
-					types.Ident("Outer"): ast.CommonTypeNode{
+					types.Ident("Outer"): ast.CommonType{
 						Type: ast.Record(ast.Attributes{
 							"inner": ast.Attribute{
 								Type: ast.Record(ast.Attributes{
@@ -379,7 +379,7 @@ entity User;
 			name: "action with multiple principals",
 			schema: &ast.Schema{
 				Actions: ast.Actions{
-					types.String("view"): ast.ActionNode{
+					types.String("view"): ast.Action{
 						AppliesToVal: &ast.AppliesTo{
 							PrincipalTypes: []ast.EntityTypeRef{
 								ast.EntityType(types.EntityType("Admin")),
@@ -400,7 +400,7 @@ entity User;
 			name: "action with multiple memberOf",
 			schema: &ast.Schema{
 				Actions: ast.Actions{
-					types.String("view"): ast.ActionNode{
+					types.String("view"): ast.Action{
 						MemberOfVal: []ast.EntityRef{
 							ast.EntityRefFromID("readActions"),
 							ast.EntityRefFromID("viewActions"),
@@ -415,8 +415,8 @@ entity User;
 			name: "multiple top-level entities",
 			schema: &ast.Schema{
 				Entities: ast.Entities{
-					types.EntityType("Document"): ast.EntityNode{},
-					types.EntityType("User"):     ast.EntityNode{},
+					types.EntityType("Document"): ast.Entity{},
+					types.EntityType("User"):     ast.Entity{},
 				},
 			},
 			expected: `entity Document;
@@ -428,13 +428,13 @@ entity User;
 			name: "multiple top-level mixed nodes",
 			schema: &ast.Schema{
 				Entities: ast.Entities{
-					types.EntityType("User"): ast.EntityNode{},
+					types.EntityType("User"): ast.Entity{},
 				},
 				Actions: ast.Actions{
-					types.String("view"): ast.ActionNode{},
+					types.String("view"): ast.Action{},
 				},
 				CommonTypes: ast.CommonTypes{
-					types.Ident("Name"): ast.CommonTypeNode{
+					types.Ident("Name"): ast.CommonType{
 						Type: ast.String(),
 					},
 				},
@@ -450,7 +450,7 @@ action view;
 			name: "action with empty name",
 			schema: &ast.Schema{
 				Actions: ast.Actions{
-					types.String(""): ast.ActionNode{},
+					types.String(""): ast.Action{},
 				},
 			},
 			expected: `action "";
@@ -460,7 +460,7 @@ action view;
 			name: "action name starting with digit",
 			schema: &ast.Schema{
 				Actions: ast.Actions{
-					types.String("123action"): ast.ActionNode{},
+					types.String("123action"): ast.Action{},
 				},
 			},
 			expected: `action "123action";
@@ -470,7 +470,7 @@ action view;
 			name: "record key starting with digit",
 			schema: &ast.Schema{
 				CommonTypes: ast.CommonTypes{
-					types.Ident("Data"): ast.CommonTypeNode{
+					types.Ident("Data"): ast.CommonType{
 						Type: ast.Record(ast.Attributes{
 							"123key": ast.Attribute{Type: ast.String()},
 						}),
@@ -486,7 +486,7 @@ action view;
 			name: "record key with empty name",
 			schema: &ast.Schema{
 				CommonTypes: ast.CommonTypes{
-					types.Ident("Data"): ast.CommonTypeNode{
+					types.Ident("Data"): ast.CommonType{
 						Type: ast.Record(ast.Attributes{
 							"": ast.Attribute{Type: ast.String()},
 						}),
@@ -502,7 +502,7 @@ action view;
 			name: "action name with reserved keyword 'in'",
 			schema: &ast.Schema{
 				Actions: ast.Actions{
-					types.String("in"): ast.ActionNode{},
+					types.String("in"): ast.Action{},
 				},
 			},
 			expected: `action "in";
@@ -512,7 +512,7 @@ action view;
 			name: "string with newline escape",
 			schema: &ast.Schema{
 				Entities: ast.Entities{
-					types.EntityType("User"): ast.EntityNode{
+					types.EntityType("User"): ast.Entity{
 						Annotations: ast.Annotations{
 							types.Ident("doc"): types.String("Line1\nLine2"),
 						},
@@ -527,7 +527,7 @@ entity User;
 			name: "string with carriage return escape",
 			schema: &ast.Schema{
 				Entities: ast.Entities{
-					types.EntityType("User"): ast.EntityNode{
+					types.EntityType("User"): ast.Entity{
 						Annotations: ast.Annotations{
 							types.Ident("doc"): types.String("Line1\rLine2"),
 						},
@@ -542,7 +542,7 @@ entity User;
 			name: "string with tab escape",
 			schema: &ast.Schema{
 				Entities: ast.Entities{
-					types.EntityType("User"): ast.EntityNode{
+					types.EntityType("User"): ast.Entity{
 						Annotations: ast.Annotations{
 							types.Ident("doc"): types.String("Col1\tCol2"),
 						},
@@ -557,7 +557,7 @@ entity User;
 			name: "string with backslash escape",
 			schema: &ast.Schema{
 				Entities: ast.Entities{
-					types.EntityType("User"): ast.EntityNode{
+					types.EntityType("User"): ast.Entity{
 						Annotations: ast.Annotations{
 							types.Ident("doc"): types.String("path\\to\\file"),
 						},
@@ -572,7 +572,7 @@ entity User;
 			name: "string with null character escape",
 			schema: &ast.Schema{
 				Entities: ast.Entities{
-					types.EntityType("User"): ast.EntityNode{
+					types.EntityType("User"): ast.Entity{
 						Annotations: ast.Annotations{
 							types.Ident("doc"): types.String("null\x00char"),
 						},
@@ -587,7 +587,7 @@ entity User;
 			name: "string with single quote escape",
 			schema: &ast.Schema{
 				Entities: ast.Entities{
-					types.EntityType("User"): ast.EntityNode{
+					types.EntityType("User"): ast.Entity{
 						Annotations: ast.Annotations{
 							types.Ident("doc"): types.String("It's fine"),
 						},
@@ -600,7 +600,7 @@ entity User;
 			name: "string with control character",
 			schema: &ast.Schema{
 				Entities: ast.Entities{
-					types.EntityType("User"): ast.EntityNode{
+					types.EntityType("User"): ast.Entity{
 						Annotations: ast.Annotations{
 							types.Ident("doc"): types.String("test\x01control"),
 						},
@@ -613,7 +613,7 @@ entity User;
 			name: "string with DEL character",
 			schema: &ast.Schema{
 				Entities: ast.Entities{
-					types.EntityType("User"): ast.EntityNode{
+					types.EntityType("User"): ast.Entity{
 						Annotations: ast.Annotations{
 							types.Ident("doc"): types.String("test\x7Fdel"),
 						},
@@ -626,7 +626,7 @@ entity User;
 			name: "string with extended control character",
 			schema: &ast.Schema{
 				Entities: ast.Entities{
-					types.EntityType("User"): ast.EntityNode{
+					types.EntityType("User"): ast.Entity{
 						Annotations: ast.Annotations{
 							types.Ident("doc"): types.String("test\u0085ext"),
 						},
@@ -639,12 +639,12 @@ entity User;
 			name: "namespace with annotations",
 			schema: &ast.Schema{
 				Namespaces: ast.Namespaces{
-					types.Path("MyApp"): ast.NamespaceNode{
+					types.Path("MyApp"): ast.Namespace{
 						Annotations: ast.Annotations{
 							types.Ident("doc"): types.String("My application namespace"),
 						},
 						Entities: ast.Entities{
-							types.EntityType("User"): ast.EntityNode{},
+							types.EntityType("User"): ast.Entity{},
 						},
 					},
 				},
@@ -659,7 +659,7 @@ namespace MyApp {
 			name: "enum with annotations",
 			schema: &ast.Schema{
 				Enums: ast.Enums{
-					types.EntityType("Status"): ast.EnumNode{
+					types.EntityType("Status"): ast.Enum{
 						Annotations: ast.Annotations{
 							types.Ident("doc"): types.String("Status values"),
 						},
@@ -675,7 +675,7 @@ entity Status enum ["active", "inactive"];
 			name: "common type with annotations",
 			schema: &ast.Schema{
 				CommonTypes: ast.CommonTypes{
-					types.Ident("Name"): ast.CommonTypeNode{
+					types.Ident("Name"): ast.CommonType{
 						Annotations: ast.Annotations{
 							types.Ident("doc"): types.String("A name type"),
 						},
@@ -691,7 +691,7 @@ type Name = String;
 			name: "action with annotations",
 			schema: &ast.Schema{
 				Actions: ast.Actions{
-					types.String("view"): ast.ActionNode{
+					types.String("view"): ast.Action{
 						Annotations: ast.Annotations{
 							types.Ident("doc"): types.String("View action"),
 						},
@@ -706,7 +706,7 @@ action view;
 			name: "record with annotated attribute",
 			schema: &ast.Schema{
 				CommonTypes: ast.CommonTypes{
-					types.Ident("User"): ast.CommonTypeNode{
+					types.Ident("User"): ast.CommonType{
 						Type: ast.Record(ast.Attributes{
 							"name": ast.Attribute{
 								Type: ast.String(),
@@ -724,7 +724,7 @@ action view;
 			name: "entity ref without type",
 			schema: &ast.Schema{
 				Actions: ast.Actions{
-					types.String("view"): ast.ActionNode{
+					types.String("view"): ast.Action{
 						MemberOfVal: []ast.EntityRef{ast.NewEntityRef("", "someAction")},
 					},
 				},
@@ -736,7 +736,7 @@ action view;
 			name: "action with only context in appliesTo",
 			schema: &ast.Schema{
 				Actions: ast.Actions{
-					types.String("view"): ast.ActionNode{
+					types.String("view"): ast.Action{
 						AppliesToVal: &ast.AppliesTo{
 							Context: ast.Record(ast.Attributes{
 								"timestamp": ast.Attribute{Type: ast.Long()},
@@ -756,7 +756,7 @@ action view;
 			name: "action with only principal in appliesTo",
 			schema: &ast.Schema{
 				Actions: ast.Actions{
-					types.String("view"): ast.ActionNode{
+					types.String("view"): ast.Action{
 						AppliesToVal: &ast.AppliesTo{
 							PrincipalTypes: []ast.EntityTypeRef{ast.EntityType(types.EntityType("User"))},
 						},
@@ -772,7 +772,7 @@ action view;
 			name: "action with only resource in appliesTo",
 			schema: &ast.Schema{
 				Actions: ast.Actions{
-					types.String("view"): ast.ActionNode{
+					types.String("view"): ast.Action{
 						AppliesToVal: &ast.AppliesTo{
 							ResourceTypes: []ast.EntityTypeRef{ast.EntityType(types.EntityType("Document"))},
 						},
@@ -788,7 +788,7 @@ action view;
 			name: "entity with shape and memberOf",
 			schema: &ast.Schema{
 				Entities: ast.Entities{
-					types.EntityType("User"): ast.EntityNode{
+					types.EntityType("User"): ast.Entity{
 						MemberOfVal: []ast.EntityTypeRef{ast.EntityType(types.EntityType("Group"))},
 						ShapeVal: &ast.RecordType{
 							Attributes: ast.Attributes{
@@ -807,7 +807,7 @@ action view;
 			name: "entity with shape and tags",
 			schema: &ast.Schema{
 				Entities: ast.Entities{
-					types.EntityType("Document"): ast.EntityNode{
+					types.EntityType("Document"): ast.Entity{
 						ShapeVal: &ast.RecordType{
 							Attributes: ast.Attributes{
 								"title": ast.Attribute{Type: ast.String()},
@@ -826,7 +826,7 @@ action view;
 			name: "entity with memberOf and tags",
 			schema: &ast.Schema{
 				Entities: ast.Entities{
-					types.EntityType("Document"): ast.EntityNode{
+					types.EntityType("Document"): ast.Entity{
 						MemberOfVal: []ast.EntityTypeRef{ast.EntityType(types.EntityType("Folder"))},
 						TagsVal:     ast.String(),
 					},
@@ -839,7 +839,7 @@ action view;
 			name: "entity with all features",
 			schema: &ast.Schema{
 				Entities: ast.Entities{
-					types.EntityType("Document"): ast.EntityNode{
+					types.EntityType("Document"): ast.Entity{
 						MemberOfVal: []ast.EntityTypeRef{ast.EntityType(types.EntityType("Folder"))},
 						ShapeVal: &ast.RecordType{
 							Attributes: ast.Attributes{
@@ -859,7 +859,7 @@ action view;
 			name: "decimal type",
 			schema: &ast.Schema{
 				CommonTypes: ast.CommonTypes{
-					types.Ident("Price"): ast.CommonTypeNode{
+					types.Ident("Price"): ast.CommonType{
 						Type: ast.Decimal(),
 					},
 				},
@@ -870,7 +870,7 @@ action view;
 			name: "string with double quote escape",
 			schema: &ast.Schema{
 				Entities: ast.Entities{
-					types.EntityType("User"): ast.EntityNode{
+					types.EntityType("User"): ast.Entity{
 						Annotations: ast.Annotations{
 							types.Ident("doc"): types.String(`He said "hello"`),
 						},
@@ -883,9 +883,9 @@ action view;
 			name: "multiple common types",
 			schema: &ast.Schema{
 				CommonTypes: ast.CommonTypes{
-					types.Ident("Name"):     ast.CommonTypeNode{Type: ast.String()},
-					types.Ident("Age"):      ast.CommonTypeNode{Type: ast.Long()},
-					types.Ident("IsActive"): ast.CommonTypeNode{Type: ast.Bool()},
+					types.Ident("Name"):     ast.CommonType{Type: ast.String()},
+					types.Ident("Age"):      ast.CommonType{Type: ast.Long()},
+					types.Ident("IsActive"): ast.CommonType{Type: ast.Bool()},
 				},
 			},
 			expected: `type Age = Long;
@@ -899,8 +899,8 @@ type Name = String;
 			name: "multiple enums",
 			schema: &ast.Schema{
 				Enums: ast.Enums{
-					types.EntityType("Status"): ast.EnumNode{Values: []types.String{"active", "inactive"}},
-					types.EntityType("Role"):   ast.EnumNode{Values: []types.String{"admin", "user"}},
+					types.EntityType("Status"): ast.Enum{Values: []types.String{"active", "inactive"}},
+					types.EntityType("Role"):   ast.Enum{Values: []types.String{"admin", "user"}},
 				},
 			},
 			expected: `entity Role enum ["admin", "user"];
@@ -912,9 +912,9 @@ entity Status enum ["active", "inactive"];
 			name: "multiple actions",
 			schema: &ast.Schema{
 				Actions: ast.Actions{
-					types.String("view"):   ast.ActionNode{},
-					types.String("edit"):   ast.ActionNode{},
-					types.String("delete"): ast.ActionNode{},
+					types.String("view"):   ast.Action{},
+					types.String("edit"):   ast.Action{},
+					types.String("delete"): ast.Action{},
 				},
 			},
 			expected: `action delete;
@@ -928,10 +928,10 @@ action view;
 			name: "namespace with multiple common types",
 			schema: &ast.Schema{
 				Namespaces: ast.Namespaces{
-					types.Path("MyApp"): ast.NamespaceNode{
+					types.Path("MyApp"): ast.Namespace{
 						CommonTypes: ast.CommonTypes{
-							types.Ident("Name"): ast.CommonTypeNode{Type: ast.String()},
-							types.Ident("Age"):  ast.CommonTypeNode{Type: ast.Long()},
+							types.Ident("Name"): ast.CommonType{Type: ast.String()},
+							types.Ident("Age"):  ast.CommonType{Type: ast.Long()},
 						},
 					},
 				},
@@ -947,11 +947,11 @@ action view;
 			name: "namespace with multiple entities",
 			schema: &ast.Schema{
 				Namespaces: ast.Namespaces{
-					types.Path("MyApp"): ast.NamespaceNode{
+					types.Path("MyApp"): ast.Namespace{
 						Entities: ast.Entities{
-							types.EntityType("User"):     ast.EntityNode{},
-							types.EntityType("Document"): ast.EntityNode{},
-							types.EntityType("Group"):    ast.EntityNode{},
+							types.EntityType("User"):     ast.Entity{},
+							types.EntityType("Document"): ast.Entity{},
+							types.EntityType("Group"):    ast.Entity{},
 						},
 					},
 				},
@@ -969,10 +969,10 @@ action view;
 			name: "namespace with multiple enums",
 			schema: &ast.Schema{
 				Namespaces: ast.Namespaces{
-					types.Path("MyApp"): ast.NamespaceNode{
+					types.Path("MyApp"): ast.Namespace{
 						Enums: ast.Enums{
-							types.EntityType("Status"): ast.EnumNode{Values: []types.String{"active", "inactive"}},
-							types.EntityType("Role"):   ast.EnumNode{Values: []types.String{"admin", "user"}},
+							types.EntityType("Status"): ast.Enum{Values: []types.String{"active", "inactive"}},
+							types.EntityType("Role"):   ast.Enum{Values: []types.String{"admin", "user"}},
 						},
 					},
 				},
@@ -988,11 +988,11 @@ action view;
 			name: "namespace with multiple actions",
 			schema: &ast.Schema{
 				Namespaces: ast.Namespaces{
-					types.Path("MyApp"): ast.NamespaceNode{
+					types.Path("MyApp"): ast.Namespace{
 						Actions: ast.Actions{
-							types.String("view"):   ast.ActionNode{},
-							types.String("edit"):   ast.ActionNode{},
-							types.String("delete"): ast.ActionNode{},
+							types.String("view"):   ast.Action{},
+							types.String("edit"):   ast.Action{},
+							types.String("delete"): ast.Action{},
 						},
 					},
 				},
@@ -1010,18 +1010,18 @@ action view;
 			name: "namespace with mixed types with blank lines",
 			schema: &ast.Schema{
 				Namespaces: ast.Namespaces{
-					types.Path("MyApp"): ast.NamespaceNode{
+					types.Path("MyApp"): ast.Namespace{
 						CommonTypes: ast.CommonTypes{
-							types.Ident("Name"): ast.CommonTypeNode{Type: ast.String()},
+							types.Ident("Name"): ast.CommonType{Type: ast.String()},
 						},
 						Entities: ast.Entities{
-							types.EntityType("User"): ast.EntityNode{},
+							types.EntityType("User"): ast.Entity{},
 						},
 						Enums: ast.Enums{
-							types.EntityType("Status"): ast.EnumNode{Values: []types.String{"active"}},
+							types.EntityType("Status"): ast.Enum{Values: []types.String{"active"}},
 						},
 						Actions: ast.Actions{
-							types.String("view"): ast.ActionNode{},
+							types.String("view"): ast.Action{},
 						},
 					},
 				},
@@ -1041,14 +1041,14 @@ action view;
 			name: "multiple namespaces with blank lines",
 			schema: &ast.Schema{
 				Namespaces: ast.Namespaces{
-					types.Path("AppA"): ast.NamespaceNode{
+					types.Path("AppA"): ast.Namespace{
 						Entities: ast.Entities{
-							types.EntityType("User"): ast.EntityNode{},
+							types.EntityType("User"): ast.Entity{},
 						},
 					},
-					types.Path("AppB"): ast.NamespaceNode{
+					types.Path("AppB"): ast.Namespace{
 						Entities: ast.Entities{
-							types.EntityType("Document"): ast.EntityNode{},
+							types.EntityType("Document"): ast.Entity{},
 						},
 					},
 				},

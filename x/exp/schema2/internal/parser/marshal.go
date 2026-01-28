@@ -77,7 +77,7 @@ func marshalAnnotations(buf *bytes.Buffer, annotations ast.Annotations, indent s
 	}
 }
 
-func marshalNamespace(buf *bytes.Buffer, name types.Path, ns ast.NamespaceNode, indent string) {
+func marshalNamespace(buf *bytes.Buffer, name types.Path, ns ast.Namespace, indent string) {
 	marshalAnnotations(buf, ns.Annotations, indent)
 	buf.WriteString(indent)
 	buf.WriteString("namespace ")
@@ -97,7 +97,7 @@ func marshalNamespace(buf *bytes.Buffer, name types.Path, ns ast.NamespaceNode, 
 	buf.WriteString("}\n")
 }
 
-func marshalCommonType(buf *bytes.Buffer, name types.Ident, ct ast.CommonTypeNode, indent string) {
+func marshalCommonType(buf *bytes.Buffer, name types.Ident, ct ast.CommonType, indent string) {
 	marshalAnnotations(buf, ct.Annotations, indent)
 	buf.WriteString(indent)
 	buf.WriteString("type ")
@@ -107,7 +107,7 @@ func marshalCommonType(buf *bytes.Buffer, name types.Ident, ct ast.CommonTypeNod
 	buf.WriteString(";\n")
 }
 
-func marshalEntity(buf *bytes.Buffer, name types.EntityType, e ast.EntityNode, indent string) {
+func marshalEntity(buf *bytes.Buffer, name types.EntityType, e ast.Entity, indent string) {
 	marshalAnnotations(buf, e.Annotations, indent)
 	buf.WriteString(indent)
 	buf.WriteString("entity ")
@@ -131,7 +131,7 @@ func marshalEntity(buf *bytes.Buffer, name types.EntityType, e ast.EntityNode, i
 	buf.WriteString(";\n")
 }
 
-func marshalEnum(buf *bytes.Buffer, name types.EntityType, e ast.EnumNode, indent string) {
+func marshalEnum(buf *bytes.Buffer, name types.EntityType, e ast.Enum, indent string) {
 	marshalAnnotations(buf, e.Annotations, indent)
 	buf.WriteString(indent)
 	buf.WriteString("entity ")
@@ -148,7 +148,7 @@ func marshalEnum(buf *bytes.Buffer, name types.EntityType, e ast.EnumNode, inden
 	buf.WriteString("];\n")
 }
 
-func marshalAction(buf *bytes.Buffer, name types.String, a ast.ActionNode, indent string) {
+func marshalAction(buf *bytes.Buffer, name types.String, a ast.Action, indent string) {
 	marshalAnnotations(buf, a.Annotations, indent)
 	buf.WriteString(indent)
 	buf.WriteString("action ")

@@ -98,7 +98,7 @@ func (s *Schema) UnmarshalJSON(data []byte) error {
 			}
 		} else {
 			// Named namespace
-			nsNode := ast.NamespaceNode{
+			nsNode := ast.Namespace{
 				Annotations: mapToAnnotations(ns.Annotations),
 			}
 
@@ -156,7 +156,7 @@ func getOrCreateNamespace(namespaces map[string]*Namespace, name string, annotat
 	return ns
 }
 
-func addEntityToNamespace(ns *Namespace, name string, e ast.EntityNode) {
+func addEntityToNamespace(ns *Namespace, name string, e ast.Entity) {
 	je := &Entity{}
 
 	if len(e.MemberOfVal) > 0 {
@@ -179,7 +179,7 @@ func addEntityToNamespace(ns *Namespace, name string, e ast.EntityNode) {
 	ns.EntityTypes[name] = je
 }
 
-func addEnumToNamespace(ns *Namespace, name string, e ast.EnumNode) {
+func addEnumToNamespace(ns *Namespace, name string, e ast.Enum) {
 	je := &Entity{
 		Enum: make([]string, len(e.Values)),
 	}
@@ -192,7 +192,7 @@ func addEnumToNamespace(ns *Namespace, name string, e ast.EnumNode) {
 	ns.EntityTypes[name] = je
 }
 
-func addActionToNamespace(ns *Namespace, name string, a ast.ActionNode) {
+func addActionToNamespace(ns *Namespace, name string, a ast.Action) {
 	ja := &Action{}
 
 	if len(a.MemberOfVal) > 0 {
@@ -237,7 +237,7 @@ func addActionToNamespace(ns *Namespace, name string, a ast.ActionNode) {
 	ns.Actions[name] = ja
 }
 
-func addCommonTypeToNamespace(ns *Namespace, name string, ct ast.CommonTypeNode) {
+func addCommonTypeToNamespace(ns *Namespace, name string, ct ast.CommonType) {
 	jt := typeToJSON(ct.Type)
 	if jt == nil {
 		jt = &Type{}
@@ -318,7 +318,7 @@ func parseNamespaceIntoSchema(schema *ast.Schema, ns *Namespace) error {
 		if schema.CommonTypes == nil {
 			schema.CommonTypes = make(ast.CommonTypes)
 		}
-		schema.CommonTypes[types.Ident(name)] = ast.CommonTypeNode{
+		schema.CommonTypes[types.Ident(name)] = ast.CommonType{
 			Type:        t,
 			Annotations: mapToAnnotations(jt.Annotations),
 		}
@@ -338,7 +338,7 @@ func parseNamespaceIntoSchema(schema *ast.Schema, ns *Namespace) error {
 			if schema.Enums == nil {
 				schema.Enums = make(ast.Enums)
 			}
-			schema.Enums[types.EntityType(name)] = ast.EnumNode{
+			schema.Enums[types.EntityType(name)] = ast.Enum{
 				Values:      values,
 				Annotations: mapToAnnotations(je.Annotations),
 			}
@@ -371,7 +371,7 @@ func parseNamespaceIntoSchema(schema *ast.Schema, ns *Namespace) error {
 	return nil
 }
 
-func parseNamespaceIntoNode(nsNode *ast.NamespaceNode, ns *Namespace) error {
+func parseNamespaceIntoNode(nsNode *ast.Namespace, ns *Namespace) error {
 	// Parse common types first (sorted for determinism)
 	ctNames := slices.Sorted(maps.Keys(ns.CommonTypes))
 	for _, name := range ctNames {
@@ -383,7 +383,7 @@ func parseNamespaceIntoNode(nsNode *ast.NamespaceNode, ns *Namespace) error {
 		if nsNode.CommonTypes == nil {
 			nsNode.CommonTypes = make(ast.CommonTypes)
 		}
-		nsNode.CommonTypes[types.Ident(name)] = ast.CommonTypeNode{
+		nsNode.CommonTypes[types.Ident(name)] = ast.CommonType{
 			Type:        t,
 			Annotations: mapToAnnotations(jt.Annotations),
 		}
@@ -403,7 +403,7 @@ func parseNamespaceIntoNode(nsNode *ast.NamespaceNode, ns *Namespace) error {
 			if nsNode.Enums == nil {
 				nsNode.Enums = make(ast.Enums)
 			}
-			nsNode.Enums[types.EntityType(name)] = ast.EnumNode{
+			nsNode.Enums[types.EntityType(name)] = ast.Enum{
 				Values:      values,
 				Annotations: mapToAnnotations(je.Annotations),
 			}
@@ -436,8 +436,8 @@ func parseNamespaceIntoNode(nsNode *ast.NamespaceNode, ns *Namespace) error {
 	return nil
 }
 
-func parseEntity(je *Entity) (ast.EntityNode, error) {
-	e := ast.EntityNode{}
+func parseEntity(je *Entity) (ast.Entity, error) {
+	e := ast.Entity{}
 
 	if len(je.MemberOfTypes) > 0 {
 		e.MemberOfVal = make([]ast.EntityTypeRef, len(je.MemberOfTypes))
@@ -469,8 +469,8 @@ func parseEntity(je *Entity) (ast.EntityNode, error) {
 	return e, nil
 }
 
-func parseAction(ja *Action) (ast.ActionNode, error) {
-	a := ast.ActionNode{}
+func parseAction(ja *Action) (ast.Action, error) {
+	a := ast.Action{}
 
 	if len(ja.MemberOf) > 0 {
 		a.MemberOfVal = make([]ast.EntityRef, len(ja.MemberOf))

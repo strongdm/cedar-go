@@ -6,11 +6,11 @@ import (
 )
 
 type Annotations map[types.Ident]types.String
-type Entities map[types.EntityType]EntityNode
-type Enums map[types.EntityType]EnumNode
-type Actions map[types.String]ActionNode
-type CommonTypes map[types.Ident]CommonTypeNode
-type Namespaces map[types.Path]NamespaceNode
+type Entities map[types.EntityType]Entity
+type Enums map[types.EntityType]Enum
+type Actions map[types.String]Action
+type CommonTypes map[types.Ident]CommonType
+type Namespaces map[types.Path]Namespace
 
 // Schema represents a Cedar schema containing a list of nodes.
 type Schema struct {
@@ -21,8 +21,8 @@ type Schema struct {
 	Namespaces  Namespaces
 }
 
-// NamespaceNode represents a Cedar namespace declaration.
-type NamespaceNode struct {
+// Namespace represents a Cedar namespace declaration.
+type Namespace struct {
 	Annotations Annotations
 	Entities    Entities
 	Enums       Enums
@@ -30,28 +30,28 @@ type NamespaceNode struct {
 	CommonTypes CommonTypes
 }
 
-// CommonTypeNode represents a Cedar common type declaration (type alias).
-type CommonTypeNode struct {
+// CommonType represents a Cedar common type declaration (type alias).
+type CommonType struct {
 	Annotations Annotations
 	Type        IsType
 }
 
-// EntityNode represents a Cedar entity type declaration.
-type EntityNode struct {
+// Entity represents a Cedar entity type declaration.
+type Entity struct {
 	Annotations Annotations
 	MemberOfVal []EntityTypeRef
 	ShapeVal    *RecordType
 	TagsVal     IsType
 }
 
-// EnumNode represents a Cedar enum entity type declaration.
-type EnumNode struct {
+// Enum represents a Cedar enum entity type declaration.
+type Enum struct {
 	Annotations Annotations
 	Values      []types.String
 }
 
-// ActionNode represents a Cedar action declaration.
-type ActionNode struct {
+// Action represents a Cedar action declaration.
+type Action struct {
 	Annotations  Annotations
 	MemberOfVal  []EntityRef
 	AppliesToVal *AppliesTo

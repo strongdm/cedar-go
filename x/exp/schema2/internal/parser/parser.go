@@ -260,28 +260,28 @@ func (p *Parser) parseAnnotation() (Annotation, error) {
 	return Annotation{Key: types.Ident(key), Value: types.String(value)}, nil
 }
 
-func (p *Parser) parseNamespace(annotations ast.Annotations) (ast.NamespaceNode, types.Path, error) {
+func (p *Parser) parseNamespace(annotations ast.Annotations) (ast.Namespace, types.Path, error) {
 	if _, err := p.expect("namespace"); err != nil {
-		return ast.NamespaceNode{}, "", err
+		return ast.Namespace{}, "", err
 	}
 
 	path, err := p.parsePath()
 	if err != nil {
-		return ast.NamespaceNode{}, "", err
+		return ast.Namespace{}, "", err
 	}
 
 	if _, err := p.expect("{"); err != nil {
-		return ast.NamespaceNode{}, "", err
+		return ast.Namespace{}, "", err
 	}
 
-	ns := ast.NamespaceNode{
+	ns := ast.Namespace{
 		Annotations: annotations,
 	}
 
 	for p.peek().Text != "}" && !p.peek().isEOF() {
 		declAnnotations, err := p.parseAnnotations()
 		if err != nil {
-			return ast.NamespaceNode{}, "", err
+			return ast.Namespace{}, "", err
 		}
 
 		tok := p.peek()
@@ -292,32 +292,32 @@ func (p *Parser) parseNamespace(annotations ast.Annotations) (ast.NamespaceNode,
 			if p.peekAhead(3).Text == "enum" {
 				enum, name, err := p.parseEnum(declAnnotations)
 				if err != nil {
-					return ast.NamespaceNode{}, "", err
+					return ast.Namespace{}, "", err
 				}
 				if ns.Enums == nil {
 					ns.Enums = make(ast.Enums)
 				}
 				if _, exists := ns.Enums[name]; exists {
-					return ast.NamespaceNode{}, "", fmt.Errorf("duplicate enum %q in namespace at %s", name, fmtPos(tok.Pos))
+					return ast.Namespace{}, "", fmt.Errorf("duplicate enum %q in namespace at %s", name, fmtPos(tok.Pos))
 				}
 				if _, exists := ns.Entities[name]; exists {
-					return ast.NamespaceNode{}, "", fmt.Errorf("enum %q conflicts with entity in namespace at %s", name, fmtPos(tok.Pos))
+					return ast.Namespace{}, "", fmt.Errorf("enum %q conflicts with entity in namespace at %s", name, fmtPos(tok.Pos))
 				}
 				ns.Enums[name] = enum
 			} else {
 				entities, err := p.parseEntity(declAnnotations)
 				if err != nil {
-					return ast.NamespaceNode{}, "", err
+					return ast.Namespace{}, "", err
 				}
 				if ns.Entities == nil {
 					ns.Entities = make(ast.Entities)
 				}
 				for name, entity := range entities {
 					if _, exists := ns.Entities[name]; exists {
-						return ast.NamespaceNode{}, "", fmt.Errorf("duplicate entity %q in namespace at %s", name, fmtPos(tok.Pos))
+						return ast.Namespace{}, "", fmt.Errorf("duplicate entity %q in namespace at %s", name, fmtPos(tok.Pos))
 					}
 					if _, exists := ns.Enums[name]; exists {
-						return ast.NamespaceNode{}, "", fmt.Errorf("entity %q conflicts with enum in namespace at %s", name, fmtPos(tok.Pos))
+						return ast.Namespace{}, "", fmt.Errorf("entity %q conflicts with enum in namespace at %s", name, fmtPos(tok.Pos))
 					}
 					ns.Entities[name] = entity
 				}
@@ -325,71 +325,71 @@ func (p *Parser) parseNamespace(annotations ast.Annotations) (ast.NamespaceNode,
 		case "action":
 			actions, err := p.parseAction(declAnnotations)
 			if err != nil {
-				return ast.NamespaceNode{}, "", err
+				return ast.Namespace{}, "", err
 			}
 			if ns.Actions == nil {
 				ns.Actions = make(ast.Actions)
 			}
 			for name, action := range actions {
 				if _, exists := ns.Actions[name]; exists {
-					return ast.NamespaceNode{}, "", fmt.Errorf("duplicate action %q in namespace at %s", name, fmtPos(tok.Pos))
+					return ast.Namespace{}, "", fmt.Errorf("duplicate action %q in namespace at %s", name, fmtPos(tok.Pos))
 				}
 				ns.Actions[name] = action
 			}
 		case "type":
 			ct, name, err := p.parseCommonType(declAnnotations)
 			if err != nil {
-				return ast.NamespaceNode{}, "", err
+				return ast.Namespace{}, "", err
 			}
 			if ns.CommonTypes == nil {
 				ns.CommonTypes = make(ast.CommonTypes)
 			}
 			if _, exists := ns.CommonTypes[name]; exists {
-				return ast.NamespaceNode{}, "", fmt.Errorf("duplicate common type %q in namespace at %s", name, fmtPos(tok.Pos))
+				return ast.Namespace{}, "", fmt.Errorf("duplicate common type %q in namespace at %s", name, fmtPos(tok.Pos))
 			}
 			ns.CommonTypes[name] = ct
 		default:
-			return ast.NamespaceNode{}, "", fmt.Errorf("unexpected token %q in namespace at %s", tok.Text, fmtPos(tok.Pos))
+			return ast.Namespace{}, "", fmt.Errorf("unexpected token %q in namespace at %s", tok.Text, fmtPos(tok.Pos))
 		}
 	}
 
 	if _, err := p.expect("}"); err != nil {
-		return ast.NamespaceNode{}, "", err
+		return ast.Namespace{}, "", err
 	}
 
 	return ns, types.Path(path), nil
 }
 
-func (p *Parser) parseEnum(annotations ast.Annotations) (ast.EnumNode, types.EntityType, error) {
+func (p *Parser) parseEnum(annotations ast.Annotations) (ast.Enum, types.EntityType, error) {
 	if _, err := p.expect("entity"); err != nil {
-		return ast.EnumNode{}, "", err
+		return ast.Enum{}, "", err
 	}
 
 	name, err := p.expectIdent()
 	if err != nil {
-		return ast.EnumNode{}, "", err
+		return ast.Enum{}, "", err
 	}
 
 	if _, err := p.expect("enum"); err != nil {
-		return ast.EnumNode{}, "", err
+		return ast.Enum{}, "", err
 	}
 
 	values, err := p.parseEnumValues()
 	if err != nil {
-		return ast.EnumNode{}, "", err
+		return ast.Enum{}, "", err
 	}
 
 	if _, err := p.expect(";"); err != nil {
-		return ast.EnumNode{}, "", err
+		return ast.Enum{}, "", err
 	}
 
-	return ast.EnumNode{
+	return ast.Enum{
 		Annotations: annotations,
 		Values:      values,
 	}, types.EntityType(name), nil
 }
 
-func (p *Parser) parseEntity(annotations ast.Annotations) (map[types.EntityType]ast.EntityNode, error) {
+func (p *Parser) parseEntity(annotations ast.Annotations) (map[types.EntityType]ast.Entity, error) {
 	if _, err := p.expect("entity"); err != nil {
 		return nil, err
 	}
@@ -452,9 +452,9 @@ func (p *Parser) parseEntity(annotations ast.Annotations) (map[types.EntityType]
 	}
 
 	// Create entity nodes for each name
-	entities := make(map[types.EntityType]ast.EntityNode)
+	entities := make(map[types.EntityType]ast.Entity)
 	for _, n := range names {
-		entity := ast.EntityNode{
+		entity := ast.Entity{
 			Annotations: annotations,
 			MemberOfVal: parents,
 			TagsVal:     tagsType,
@@ -530,7 +530,7 @@ func (p *Parser) parseEntityTypeRefs() ([]ast.EntityTypeRef, error) {
 	return []ast.EntityTypeRef{ast.EntityType(types.EntityType(path))}, nil
 }
 
-func (p *Parser) parseAction(annotations ast.Annotations) (map[types.String]ast.ActionNode, error) {
+func (p *Parser) parseAction(annotations ast.Annotations) (map[types.String]ast.Action, error) {
 	if _, err := p.expect("action"); err != nil {
 		return nil, err
 	}
@@ -625,9 +625,9 @@ func (p *Parser) parseAction(annotations ast.Annotations) (map[types.String]ast.
 	}
 
 	// Create action nodes for each name
-	actions := make(map[types.String]ast.ActionNode)
+	actions := make(map[types.String]ast.Action)
 	for _, n := range names {
-		action := ast.ActionNode{
+		action := ast.Action{
 			Annotations: annotations,
 			MemberOfVal: memberOf,
 		}
@@ -721,30 +721,30 @@ func (p *Parser) parseEntityRef() (ast.EntityRef, error) {
 	return ast.EntityRefFromID(types.String(name)), nil
 }
 
-func (p *Parser) parseCommonType(annotations ast.Annotations) (ast.CommonTypeNode, types.Ident, error) {
+func (p *Parser) parseCommonType(annotations ast.Annotations) (ast.CommonType, types.Ident, error) {
 	if _, err := p.expect("type"); err != nil {
-		return ast.CommonTypeNode{}, "", err
+		return ast.CommonType{}, "", err
 	}
 
 	name, err := p.expectIdent()
 	if err != nil {
-		return ast.CommonTypeNode{}, "", err
+		return ast.CommonType{}, "", err
 	}
 
 	if _, err := p.expect("="); err != nil {
-		return ast.CommonTypeNode{}, "", err
+		return ast.CommonType{}, "", err
 	}
 
 	t, err := p.parseType()
 	if err != nil {
-		return ast.CommonTypeNode{}, "", err
+		return ast.CommonType{}, "", err
 	}
 
 	if _, err := p.expect(";"); err != nil {
-		return ast.CommonTypeNode{}, "", err
+		return ast.CommonType{}, "", err
 	}
 
-	ct := ast.CommonTypeNode{
+	ct := ast.CommonType{
 		Annotations: annotations,
 		Type:        t,
 	}

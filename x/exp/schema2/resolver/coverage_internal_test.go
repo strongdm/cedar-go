@@ -28,7 +28,7 @@ func TestCoverageInternal(t *testing.T) {
 
 		// Create a common type node with a Set of a record containing a bad context
 		// This will cause resolveSet -> resolveType(Record) to eventually fail
-		commonType := ast.CommonTypeNode{
+		commonType := ast.CommonType{
 			Type: ast.SetType{
 				Element: ast.RecordType{
 					Attributes: ast.Attributes{
@@ -55,7 +55,7 @@ func TestCoverageInternal(t *testing.T) {
 		rd := newResolveData(schema)
 
 		// Create an entity node with a shape that contains nested types
-		entityNode := ast.EntityNode{
+		entityNode := ast.Entity{
 			ShapeVal: &ast.RecordType{
 				Attributes: ast.Attributes{
 					"field": ast.Attribute{Type: ast.StringType{}},
@@ -80,7 +80,7 @@ func TestCoverageInternal(t *testing.T) {
 		rd := newResolveData(schema)
 
 		// Create an entity node with tags
-		entityNode := ast.EntityNode{
+		entityNode := ast.Entity{
 			TagsVal: ast.RecordType{
 				Attributes: ast.Attributes{
 					"tag": ast.Attribute{Type: ast.StringType{}},
@@ -105,7 +105,7 @@ func TestCoverageInternal(t *testing.T) {
 		rd := newResolveData(schema)
 
 		// Create an action node with a context that's not a record
-		actionNode := ast.ActionNode{
+		actionNode := ast.Action{
 			AppliesToVal: &ast.AppliesTo{
 				Context: ast.StringType{},
 			},
@@ -166,9 +166,9 @@ func TestCoverageInternal(t *testing.T) {
 			Enums:       ast.Enums{},
 			Actions:     ast.Actions{},
 			Namespaces: ast.Namespaces{
-				"App": ast.NamespaceNode{
+				"App": ast.Namespace{
 					CommonTypes: ast.CommonTypes{
-						"MyType": ast.CommonTypeNode{
+						"MyType": ast.CommonType{
 							Type: ast.StringType{},
 						},
 					},
@@ -194,7 +194,7 @@ func TestCoverageInternal(t *testing.T) {
 
 		schema := &ast.Schema{
 			CommonTypes: ast.CommonTypes{
-				"GlobalType": ast.CommonTypeNode{
+				"GlobalType": ast.CommonType{
 					Type: ast.LongType{},
 				},
 			},
