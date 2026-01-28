@@ -82,7 +82,7 @@ func resolveTypeRef(rd *resolveData, t ast.TypeRef) ast.IsType {
 				return entry.node.Type
 			}
 			// Resolve lazily
-			resolvedNode := resolveCommonTypeNode(rd, entry.node)
+			resolvedNode := resolveCommonType(rd, entry.node)
 			// Cache the resolved node
 			entry.node = resolvedNode
 			entry.resolved = true
@@ -119,7 +119,7 @@ func resolveTypeRef(rd *resolveData, t ast.TypeRef) ast.IsType {
 		ctRd := rd.withNamespace(nsPath)
 
 		// Resolve lazily
-		resolvedNode := resolveCommonTypeNode(ctRd, entry.node)
+		resolvedNode := resolveCommonType(ctRd, entry.node)
 		// Cache the resolved node
 		entry.node = resolvedNode
 		entry.resolved = true

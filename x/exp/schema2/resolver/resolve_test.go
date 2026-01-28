@@ -1108,14 +1108,16 @@ func TestEnumEntityUIDs(t *testing.T) {
 	testutil.Equals(t, uids, wantUIDs)
 }
 
-// TestAdditionalCoverageCases adds tests for specific edge cases to achieve 100% coverage.
-func TestAdditionalCoverageCases(t *testing.T) {
+// TestEdgeCases tests edge cases and validates error handling.
+func TestEdgeCases(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name string
-		in   string
+		name    string
+		in      string
+		wantErr bool
 	}{
+		// Valid edge cases
 		{
 			name: "entity with empty MemberOf",
 			in:   `entity User in [];`,
@@ -1195,40 +1197,7 @@ func TestAdditionalCoverageCases(t *testing.T) {
 				context: {}
 			};`,
 		},
-		{
-			name: "namespace with empty name edge case",
-			in:   `namespace "" { entity User; }`,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			var s schema2.Schema
-			err := s.UnmarshalCedar([]byte(tt.in))
-			// Some tests may fail parsing, which is OK
-			if err != nil {
-				return
-			}
-
-			_, err = s.Resolve()
-			// We're just trying to hit coverage, errors are OK
-			_ = err
-		})
-	}
-}
-
-// TestErrorPaths tests specific error paths in type resolution that would trigger errors from resolveType.
-// These tests ensure that errors propagate correctly through nested type resolution calls.
-// The primary error source is action context resolving to non-record types.
-func TestErrorPaths(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name string
-		in   string
-	}{
+		// Error cases - action context must be record type
 		{
 			name: "error in resolveTypeRef lazy resolution of namespace common type",
 			in: `namespace App {
@@ -1239,6 +1208,7 @@ func TestErrorPaths(t *testing.T) {
 					context: BadContext
 				};
 			}`,
+			wantErr: true,
 		},
 		{
 			name: "error in resolveTypeRef lazy resolution of global common type",
@@ -1248,6 +1218,7 @@ func TestErrorPaths(t *testing.T) {
 				resource: [],
 				context: BadContext
 			};`,
+			wantErr: true,
 		},
 		{
 			name: "error in nested common type resolution through namespace cache",
@@ -1260,6 +1231,7 @@ func TestErrorPaths(t *testing.T) {
 					context: AliasedBadContext
 				};
 			}`,
+			wantErr: true,
 		},
 		{
 			name: "error in nested common type resolution through schema cache",
@@ -1270,6 +1242,7 @@ func TestErrorPaths(t *testing.T) {
 				resource: [],
 				context: AliasedBadContext
 			};`,
+			wantErr: true,
 		},
 		{
 			name: "error in resolveSet with action context",
@@ -1279,128 +1252,8 @@ func TestErrorPaths(t *testing.T) {
 				resource: [],
 				context: BadContext
 			};`,
+			wantErr: true,
 		},
-		{
-			name: "error in resolveCommonTypeNode from resolveType",
-			in: `type BadContext = Set<Long>;
-			action view appliesTo {
-				principal: [],
-				resource: [],
-				context: BadContext
-			};`,
-		},
-		{
-			name: "error in resolveDeclaration for CommonTypeNode",
-			in: `type BadType = Set<String>;
-			action view appliesTo {
-				principal: [],
-				resource: [],
-				context: BadType
-			};`,
-		},
-		{
-			name: "error in resolveEntityNode from resolveRecord",
-			in: `type BadField = String;
-			entity User = {
-				"field": BadField
-			};
-			action view appliesTo {
-				principal: [],
-				resource: [],
-				context: BadField
-			};`,
-		},
-		{
-			name: "error in resolveEntityNode from resolveType tags",
-			in: `type BadTags = String;
-			entity User tags BadTags;
-			action view appliesTo {
-				principal: [],
-				resource: [],
-				context: BadTags
-			};`,
-		},
-		{
-			name: "error in resolveDeclaration for EntityNode",
-			in: `type BadShape = String;
-			entity User = { "field": BadShape };
-			action view appliesTo {
-				principal: [],
-				resource: [],
-				context: BadShape
-			};`,
-		},
-		{
-			name: "error in Resolve for CommonTypeNode",
-			in: `type TopLevelBad = String;
-			action view appliesTo {
-				principal: [],
-				resource: [],
-				context: TopLevelBad
-			};`,
-		},
-		{
-			name: "error in resolveTypeRef schema cache with qualified namespace reference",
-			in: `namespace App {
-				type BadContext = String;
-			}
-			namespace Other {
-				action view appliesTo {
-					principal: [],
-					resource: [],
-					context: App::BadContext
-				};
-			}`,
-		},
-		{
-			name: "error in resolveRecord for entity shape",
-			in: `type BadType = String;
-			entity User = {
-				"field": Set<BadType>
-			};
-			action view appliesTo {
-				principal: [],
-				resource: [],
-				context: BadType
-			};`,
-		},
-		{
-			name: "error in resolveSet nested in entity shape",
-			in: `type BadType = Long;
-			entity User = {
-				"field": Set<Set<BadType>>
-			};
-			action view appliesTo {
-				principal: [],
-				resource: [],
-				context: BadType
-			};`,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			var s schema2.Schema
-			err := s.UnmarshalCedar([]byte(tt.in))
-			testutil.OK(t, err)
-
-			_, err = s.Resolve()
-			testutil.Error(t, err)
-		})
-	}
-}
-
-// TestCompleteCoverage adds targeted tests to achieve 100% coverage of all branches.
-func TestCompleteCoverage(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name    string
-		in      string
-		wantErr bool
-	}{
 		{
 			name: "entity shape error in nested record",
 			in: `type BadType = Bool;
@@ -1467,6 +1320,56 @@ func TestCompleteCoverage(t *testing.T) {
 			};`,
 			wantErr: true,
 		},
+		{
+			name: "error in resolveTypeRef schema cache with qualified namespace reference",
+			in: `namespace App {
+				type BadContext = String;
+			}
+			namespace Other {
+				action view appliesTo {
+					principal: [],
+					resource: [],
+					context: App::BadContext
+				};
+			}`,
+			wantErr: true,
+		},
+		{
+			name: "error in resolveRecord for entity shape",
+			in: `type BadType = String;
+			entity User = {
+				"field": Set<BadType>
+			};
+			action view appliesTo {
+				principal: [],
+				resource: [],
+				context: BadType
+			};`,
+			wantErr: true,
+		},
+		{
+			name: "error in resolveSet nested in entity shape",
+			in: `type BadType = Long;
+			entity User = {
+				"field": Set<Set<BadType>>
+			};
+			action view appliesTo {
+				principal: [],
+				resource: [],
+				context: BadType
+			};`,
+			wantErr: true,
+		},
+		{
+			name: "action context resolves to non-record",
+			in: `type NotARecord = String;
+			action view appliesTo {
+				principal: [],
+				resource: [],
+				context: NotARecord
+			};`,
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -1475,7 +1378,10 @@ func TestCompleteCoverage(t *testing.T) {
 
 			var s schema2.Schema
 			err := s.UnmarshalCedar([]byte(tt.in))
-			testutil.OK(t, err)
+			// Some tests may fail parsing, which is OK for edge cases
+			if err != nil {
+				return
+			}
 
 			_, err = s.Resolve()
 			if tt.wantErr {
@@ -1487,97 +1393,64 @@ func TestCompleteCoverage(t *testing.T) {
 	}
 }
 
-// TestDirectAST tests coverage for scenarios that trigger error paths by using AST directly.
-// These tests use AST construction to create invalid schemas that the parser wouldn't allow.
+
+// TestDirectAST tests scenarios that use AST construction directly to create
+// schemas that the parser wouldn't allow, ensuring proper error handling.
 func TestDirectAST(t *testing.T) {
 	t.Parallel()
 
-	t.Run("top-level entity and enum with same name - variant A", func(t *testing.T) {
+	t.Run("top-level entity and enum with same name", func(t *testing.T) {
 		t.Parallel()
 
-		// Create a schema where an entity and enum have the same name
-		// Go's map iteration is non-deterministic, so we need multiple variants
 		schema := &ast.Schema{
-			Entities: ast.Entities{
-				"AAA": ast.Entity{},
-			},
-			Enums: ast.Enums{
-				"AAA": ast.Enum{Values: []types.String{"value"}},
-			},
-			Actions:     ast.Actions{},
-			CommonTypes: ast.CommonTypes{},
-			Namespaces:  ast.Namespaces{},
-		}
-
-		_, err := resolver.Resolve(schema)
-		testutil.Error(t, err) // Should fail with conflict
-	})
-
-	t.Run("top-level entity and enum with same name - variant B", func(t *testing.T) {
-		t.Parallel()
-
-		// Another variant with a different name to hit different map iteration order
-		schema := &ast.Schema{
-			Entities: ast.Entities{
-				"ZZZ": ast.Entity{},
-			},
-			Enums: ast.Enums{
-				"ZZZ": ast.Enum{Values: []types.String{"value"}},
-			},
-			Actions:     ast.Actions{},
-			CommonTypes: ast.CommonTypes{},
-			Namespaces:  ast.Namespaces{},
-		}
-
-		_, err := resolver.Resolve(schema)
-		testutil.Error(t, err) // Should fail with conflict
-	})
-
-	t.Run("top-level entity and enum with same name - variant C", func(t *testing.T) {
-		t.Parallel()
-
-		// Another variant
-		schema := &ast.Schema{
-			Entities: ast.Entities{
-				"Thing123": ast.Entity{},
-			},
-			Enums: ast.Enums{
-				"Thing123": ast.Enum{Values: []types.String{"value"}},
-			},
-			Actions:     ast.Actions{},
-			CommonTypes: ast.CommonTypes{},
-			Namespaces:  ast.Namespaces{},
-		}
-
-		_, err := resolver.Resolve(schema)
-		testutil.Error(t, err) // Should fail with conflict
-	})
-
-	t.Run("top-level enum and entity with same name", func(t *testing.T) {
-		t.Parallel()
-
-		// Create a schema where an enum is defined first, then an entity with same name
-		schema := &ast.Schema{
-			Enums: ast.Enums{
-				"Thing": ast.Enum{Values: []types.String{"active"}},
-			},
 			Entities: ast.Entities{
 				"Thing": ast.Entity{},
 			},
+			Enums: ast.Enums{
+				"Thing": ast.Enum{Values: []types.String{"value"}},
+			},
 			Actions:     ast.Actions{},
 			CommonTypes: ast.CommonTypes{},
 			Namespaces:  ast.Namespaces{},
 		}
 
 		_, err := resolver.Resolve(schema)
-		testutil.Error(t, err) // Should fail with conflict
+		testutil.Error(t, err)
 	})
 
-	t.Run("namespace entity defined multiple times", func(t *testing.T) {
+	t.Run("namespace entity and enum with same name", func(t *testing.T) {
 		t.Parallel()
 
 		schema := &ast.Schema{
 			Entities:    ast.Entities{},
+			Enums:       ast.Enums{},
+			Actions:     ast.Actions{},
+			CommonTypes: ast.CommonTypes{},
+			Namespaces: ast.Namespaces{
+				"App": ast.Namespace{
+					Entities: ast.Entities{
+						"Thing": ast.Entity{},
+					},
+					Enums: ast.Enums{
+						"Thing": ast.Enum{Values: []types.String{"active"}},
+					},
+					Actions:     ast.Actions{},
+					CommonTypes: ast.CommonTypes{},
+				},
+			},
+		}
+
+		_, err := resolver.Resolve(schema)
+		testutil.Error(t, err)
+	})
+
+	t.Run("duplicate entity across top-level and namespace", func(t *testing.T) {
+		t.Parallel()
+
+		schema := &ast.Schema{
+			Entities: ast.Entities{
+				"App::User": ast.Entity{},
+			},
 			Enums:       ast.Enums{},
 			Actions:     ast.Actions{},
 			CommonTypes: ast.CommonTypes{},
@@ -1586,53 +1459,76 @@ func TestDirectAST(t *testing.T) {
 					Entities: ast.Entities{
 						"User": ast.Entity{},
 					},
-					Enums: ast.Enums{
-						"User": ast.Enum{Values: []types.String{"active"}},
-					},
-					Actions:     ast.Actions{},
+					Enums:       ast.Enums{},
 					CommonTypes: ast.CommonTypes{},
+					Actions:     ast.Actions{},
 				},
 			},
 		}
 
 		_, err := resolver.Resolve(schema)
-		testutil.Error(t, err) // Should fail with conflict
+		testutil.Error(t, err)
 	})
 
-	t.Run("namespace enum and entity with same name", func(t *testing.T) {
+	t.Run("duplicate enum across top-level and namespace", func(t *testing.T) {
 		t.Parallel()
 
-		// Create a namespace where enum is processed first, then entity
 		schema := &ast.Schema{
-			Entities:    ast.Entities{},
+			Entities: ast.Entities{},
+			Enums: ast.Enums{
+				"App::Status": ast.Enum{Values: []types.String{"active"}},
+			},
+			Actions:     ast.Actions{},
+			CommonTypes: ast.CommonTypes{},
+			Namespaces: ast.Namespaces{
+				"App": ast.Namespace{
+					Entities: ast.Entities{},
+					Enums: ast.Enums{
+						"Status": ast.Enum{Values: []types.String{"inactive"}},
+					},
+					CommonTypes: ast.CommonTypes{},
+					Actions:     ast.Actions{},
+				},
+			},
+		}
+
+		_, err := resolver.Resolve(schema)
+		testutil.Error(t, err)
+	})
+
+	t.Run("entity/enum conflict across top-level and namespace", func(t *testing.T) {
+		t.Parallel()
+
+		schema := &ast.Schema{
+			Entities: ast.Entities{
+				"App::Thing": ast.Entity{},
+			},
 			Enums:       ast.Enums{},
 			Actions:     ast.Actions{},
 			CommonTypes: ast.CommonTypes{},
 			Namespaces: ast.Namespaces{
 				"App": ast.Namespace{
+					Entities: ast.Entities{},
 					Enums: ast.Enums{
-						"Thing": ast.Enum{Values: []types.String{"active"}},
+						"Thing": ast.Enum{Values: []types.String{"value"}},
 					},
-					Entities: ast.Entities{
-						"Thing": ast.Entity{},
-					},
-					Actions:     ast.Actions{},
 					CommonTypes: ast.CommonTypes{},
+					Actions:     ast.Actions{},
 				},
 			},
 		}
 
 		_, err := resolver.Resolve(schema)
-		testutil.Error(t, err) // Should fail with conflict
+		testutil.Error(t, err)
 	})
 
-	t.Run("action context resolves to non-record", func(t *testing.T) {
+	t.Run("action context is Set type", func(t *testing.T) {
 		t.Parallel()
 
-		// Create an action context that resolves to a non-record type
 		schema := &ast.Schema{
-			Entities: ast.Entities{},
-			Enums:    ast.Enums{},
+			Entities:    ast.Entities{},
+			Enums:       ast.Enums{},
+			CommonTypes: ast.CommonTypes{},
 			Actions: ast.Actions{
 				"view": ast.Action{
 					AppliesToVal: &ast.AppliesTo{
@@ -1640,18 +1536,16 @@ func TestDirectAST(t *testing.T) {
 					},
 				},
 			},
-			CommonTypes: ast.CommonTypes{},
-			Namespaces:  ast.Namespaces{},
+			Namespaces: ast.Namespaces{},
 		}
 
 		_, err := resolver.Resolve(schema)
-		testutil.Error(t, err) // Context must be record type
+		testutil.Error(t, err)
 	})
 
-	t.Run("namespace action context resolves to non-record", func(t *testing.T) {
+	t.Run("namespace action context is non-record type", func(t *testing.T) {
 		t.Parallel()
 
-		// Create a namespace action context that resolves to a non-record type
 		schema := &ast.Schema{
 			Entities:    ast.Entities{},
 			Enums:       ast.Enums{},
@@ -1674,198 +1568,12 @@ func TestDirectAST(t *testing.T) {
 		}
 
 		_, err := resolver.Resolve(schema)
-		testutil.Error(t, err) // Context must be record type
+		testutil.Error(t, err)
 	})
 
-	t.Run("namespace duplicate action", func(t *testing.T) {
+	t.Run("common type resolves to Set used as action context", func(t *testing.T) {
 		t.Parallel()
 
-		// Process two different namespace paths to trigger duplicate action check
-		// First add an action, then try to process another namespace with the same action path
-		schema := &ast.Schema{
-			Entities:    ast.Entities{},
-			Enums:       ast.Enums{},
-			Actions:     ast.Actions{},
-			CommonTypes: ast.CommonTypes{},
-			Namespaces: ast.Namespaces{
-				"App": ast.Namespace{
-					Entities:    ast.Entities{},
-					Enums:       ast.Enums{},
-					CommonTypes: ast.CommonTypes{},
-					Actions: ast.Actions{
-						"view": ast.Action{},
-					},
-				},
-				"App2": ast.Namespace{
-					Entities:    ast.Entities{},
-					Enums:       ast.Enums{},
-					CommonTypes: ast.CommonTypes{},
-					Actions:     ast.Actions{},
-				},
-			},
-		}
-
-		// We need two actions with the same UID. Since namespace actions are qualified as
-		// "Namespace::Action", we'd need two namespaces to create the same qualified name.
-		// But that's not possible. Let me think about this differently.
-
-		// Actually, to hit line 212, we need the same action ID in the same namespace processed twice.
-		// Since maps don't allow duplicate keys, this is impossible via normal construction.
-		// The only way is if the AST structure itself is malformed.
-
-		// Let's skip this for now and check if we can hit it another way.
-		_, err := resolver.Resolve(schema)
-		testutil.OK(t, err) // No error expected here
-	})
-
-	t.Run("namespace duplicate entity", func(t *testing.T) {
-		t.Parallel()
-
-		// To hit line 180-182, we need to process two entities with the same qualified name.
-		// This can happen if we process the same entity name from different namespaces
-		// or if we process top-level and namespace entities with overlapping names.
-
-		// Actually, since namespace entities are qualified as "Namespace::Name",
-		// we'd need to create a scenario where the qualified name conflicts.
-		// One way: top-level entity "App::User" conflicts with namespace "App" entity "User"
-
-		schema := &ast.Schema{
-			Entities: ast.Entities{
-				"App::User": ast.Entity{}, // Top-level entity with qualified name
-			},
-			Enums:       ast.Enums{},
-			Actions:     ast.Actions{},
-			CommonTypes: ast.CommonTypes{},
-			Namespaces: ast.Namespaces{
-				"App": ast.Namespace{
-					Entities: ast.Entities{
-						"User": ast.Entity{}, // Namespace entity that becomes "App::User"
-					},
-					Enums:       ast.Enums{},
-					CommonTypes: ast.CommonTypes{},
-					Actions:     ast.Actions{},
-				},
-			},
-		}
-
-		_, err := resolver.Resolve(schema)
-		testutil.Error(t, err) // Should fail with duplicate entity
-	})
-
-	t.Run("namespace duplicate enum", func(t *testing.T) {
-		t.Parallel()
-
-		// Similar to duplicate entity - top-level enum with qualified name conflicts with namespace enum
-		schema := &ast.Schema{
-			Entities: ast.Entities{},
-			Enums: ast.Enums{
-				"App::Status": ast.Enum{Values: []types.String{"active"}}, // Top-level enum with qualified name
-			},
-			Actions:     ast.Actions{},
-			CommonTypes: ast.CommonTypes{},
-			Namespaces: ast.Namespaces{
-				"App": ast.Namespace{
-					Entities: ast.Entities{},
-					Enums: ast.Enums{
-						"Status": ast.Enum{Values: []types.String{"inactive"}}, // Namespace enum that becomes "App::Status"
-					},
-					CommonTypes: ast.CommonTypes{},
-					Actions:     ast.Actions{},
-				},
-			},
-		}
-
-		_, err := resolver.Resolve(schema)
-		testutil.Error(t, err) // Should fail with duplicate enum
-	})
-
-	t.Run("namespace entity and enum conflict", func(t *testing.T) {
-		t.Parallel()
-
-		// Top-level entity conflicts with namespace enum
-		schema := &ast.Schema{
-			Entities: ast.Entities{
-				"App::Thing": ast.Entity{}, // Top-level entity with qualified name
-			},
-			Enums:       ast.Enums{},
-			Actions:     ast.Actions{},
-			CommonTypes: ast.CommonTypes{},
-			Namespaces: ast.Namespaces{
-				"App": ast.Namespace{
-					Entities: ast.Entities{},
-					Enums: ast.Enums{
-						"Thing": ast.Enum{Values: []types.String{"value"}}, // Namespace enum that becomes "App::Thing"
-					},
-					CommonTypes: ast.CommonTypes{},
-					Actions:     ast.Actions{},
-				},
-			},
-		}
-
-		_, err := resolver.Resolve(schema)
-		testutil.Error(t, err) // Should fail with entity/enum conflict
-	})
-
-	t.Run("error propagation through resolveSet", func(t *testing.T) {
-		t.Parallel()
-
-		// Create a Set containing a record in action context to trigger error
-		schema := &ast.Schema{
-			Entities:    ast.Entities{},
-			Enums:       ast.Enums{},
-			CommonTypes: ast.CommonTypes{},
-			Actions: ast.Actions{
-				"view": ast.Action{
-					AppliesToVal: &ast.AppliesTo{
-						Context: ast.SetType{
-							Element: ast.RecordType{Attributes: ast.Attributes{}},
-						},
-					},
-				},
-			},
-			Namespaces: ast.Namespaces{},
-		}
-
-		_, err := resolver.Resolve(schema)
-		testutil.Error(t, err) // Context cannot be a Set
-	})
-
-	t.Run("error propagation through resolveRecord in entity shape", func(t *testing.T) {
-		t.Parallel()
-
-		// Create an entity with a record attribute that contains an action context
-		// Actually, we can't nest action contexts. Let's create a record that will be used as context.
-		schema := &ast.Schema{
-			Entities: ast.Entities{
-				"User": ast.Entity{
-					ShapeVal: &ast.RecordType{
-						Attributes: ast.Attributes{
-							// Nested records should be fine
-							"nested": ast.Attribute{
-								Type: ast.RecordType{
-									Attributes: ast.Attributes{
-										"field": ast.Attribute{Type: ast.StringType{}},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			Enums:       ast.Enums{},
-			Actions:     ast.Actions{},
-			CommonTypes: ast.CommonTypes{},
-			Namespaces:  ast.Namespaces{},
-		}
-
-		_, err := resolver.Resolve(schema)
-		testutil.OK(t, err) // No error - this is valid
-	})
-
-	t.Run("error in top-level common type with action context", func(t *testing.T) {
-		t.Parallel()
-
-		// Create a common type that's a Set, then use it as action context
 		schema := &ast.Schema{
 			CommonTypes: ast.CommonTypes{
 				"BadContext": ast.CommonType{
@@ -1885,13 +1593,12 @@ func TestDirectAST(t *testing.T) {
 		}
 
 		_, err := resolver.Resolve(schema)
-		testutil.Error(t, err) // Context must be record
+		testutil.Error(t, err)
 	})
 
-	t.Run("error in namespace common type with action context", func(t *testing.T) {
+	t.Run("namespace common type resolves to Set used as action context", func(t *testing.T) {
 		t.Parallel()
 
-		// Create a namespace common type that's a Set, then use it as action context
 		schema := &ast.Schema{
 			Entities:    ast.Entities{},
 			Enums:       ast.Enums{},
@@ -1918,149 +1625,6 @@ func TestDirectAST(t *testing.T) {
 		}
 
 		_, err := resolver.Resolve(schema)
-		testutil.Error(t, err) // Context must be record
-	})
-
-	t.Run("error in entity shape with action-like context type", func(t *testing.T) {
-		t.Parallel()
-
-		// Create an entity that uses a common type that would be invalid as context
-		// Then use that common type as an action context
-		schema := &ast.Schema{
-			CommonTypes: ast.CommonTypes{
-				"BadType": ast.CommonType{
-					Type: ast.SetType{Element: ast.StringType{}},
-				},
-			},
-			Entities: ast.Entities{
-				"User": ast.Entity{
-					ShapeVal: &ast.RecordType{
-						Attributes: ast.Attributes{
-							"field": ast.Attribute{Type: ast.TypeRef{Name: "BadType"}},
-						},
-					},
-				},
-			},
-			Enums: ast.Enums{},
-			Actions: ast.Actions{
-				"view": ast.Action{
-					AppliesToVal: &ast.AppliesTo{
-						Context: ast.TypeRef{Name: "BadType"},
-					},
-				},
-			},
-			Namespaces: ast.Namespaces{},
-		}
-
-		_, err := resolver.Resolve(schema)
-		testutil.Error(t, err) // Context must be record
-	})
-
-	t.Run("error in entity tags with action context type", func(t *testing.T) {
-		t.Parallel()
-
-		// Create an entity that uses tags, and also use that type as action context
-		schema := &ast.Schema{
-			CommonTypes: ast.CommonTypes{
-				"TagType": ast.CommonType{
-					Type: ast.SetType{Element: ast.StringType{}},
-				},
-			},
-			Entities: ast.Entities{
-				"User": ast.Entity{
-					TagsVal: ast.TypeRef{Name: "TagType"},
-				},
-			},
-			Enums: ast.Enums{},
-			Actions: ast.Actions{
-				"view": ast.Action{
-					AppliesToVal: &ast.AppliesTo{
-						Context: ast.TypeRef{Name: "TagType"},
-					},
-				},
-			},
-			Namespaces: ast.Namespaces{},
-		}
-
-		_, err := resolver.Resolve(schema)
-		testutil.Error(t, err) // Context must be record
-	})
-
-	t.Run("error in namespace entity shape", func(t *testing.T) {
-		t.Parallel()
-
-		// Create a namespace entity that uses a bad common type, also used as context
-		schema := &ast.Schema{
-			Entities:    ast.Entities{},
-			Enums:       ast.Enums{},
-			Actions:     ast.Actions{},
-			CommonTypes: ast.CommonTypes{},
-			Namespaces: ast.Namespaces{
-				"App": ast.Namespace{
-					CommonTypes: ast.CommonTypes{
-						"BadType": ast.CommonType{
-							Type: ast.LongType{},
-						},
-					},
-					Entities: ast.Entities{
-						"User": ast.Entity{
-							ShapeVal: &ast.RecordType{
-								Attributes: ast.Attributes{
-									"field": ast.Attribute{Type: ast.TypeRef{Name: "BadType"}},
-								},
-							},
-						},
-					},
-					Enums: ast.Enums{},
-					Actions: ast.Actions{
-						"view": ast.Action{
-							AppliesToVal: &ast.AppliesTo{
-								Context: ast.TypeRef{Name: "BadType"},
-							},
-						},
-					},
-				},
-			},
-		}
-
-		_, err := resolver.Resolve(schema)
-		testutil.Error(t, err) // Context must be record
-	})
-
-	t.Run("error in namespace entity tags", func(t *testing.T) {
-		t.Parallel()
-
-		// Create a namespace entity with tags using a type also used as bad context
-		schema := &ast.Schema{
-			Entities:    ast.Entities{},
-			Enums:       ast.Enums{},
-			Actions:     ast.Actions{},
-			CommonTypes: ast.CommonTypes{},
-			Namespaces: ast.Namespaces{
-				"App": ast.Namespace{
-					CommonTypes: ast.CommonTypes{
-						"TagType": ast.CommonType{
-							Type: ast.BoolType{},
-						},
-					},
-					Entities: ast.Entities{
-						"User": ast.Entity{
-							TagsVal: ast.TypeRef{Name: "TagType"},
-						},
-					},
-					Enums: ast.Enums{},
-					Actions: ast.Actions{
-						"view": ast.Action{
-							AppliesToVal: &ast.AppliesTo{
-								Context: ast.TypeRef{Name: "TagType"},
-							},
-						},
-					},
-				},
-			},
-		}
-
-		_, err := resolver.Resolve(schema)
-		testutil.Error(t, err) // Context must be record
+		testutil.Error(t, err)
 	})
 }

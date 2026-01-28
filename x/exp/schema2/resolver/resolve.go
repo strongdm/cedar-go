@@ -111,19 +111,19 @@ func Resolve(s *ast.Schema) (*Schema, error) {
 
 	// Process top-level common types (resolve but don't add to output)
 	for _, ct := range s.CommonTypes {
-		_ = resolveCommonTypeNode(rd, ct)
+		_ = resolveCommonType(rd, ct)
 	}
 
 	// Process top-level entities
 	for entityName, entityNode := range s.Entities {
-		resolvedEntity := resolveEntityNode(rd, entityNode, entityName)
+		resolvedEntity := resolveEntity(rd, entityNode, entityName)
 		// No need to check for enum conflicts here since enums are processed after entities
 		resolved.Entities[resolvedEntity.Name] = resolvedEntity
 	}
 
 	// Process top-level enums
 	for enumName, enumNode := range s.Enums {
-		resolvedEnum := resolveEnumNode(rd, enumNode, enumName)
+		resolvedEnum := resolveEnum(rd, enumNode, enumName)
 		// Check for conflicts with entities
 		if _, exists := resolved.Entities[resolvedEnum.Name]; exists {
 			return nil, fmt.Errorf("type %q is defined as both an entity and an enum", resolvedEnum.Name)
@@ -133,7 +133,7 @@ func Resolve(s *ast.Schema) (*Schema, error) {
 
 	// Process top-level actions
 	for actionID, actionNode := range s.Actions {
-		resolvedAction, err := resolveActionNode(rd, actionNode, actionID)
+		resolvedAction, err := resolveAction(rd, actionNode, actionID)
 		if err != nil {
 			return nil, err
 		}
@@ -154,13 +154,13 @@ func Resolve(s *ast.Schema) (*Schema, error) {
 
 		// Process namespace common types
 		for _, ct := range ns.CommonTypes {
-			_ = resolveCommonTypeNode(nsRd, ct)
+			_ = resolveCommonType(nsRd, ct)
 		}
 
 		// Process namespace entities
 		for entityName, entityNode := range ns.Entities {
 			qualifiedName := types.EntityType(string(nsPath) + "::" + string(entityName))
-			resolvedEntity := resolveEntityNode(nsRd, entityNode, qualifiedName)
+			resolvedEntity := resolveEntity(nsRd, entityNode, qualifiedName)
 			// Check for conflicts
 			if _, exists := resolved.Entities[resolvedEntity.Name]; exists {
 				return nil, fmt.Errorf("entity type %q is defined multiple times", resolvedEntity.Name)
@@ -172,7 +172,7 @@ func Resolve(s *ast.Schema) (*Schema, error) {
 		// Process namespace enums
 		for enumName, enumNode := range ns.Enums {
 			qualifiedName := types.EntityType(string(nsPath) + "::" + string(enumName))
-			resolvedEnum := resolveEnumNode(nsRd, enumNode, qualifiedName)
+			resolvedEnum := resolveEnum(nsRd, enumNode, qualifiedName)
 			// Check for conflicts
 			if _, exists := resolved.Enums[resolvedEnum.Name]; exists {
 				return nil, fmt.Errorf("enum type %q is defined multiple times", resolvedEnum.Name)
@@ -185,7 +185,7 @@ func Resolve(s *ast.Schema) (*Schema, error) {
 
 		// Process namespace actions
 		for actionID, actionNode := range ns.Actions {
-			resolvedAction, err := resolveActionNode(nsRd, actionNode, actionID)
+			resolvedAction, err := resolveAction(nsRd, actionNode, actionID)
 			if err != nil {
 				return nil, err
 			}
