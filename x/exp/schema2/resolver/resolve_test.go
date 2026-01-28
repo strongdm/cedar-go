@@ -1393,7 +1393,6 @@ func TestEdgeCases(t *testing.T) {
 	}
 }
 
-
 // TestDirectAST tests scenarios that use AST construction directly to create
 // schemas that the parser wouldn't allow, ensuring proper error handling.
 func TestDirectAST(t *testing.T) {
