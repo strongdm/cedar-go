@@ -68,21 +68,6 @@ func TestRecord(t *testing.T) {
 	t.Parallel()
 	want := ast.RecordType{
 		Attributes: ast.Attributes{
-			"name": ast.Attribute{Type: ast.StringType{}, Optional: false},
-			"age":  ast.Attribute{Type: ast.LongType{}, Optional: true},
-		},
-	}
-	got := ast.Record(ast.Attributes{
-		"name": ast.Attribute{Type: ast.String(), Optional: false},
-		"age":  ast.Attribute{Type: ast.Long(), Optional: true},
-	})
-	testutil.Equals(t, got, want)
-}
-
-func TestRecordWithAnnotations(t *testing.T) {
-	t.Parallel()
-	want := ast.RecordType{
-		Attributes: ast.Attributes{
 			"name": ast.Attribute{
 				Type:     ast.StringType{},
 				Optional: false,
@@ -91,6 +76,7 @@ func TestRecordWithAnnotations(t *testing.T) {
 					"required": "true",
 				},
 			},
+			"age": ast.Attribute{Type: ast.LongType{}, Optional: true},
 		},
 	}
 	got := ast.Record(ast.Attributes{
@@ -102,6 +88,7 @@ func TestRecordWithAnnotations(t *testing.T) {
 				"required": "true",
 			},
 		},
+		"age": ast.Attribute{Type: ast.Long(), Optional: true},
 	})
 	testutil.Equals(t, got, want)
 }
