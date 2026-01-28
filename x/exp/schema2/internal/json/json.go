@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"maps"
 	"slices"
-	"sort"
 
 	"github.com/cedar-policy/cedar-go/types"
 	"github.com/cedar-policy/cedar-go/x/exp/schema2/ast"
@@ -82,14 +81,7 @@ func (s *Schema) UnmarshalJSON(data []byte) error {
 
 	astSchema := &ast.Schema{}
 
-	// Sort namespace names for deterministic output
-	nsNames := make([]string, 0, len(namespaces))
-	for name := range namespaces {
-		nsNames = append(nsNames, name)
-	}
-	sort.Strings(nsNames)
-
-	for _, nsName := range nsNames {
+	for nsName := range namespaces {
 		ns := namespaces[nsName]
 		if nsName == "" {
 			// Default namespace - add declarations at top level
