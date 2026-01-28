@@ -17,8 +17,8 @@ func resolveCommonTypeNode(rd *resolveData, c ast.CommonType) ast.CommonType {
 }
 
 // resolve returns a ResolvedEntity with all type references resolved and name fully qualified.
-func resolveEntityNode(rd *resolveData, e ast.Entity, name types.EntityType) ResolvedEntity {
-	resolved := ResolvedEntity{
+func resolveEntityNode(rd *resolveData, e ast.Entity, name types.EntityType) Entity {
+	resolved := Entity{
 		Name:        name,
 		Annotations: e.Annotations,
 	}
@@ -48,8 +48,8 @@ func resolveEntityNode(rd *resolveData, e ast.Entity, name types.EntityType) Res
 }
 
 // resolve returns a ResolvedEnum with name fully qualified.
-func resolveEnumNode(rd *resolveData, e ast.Enum, name types.EntityType) ResolvedEnum {
-	return ResolvedEnum{
+func resolveEnumNode(rd *resolveData, e ast.Enum, name types.EntityType) Enum {
+	return Enum{
 		Name:        name,
 		Annotations: e.Annotations,
 		Values:      e.Values,
@@ -57,8 +57,8 @@ func resolveEnumNode(rd *resolveData, e ast.Enum, name types.EntityType) Resolve
 }
 
 // resolve returns a ResolvedAction with all type references resolved and converted to types.EntityType and types.EntityUID.
-func resolveActionNode(rd *resolveData, a ast.Action, name types.String) (ResolvedAction, error) {
-	resolved := ResolvedAction{
+func resolveActionNode(rd *resolveData, a ast.Action, name types.String) (Action, error) {
+	resolved := Action{
 		Name:        name,
 		Annotations: a.Annotations,
 	}
@@ -74,7 +74,7 @@ func resolveActionNode(rd *resolveData, a ast.Action, name types.String) (Resolv
 
 	// Resolve and convert AppliesTo
 	if a.AppliesToVal != nil {
-		resolved.AppliesTo = &ResolvedAppliesTo{}
+		resolved.AppliesTo = &AppliesTo{}
 
 		// Convert PrincipalTypes from []EntityTypeRef to []types.EntityType
 		if len(a.AppliesToVal.PrincipalTypes) > 0 {
@@ -99,7 +99,7 @@ func resolveActionNode(rd *resolveData, a ast.Action, name types.String) (Resolv
 			resolvedContext := resolveType(rd, a.AppliesToVal.Context)
 			recordContext, ok := resolvedContext.(ast.RecordType)
 			if resolvedContext != nil && !ok {
-				return ResolvedAction{}, fmt.Errorf("action %q context resolved to %T", name, resolvedContext)
+				return Action{}, fmt.Errorf("action %q context resolved to %T", name, resolvedContext)
 			}
 			resolved.AppliesTo.Context = recordContext
 		}

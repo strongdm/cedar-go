@@ -63,6 +63,6 @@ func (s *Schema) AST() *ast.Schema {
 // Type references within namespaces are resolved relative to their namespace.
 // Top-level type references are resolved as-is.
 // Returns an error if any type reference cannot be resolved.
-func (s *Schema) Resolve() (*resolver.ResolvedSchema, error) {
+func (s *Schema) Resolve() (*resolver.Schema, error) {
 	return resolver.Resolve(s.schema)
 }

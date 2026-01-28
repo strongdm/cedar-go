@@ -515,8 +515,8 @@ var wantAST = &ast.Schema{
 
 // wantResolved is the expected resolved schema structure.
 // All type references have been fully qualified.
-var wantResolved = &resolver.ResolvedSchema{
-	Namespaces: map[types.Path]resolver.ResolvedNamespace{
+var wantResolved = &resolver.Schema{
+	Namespaces: map[types.Path]resolver.Namespace{
 		"MyApp": {
 			Name: "MyApp",
 			Annotations: ast.Annotations{
@@ -524,7 +524,7 @@ var wantResolved = &resolver.ResolvedSchema{
 			},
 		},
 	},
-	Entities: map[types.EntityType]resolver.ResolvedEntity{
+	Entities: map[types.EntityType]resolver.Entity{
 		"Admin": {
 			Name:        "Admin",
 			Annotations: nil,
@@ -622,7 +622,7 @@ var wantResolved = &resolver.ResolvedSchema{
 			Tags: nil,
 		},
 	},
-	Enums: map[types.EntityType]resolver.ResolvedEnum{
+	Enums: map[types.EntityType]resolver.Enum{
 		"Role": {
 			Name:        "Role",
 			Annotations: nil,
@@ -634,12 +634,12 @@ var wantResolved = &resolver.ResolvedSchema{
 			Values:      []types.String{"draft", "published", "archived"},
 		},
 	},
-	Actions: map[types.EntityUID]resolver.ResolvedAction{
+	Actions: map[types.EntityUID]resolver.Action{
 		types.NewEntityUID("Action", "audit"): {
 			Name:        "audit",
 			Annotations: nil,
 			MemberOf:    nil,
-			AppliesTo: &resolver.ResolvedAppliesTo{
+			AppliesTo: &resolver.AppliesTo{
 				PrincipalTypes: []types.EntityType{"Admin"},
 				ResourceTypes:  []types.EntityType{"MyApp::Document", "System"},
 				Context:        ast.RecordType{},
@@ -649,7 +649,7 @@ var wantResolved = &resolver.ResolvedSchema{
 			Name:        "edit",
 			Annotations: ast.Annotations{"doc": "View or edit document"},
 			MemberOf:    nil,
-			AppliesTo: &resolver.ResolvedAppliesTo{
+			AppliesTo: &resolver.AppliesTo{
 				PrincipalTypes: []types.EntityType{"MyApp::User"},
 				ResourceTypes:  []types.EntityType{"MyApp::Document"},
 				Context: ast.RecordType{
@@ -664,7 +664,7 @@ var wantResolved = &resolver.ResolvedSchema{
 			Name:        "manage",
 			Annotations: nil,
 			MemberOf:    nil,
-			AppliesTo: &resolver.ResolvedAppliesTo{
+			AppliesTo: &resolver.AppliesTo{
 				PrincipalTypes: []types.EntityType{"MyApp::User"},
 				ResourceTypes:  []types.EntityType{"MyApp::Document", "MyApp::Group"},
 				Context:        ast.RecordType{},
@@ -674,7 +674,7 @@ var wantResolved = &resolver.ResolvedSchema{
 			Name:        "view",
 			Annotations: ast.Annotations{"doc": "View or edit document"},
 			MemberOf:    nil,
-			AppliesTo: &resolver.ResolvedAppliesTo{
+			AppliesTo: &resolver.AppliesTo{
 				PrincipalTypes: []types.EntityType{"MyApp::User"},
 				ResourceTypes:  []types.EntityType{"MyApp::Document"},
 				Context: ast.RecordType{

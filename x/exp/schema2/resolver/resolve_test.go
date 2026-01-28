@@ -16,94 +16,94 @@ func TestResolve(t *testing.T) {
 	tests := []struct {
 		name    string
 		in      string
-		want    *resolver.ResolvedSchema
+		want    *resolver.Schema
 		errTest func(testutil.TB, error)
 	}{
 		{
 			name: "simple entity",
 			in:   `entity User;`,
-			want: &resolver.ResolvedSchema{
-				Namespaces: map[types.Path]resolver.ResolvedNamespace{},
-				Entities: map[types.EntityType]resolver.ResolvedEntity{
+			want: &resolver.Schema{
+				Namespaces: map[types.Path]resolver.Namespace{},
+				Entities: map[types.EntityType]resolver.Entity{
 					"User": {Name: "User"},
 				},
-				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
-				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+				Enums:   map[types.EntityType]resolver.Enum{},
+				Actions: map[types.EntityUID]resolver.Action{},
 			},
 			errTest: testutil.OK,
 		},
 		{
 			name: "entity in namespace",
 			in:   `namespace MyApp { entity User; }`,
-			want: &resolver.ResolvedSchema{
-				Namespaces: map[types.Path]resolver.ResolvedNamespace{
+			want: &resolver.Schema{
+				Namespaces: map[types.Path]resolver.Namespace{
 					"MyApp": {Name: "MyApp"},
 				},
-				Entities: map[types.EntityType]resolver.ResolvedEntity{
+				Entities: map[types.EntityType]resolver.Entity{
 					"MyApp::User": {Name: "MyApp::User"},
 				},
-				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
-				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+				Enums:   map[types.EntityType]resolver.Enum{},
+				Actions: map[types.EntityUID]resolver.Action{},
 			},
 			errTest: testutil.OK,
 		},
 		{
 			name: "entity in nested namespace",
 			in:   `namespace MyApp::Models { entity User; }`,
-			want: &resolver.ResolvedSchema{
-				Namespaces: map[types.Path]resolver.ResolvedNamespace{
+			want: &resolver.Schema{
+				Namespaces: map[types.Path]resolver.Namespace{
 					"MyApp::Models": {Name: "MyApp::Models"},
 				},
-				Entities: map[types.EntityType]resolver.ResolvedEntity{
+				Entities: map[types.EntityType]resolver.Entity{
 					"MyApp::Models::User": {Name: "MyApp::Models::User"},
 				},
-				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
-				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+				Enums:   map[types.EntityType]resolver.Enum{},
+				Actions: map[types.EntityUID]resolver.Action{},
 			},
 			errTest: testutil.OK,
 		},
 		{
 			name: "simple enum",
 			in:   `entity Status enum ["active", "inactive", "pending"];`,
-			want: &resolver.ResolvedSchema{
-				Namespaces: map[types.Path]resolver.ResolvedNamespace{},
-				Entities:   map[types.EntityType]resolver.ResolvedEntity{},
-				Enums: map[types.EntityType]resolver.ResolvedEnum{
+			want: &resolver.Schema{
+				Namespaces: map[types.Path]resolver.Namespace{},
+				Entities:   map[types.EntityType]resolver.Entity{},
+				Enums: map[types.EntityType]resolver.Enum{
 					"Status": {
 						Name:   "Status",
 						Values: []types.String{"active", "inactive", "pending"},
 					},
 				},
-				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+				Actions: map[types.EntityUID]resolver.Action{},
 			},
 			errTest: testutil.OK,
 		},
 		{
 			name: "enum in namespace",
 			in:   `namespace MyApp { entity Status enum ["active", "inactive"]; }`,
-			want: &resolver.ResolvedSchema{
-				Namespaces: map[types.Path]resolver.ResolvedNamespace{
+			want: &resolver.Schema{
+				Namespaces: map[types.Path]resolver.Namespace{
 					"MyApp": {Name: "MyApp"},
 				},
-				Entities: map[types.EntityType]resolver.ResolvedEntity{},
-				Enums: map[types.EntityType]resolver.ResolvedEnum{
+				Entities: map[types.EntityType]resolver.Entity{},
+				Enums: map[types.EntityType]resolver.Enum{
 					"MyApp::Status": {
 						Name:   "MyApp::Status",
 						Values: []types.String{"active", "inactive"},
 					},
 				},
-				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+				Actions: map[types.EntityUID]resolver.Action{},
 			},
 			errTest: testutil.OK,
 		},
 		{
 			name: "simple action",
 			in:   `action view;`,
-			want: &resolver.ResolvedSchema{
-				Namespaces: map[types.Path]resolver.ResolvedNamespace{},
-				Entities:   map[types.EntityType]resolver.ResolvedEntity{},
-				Enums:      map[types.EntityType]resolver.ResolvedEnum{},
-				Actions: map[types.EntityUID]resolver.ResolvedAction{
+			want: &resolver.Schema{
+				Namespaces: map[types.Path]resolver.Namespace{},
+				Entities:   map[types.EntityType]resolver.Entity{},
+				Enums:      map[types.EntityType]resolver.Enum{},
+				Actions: map[types.EntityUID]resolver.Action{
 					types.NewEntityUID("Action", "view"): {Name: "view"},
 				},
 			},
@@ -112,13 +112,13 @@ func TestResolve(t *testing.T) {
 		{
 			name: "action in namespace",
 			in:   `namespace Bananas { action view; }`,
-			want: &resolver.ResolvedSchema{
-				Namespaces: map[types.Path]resolver.ResolvedNamespace{
+			want: &resolver.Schema{
+				Namespaces: map[types.Path]resolver.Namespace{
 					"Bananas": {Name: "Bananas"},
 				},
-				Entities: map[types.EntityType]resolver.ResolvedEntity{},
-				Enums:    map[types.EntityType]resolver.ResolvedEnum{},
-				Actions: map[types.EntityUID]resolver.ResolvedAction{
+				Entities: map[types.EntityType]resolver.Entity{},
+				Enums:    map[types.EntityType]resolver.Enum{},
+				Actions: map[types.EntityUID]resolver.Action{
 					types.NewEntityUID("Bananas::Action", "view"): {Name: "view"},
 				},
 			},
@@ -131,9 +131,9 @@ func TestResolve(t *testing.T) {
 				"active": Bool,
 				"name": String
 			};`,
-			want: &resolver.ResolvedSchema{
-				Namespaces: map[types.Path]resolver.ResolvedNamespace{},
-				Entities: map[types.EntityType]resolver.ResolvedEntity{
+			want: &resolver.Schema{
+				Namespaces: map[types.Path]resolver.Namespace{},
+				Entities: map[types.EntityType]resolver.Entity{
 					"User": {
 						Name: "User",
 						Shape: &ast.RecordType{
@@ -145,8 +145,8 @@ func TestResolve(t *testing.T) {
 						},
 					},
 				},
-				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
-				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+				Enums:   map[types.EntityType]resolver.Enum{},
+				Actions: map[types.EntityUID]resolver.Action{},
 			},
 			errTest: testutil.OK,
 		},
@@ -156,9 +156,9 @@ func TestResolve(t *testing.T) {
 				"ip": __cedar::ipaddr,
 				"amount": __cedar::decimal
 			};`,
-			want: &resolver.ResolvedSchema{
-				Namespaces: map[types.Path]resolver.ResolvedNamespace{},
-				Entities: map[types.EntityType]resolver.ResolvedEntity{
+			want: &resolver.Schema{
+				Namespaces: map[types.Path]resolver.Namespace{},
+				Entities: map[types.EntityType]resolver.Entity{
 					"User": {
 						Name: "User",
 						Shape: &ast.RecordType{
@@ -169,8 +169,8 @@ func TestResolve(t *testing.T) {
 						},
 					},
 				},
-				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
-				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+				Enums:   map[types.EntityType]resolver.Enum{},
+				Actions: map[types.EntityUID]resolver.Action{},
 			},
 			errTest: testutil.OK,
 		},
@@ -179,9 +179,9 @@ func TestResolve(t *testing.T) {
 			in: `entity User = {
 				"tags": Set<String>
 			};`,
-			want: &resolver.ResolvedSchema{
-				Namespaces: map[types.Path]resolver.ResolvedNamespace{},
-				Entities: map[types.EntityType]resolver.ResolvedEntity{
+			want: &resolver.Schema{
+				Namespaces: map[types.Path]resolver.Namespace{},
+				Entities: map[types.EntityType]resolver.Entity{
 					"User": {
 						Name: "User",
 						Shape: &ast.RecordType{
@@ -191,8 +191,8 @@ func TestResolve(t *testing.T) {
 						},
 					},
 				},
-				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
-				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+				Enums:   map[types.EntityType]resolver.Enum{},
+				Actions: map[types.EntityUID]resolver.Action{},
 			},
 			errTest: testutil.OK,
 		},
@@ -204,9 +204,9 @@ func TestResolve(t *testing.T) {
 					"city": String
 				}
 			};`,
-			want: &resolver.ResolvedSchema{
-				Namespaces: map[types.Path]resolver.ResolvedNamespace{},
-				Entities: map[types.EntityType]resolver.ResolvedEntity{
+			want: &resolver.Schema{
+				Namespaces: map[types.Path]resolver.Namespace{},
+				Entities: map[types.EntityType]resolver.Entity{
 					"User": {
 						Name: "User",
 						Shape: &ast.RecordType{
@@ -223,8 +223,8 @@ func TestResolve(t *testing.T) {
 						},
 					},
 				},
-				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
-				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+				Enums:   map[types.EntityType]resolver.Enum{},
+				Actions: map[types.EntityUID]resolver.Action{},
 			},
 			errTest: testutil.OK,
 		},
@@ -235,9 +235,9 @@ func TestResolve(t *testing.T) {
 			} tags {
 				"classification": String
 			};`,
-			want: &resolver.ResolvedSchema{
-				Namespaces: map[types.Path]resolver.ResolvedNamespace{},
-				Entities: map[types.EntityType]resolver.ResolvedEntity{
+			want: &resolver.Schema{
+				Namespaces: map[types.Path]resolver.Namespace{},
+				Entities: map[types.EntityType]resolver.Entity{
 					"Document": {
 						Name: "Document",
 						Shape: &ast.RecordType{
@@ -252,25 +252,25 @@ func TestResolve(t *testing.T) {
 						},
 					},
 				},
-				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
-				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+				Enums:   map[types.EntityType]resolver.Enum{},
+				Actions: map[types.EntityUID]resolver.Action{},
 			},
 			errTest: testutil.OK,
 		},
 		{
 			name: "entity with memberOf",
 			in:   `entity Group; entity User in [Group];`,
-			want: &resolver.ResolvedSchema{
-				Namespaces: map[types.Path]resolver.ResolvedNamespace{},
-				Entities: map[types.EntityType]resolver.ResolvedEntity{
+			want: &resolver.Schema{
+				Namespaces: map[types.Path]resolver.Namespace{},
+				Entities: map[types.EntityType]resolver.Entity{
 					"Group": {Name: "Group"},
 					"User": {
 						Name:     "User",
 						MemberOf: []types.EntityType{"Group"},
 					},
 				},
-				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
-				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+				Enums:   map[types.EntityType]resolver.Enum{},
+				Actions: map[types.EntityUID]resolver.Action{},
 			},
 			errTest: testutil.OK,
 		},
@@ -285,17 +285,17 @@ func TestResolve(t *testing.T) {
 					"ip": String
 				}
 			};`,
-			want: &resolver.ResolvedSchema{
-				Namespaces: map[types.Path]resolver.ResolvedNamespace{},
-				Entities: map[types.EntityType]resolver.ResolvedEntity{
+			want: &resolver.Schema{
+				Namespaces: map[types.Path]resolver.Namespace{},
+				Entities: map[types.EntityType]resolver.Entity{
 					"User":     {Name: "User"},
 					"Document": {Name: "Document"},
 				},
-				Enums: map[types.EntityType]resolver.ResolvedEnum{},
-				Actions: map[types.EntityUID]resolver.ResolvedAction{
+				Enums: map[types.EntityType]resolver.Enum{},
+				Actions: map[types.EntityUID]resolver.Action{
 					types.NewEntityUID("Action", "view"): {
 						Name: "view",
-						AppliesTo: &resolver.ResolvedAppliesTo{
+						AppliesTo: &resolver.AppliesTo{
 							PrincipalTypes: []types.EntityType{"User"},
 							ResourceTypes:  []types.EntityType{"Document"},
 							Context: ast.RecordType{
@@ -312,11 +312,11 @@ func TestResolve(t *testing.T) {
 		{
 			name: "action with memberOf",
 			in:   `action parent; action child in [parent];`,
-			want: &resolver.ResolvedSchema{
-				Namespaces: map[types.Path]resolver.ResolvedNamespace{},
-				Entities:   map[types.EntityType]resolver.ResolvedEntity{},
-				Enums:      map[types.EntityType]resolver.ResolvedEnum{},
-				Actions: map[types.EntityUID]resolver.ResolvedAction{
+			want: &resolver.Schema{
+				Namespaces: map[types.Path]resolver.Namespace{},
+				Entities:   map[types.EntityType]resolver.Entity{},
+				Enums:      map[types.EntityType]resolver.Enum{},
+				Actions: map[types.EntityUID]resolver.Action{
 					types.NewEntityUID("Action", "parent"): {Name: "parent"},
 					types.NewEntityUID("Action", "child"): {
 						Name:     "child",
@@ -335,9 +335,9 @@ func TestResolve(t *testing.T) {
 			entity User = {
 				"address": Address
 			};`,
-			want: &resolver.ResolvedSchema{
-				Namespaces: map[types.Path]resolver.ResolvedNamespace{},
-				Entities: map[types.EntityType]resolver.ResolvedEntity{
+			want: &resolver.Schema{
+				Namespaces: map[types.Path]resolver.Namespace{},
+				Entities: map[types.EntityType]resolver.Entity{
 					"User": {
 						Name: "User",
 						Shape: &ast.RecordType{
@@ -354,8 +354,8 @@ func TestResolve(t *testing.T) {
 						},
 					},
 				},
-				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
-				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+				Enums:   map[types.EntityType]resolver.Enum{},
+				Actions: map[types.EntityUID]resolver.Action{},
 			},
 			errTest: testutil.OK,
 		},
@@ -368,11 +368,11 @@ func TestResolve(t *testing.T) {
 					"field2": MyType
 				};
 			}`,
-			want: &resolver.ResolvedSchema{
-				Namespaces: map[types.Path]resolver.ResolvedNamespace{
+			want: &resolver.Schema{
+				Namespaces: map[types.Path]resolver.Namespace{
 					"App": {Name: "App"},
 				},
-				Entities: map[types.EntityType]resolver.ResolvedEntity{
+				Entities: map[types.EntityType]resolver.Entity{
 					"App::User": {
 						Name: "App::User",
 						Shape: &ast.RecordType{
@@ -383,8 +383,8 @@ func TestResolve(t *testing.T) {
 						},
 					},
 				},
-				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
-				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+				Enums:   map[types.EntityType]resolver.Enum{},
+				Actions: map[types.EntityUID]resolver.Action{},
 			},
 			errTest: testutil.OK,
 		},
@@ -395,9 +395,9 @@ func TestResolve(t *testing.T) {
 				"field1": MyType,
 				"field2": MyType
 			};`,
-			want: &resolver.ResolvedSchema{
-				Namespaces: map[types.Path]resolver.ResolvedNamespace{},
-				Entities: map[types.EntityType]resolver.ResolvedEntity{
+			want: &resolver.Schema{
+				Namespaces: map[types.Path]resolver.Namespace{},
+				Entities: map[types.EntityType]resolver.Entity{
 					"User": {
 						Name: "User",
 						Shape: &ast.RecordType{
@@ -408,8 +408,8 @@ func TestResolve(t *testing.T) {
 						},
 					},
 				},
-				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
-				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+				Enums:   map[types.EntityType]resolver.Enum{},
+				Actions: map[types.EntityUID]resolver.Action{},
 			},
 			errTest: testutil.OK,
 		},
@@ -423,9 +423,9 @@ func TestResolve(t *testing.T) {
 				"field2": Type2,
 				"field3": Type1
 			};`,
-			want: &resolver.ResolvedSchema{
-				Namespaces: map[types.Path]resolver.ResolvedNamespace{},
-				Entities: map[types.EntityType]resolver.ResolvedEntity{
+			want: &resolver.Schema{
+				Namespaces: map[types.Path]resolver.Namespace{},
+				Entities: map[types.EntityType]resolver.Entity{
 					"User": {
 						Name: "User",
 						Shape: &ast.RecordType{
@@ -437,8 +437,8 @@ func TestResolve(t *testing.T) {
 						},
 					},
 				},
-				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
-				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+				Enums:   map[types.EntityType]resolver.Enum{},
+				Actions: map[types.EntityUID]resolver.Action{},
 			},
 			errTest: testutil.OK,
 		},
@@ -448,8 +448,8 @@ func TestResolve(t *testing.T) {
 			namespace App {
 				entity User;
 			}`,
-			want: &resolver.ResolvedSchema{
-				Namespaces: map[types.Path]resolver.ResolvedNamespace{
+			want: &resolver.Schema{
+				Namespaces: map[types.Path]resolver.Namespace{
 					"App": {
 						Name: "App",
 						Annotations: ast.Annotations{
@@ -457,11 +457,11 @@ func TestResolve(t *testing.T) {
 						},
 					},
 				},
-				Entities: map[types.EntityType]resolver.ResolvedEntity{
+				Entities: map[types.EntityType]resolver.Entity{
 					"App::User": {Name: "App::User"},
 				},
-				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
-				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+				Enums:   map[types.EntityType]resolver.Enum{},
+				Actions: map[types.EntityUID]resolver.Action{},
 			},
 			errTest: testutil.OK,
 		},
@@ -469,9 +469,9 @@ func TestResolve(t *testing.T) {
 			name: "annotations on entity",
 			in: `@doc("User entity")
 			entity User;`,
-			want: &resolver.ResolvedSchema{
-				Namespaces: map[types.Path]resolver.ResolvedNamespace{},
-				Entities: map[types.EntityType]resolver.ResolvedEntity{
+			want: &resolver.Schema{
+				Namespaces: map[types.Path]resolver.Namespace{},
+				Entities: map[types.EntityType]resolver.Entity{
 					"User": {
 						Name: "User",
 						Annotations: ast.Annotations{
@@ -479,21 +479,21 @@ func TestResolve(t *testing.T) {
 						},
 					},
 				},
-				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
-				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+				Enums:   map[types.EntityType]resolver.Enum{},
+				Actions: map[types.EntityUID]resolver.Action{},
 			},
 			errTest: testutil.OK,
 		},
 		{
 			name: "empty namespace",
 			in:   `namespace Empty { }`,
-			want: &resolver.ResolvedSchema{
-				Namespaces: map[types.Path]resolver.ResolvedNamespace{
+			want: &resolver.Schema{
+				Namespaces: map[types.Path]resolver.Namespace{
 					"Empty": {Name: "Empty"},
 				},
-				Entities: map[types.EntityType]resolver.ResolvedEntity{},
-				Enums:    map[types.EntityType]resolver.ResolvedEnum{},
-				Actions:  map[types.EntityUID]resolver.ResolvedAction{},
+				Entities: map[types.EntityType]resolver.Entity{},
+				Enums:    map[types.EntityType]resolver.Enum{},
+				Actions:  map[types.EntityUID]resolver.Action{},
 			},
 			errTest: testutil.OK,
 		},
@@ -503,19 +503,19 @@ func TestResolve(t *testing.T) {
 				entity Group;
 				entity User in [App::Group];
 			}`,
-			want: &resolver.ResolvedSchema{
-				Namespaces: map[types.Path]resolver.ResolvedNamespace{
+			want: &resolver.Schema{
+				Namespaces: map[types.Path]resolver.Namespace{
 					"App": {Name: "App"},
 				},
-				Entities: map[types.EntityType]resolver.ResolvedEntity{
+				Entities: map[types.EntityType]resolver.Entity{
 					"App::Group": {Name: "App::Group"},
 					"App::User": {
 						Name:     "App::User",
 						MemberOf: []types.EntityType{"App::Group"},
 					},
 				},
-				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
-				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+				Enums:   map[types.EntityType]resolver.Enum{},
+				Actions: map[types.EntityUID]resolver.Action{},
 			},
 			errTest: testutil.OK,
 		},
@@ -525,19 +525,19 @@ func TestResolve(t *testing.T) {
 				entity Group;
 				entity User in [Group];
 			}`,
-			want: &resolver.ResolvedSchema{
-				Namespaces: map[types.Path]resolver.ResolvedNamespace{
+			want: &resolver.Schema{
+				Namespaces: map[types.Path]resolver.Namespace{
 					"App": {Name: "App"},
 				},
-				Entities: map[types.EntityType]resolver.ResolvedEntity{
+				Entities: map[types.EntityType]resolver.Entity{
 					"App::Group": {Name: "App::Group"},
 					"App::User": {
 						Name:     "App::User",
 						MemberOf: []types.EntityType{"App::Group"},
 					},
 				},
-				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
-				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+				Enums:   map[types.EntityType]resolver.Enum{},
+				Actions: map[types.EntityUID]resolver.Action{},
 			},
 			errTest: testutil.OK,
 		},
@@ -547,19 +547,19 @@ func TestResolve(t *testing.T) {
 			namespace App {
 				entity User in [GlobalGroup];
 			}`,
-			want: &resolver.ResolvedSchema{
-				Namespaces: map[types.Path]resolver.ResolvedNamespace{
+			want: &resolver.Schema{
+				Namespaces: map[types.Path]resolver.Namespace{
 					"App": {Name: "App"},
 				},
-				Entities: map[types.EntityType]resolver.ResolvedEntity{
+				Entities: map[types.EntityType]resolver.Entity{
 					"GlobalGroup": {Name: "GlobalGroup"},
 					"App::User": {
 						Name:     "App::User",
 						MemberOf: []types.EntityType{"GlobalGroup"},
 					},
 				},
-				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
-				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+				Enums:   map[types.EntityType]resolver.Enum{},
+				Actions: map[types.EntityUID]resolver.Action{},
 			},
 			errTest: testutil.OK,
 		},
@@ -569,23 +569,23 @@ func TestResolve(t *testing.T) {
 			namespace App {
 				entity Document in [Status];
 			}`,
-			want: &resolver.ResolvedSchema{
-				Namespaces: map[types.Path]resolver.ResolvedNamespace{
+			want: &resolver.Schema{
+				Namespaces: map[types.Path]resolver.Namespace{
 					"App": {Name: "App"},
 				},
-				Entities: map[types.EntityType]resolver.ResolvedEntity{
+				Entities: map[types.EntityType]resolver.Entity{
 					"App::Document": {
 						Name:     "App::Document",
 						MemberOf: []types.EntityType{"Status"},
 					},
 				},
-				Enums: map[types.EntityType]resolver.ResolvedEnum{
+				Enums: map[types.EntityType]resolver.Enum{
 					"Status": {
 						Name:   "Status",
 						Values: []types.String{"active", "inactive"},
 					},
 				},
-				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+				Actions: map[types.EntityUID]resolver.Action{},
 			},
 			errTest: testutil.OK,
 		},
@@ -594,9 +594,9 @@ func TestResolve(t *testing.T) {
 		{
 			name: "undefined type reference",
 			in:   `entity User = { "field": NonExistent };`,
-			want: &resolver.ResolvedSchema{
-				Namespaces: map[types.Path]resolver.ResolvedNamespace{},
-				Entities: map[types.EntityType]resolver.ResolvedEntity{
+			want: &resolver.Schema{
+				Namespaces: map[types.Path]resolver.Namespace{},
+				Entities: map[types.EntityType]resolver.Entity{
 					"User": {
 						Name: "User",
 						Shape: &ast.RecordType{
@@ -606,24 +606,24 @@ func TestResolve(t *testing.T) {
 						},
 					},
 				},
-				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
-				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+				Enums:   map[types.EntityType]resolver.Enum{},
+				Actions: map[types.EntityUID]resolver.Action{},
 			},
 			errTest: testutil.OK,
 		},
 		{
 			name: "undefined type reference in tags",
 			in:   `entity User tags NonExistent;`,
-			want: &resolver.ResolvedSchema{
-				Namespaces: map[types.Path]resolver.ResolvedNamespace{},
-				Entities: map[types.EntityType]resolver.ResolvedEntity{
+			want: &resolver.Schema{
+				Namespaces: map[types.Path]resolver.Namespace{},
+				Entities: map[types.EntityType]resolver.Entity{
 					"User": {
 						Name: "User",
 						Tags: ast.EntityTypeRef{Name: "NonExistent"},
 					},
 				},
-				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
-				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+				Enums:   map[types.EntityType]resolver.Enum{},
+				Actions: map[types.EntityUID]resolver.Action{},
 			},
 			errTest: testutil.OK,
 		},
@@ -639,33 +639,33 @@ func TestResolve(t *testing.T) {
 		{
 			name: "common type with undefined nested type",
 			in:   `type MyType = NonExistent;`,
-			want: &resolver.ResolvedSchema{
-				Namespaces: map[types.Path]resolver.ResolvedNamespace{},
-				Entities:   map[types.EntityType]resolver.ResolvedEntity{},
-				Enums:      map[types.EntityType]resolver.ResolvedEnum{},
-				Actions:    map[types.EntityUID]resolver.ResolvedAction{},
+			want: &resolver.Schema{
+				Namespaces: map[types.Path]resolver.Namespace{},
+				Entities:   map[types.EntityType]resolver.Entity{},
+				Enums:      map[types.EntityType]resolver.Enum{},
+				Actions:    map[types.EntityUID]resolver.Action{},
 			},
 			errTest: testutil.OK,
 		},
 		{
 			name: "common type with undefined nested type in record",
 			in:   `type MyType = { "field": NonExistent };`,
-			want: &resolver.ResolvedSchema{
-				Namespaces: map[types.Path]resolver.ResolvedNamespace{},
-				Entities:   map[types.EntityType]resolver.ResolvedEntity{},
-				Enums:      map[types.EntityType]resolver.ResolvedEnum{},
-				Actions:    map[types.EntityUID]resolver.ResolvedAction{},
+			want: &resolver.Schema{
+				Namespaces: map[types.Path]resolver.Namespace{},
+				Entities:   map[types.EntityType]resolver.Entity{},
+				Enums:      map[types.EntityType]resolver.Enum{},
+				Actions:    map[types.EntityUID]resolver.Action{},
 			},
 			errTest: testutil.OK,
 		},
 		{
 			name: "common type with undefined nested type in set",
 			in:   `type MyType = Set<NonExistent>;`,
-			want: &resolver.ResolvedSchema{
-				Namespaces: map[types.Path]resolver.ResolvedNamespace{},
-				Entities:   map[types.EntityType]resolver.ResolvedEntity{},
-				Enums:      map[types.EntityType]resolver.ResolvedEnum{},
-				Actions:    map[types.EntityUID]resolver.ResolvedAction{},
+			want: &resolver.Schema{
+				Namespaces: map[types.Path]resolver.Namespace{},
+				Entities:   map[types.EntityType]resolver.Entity{},
+				Enums:      map[types.EntityType]resolver.Enum{},
+				Actions:    map[types.EntityUID]resolver.Action{},
 			},
 			errTest: testutil.OK,
 		},
@@ -739,11 +739,11 @@ func TestResolve(t *testing.T) {
 					"field": MyType
 				};
 			}`,
-			want: &resolver.ResolvedSchema{
-				Namespaces: map[types.Path]resolver.ResolvedNamespace{
+			want: &resolver.Schema{
+				Namespaces: map[types.Path]resolver.Namespace{
 					"App": {Name: "App"},
 				},
-				Entities: map[types.EntityType]resolver.ResolvedEntity{
+				Entities: map[types.EntityType]resolver.Entity{
 					"App::User": {
 						Name: "App::User",
 						Shape: &ast.RecordType{
@@ -753,8 +753,8 @@ func TestResolve(t *testing.T) {
 						},
 					},
 				},
-				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
-				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+				Enums:   map[types.EntityType]resolver.Enum{},
+				Actions: map[types.EntityUID]resolver.Action{},
 			},
 			errTest: testutil.OK,
 		},
@@ -765,11 +765,11 @@ func TestResolve(t *testing.T) {
 				entity User = { "field": MyType };
 				entity Group = { "field": MyType };
 			}`,
-			want: &resolver.ResolvedSchema{
-				Namespaces: map[types.Path]resolver.ResolvedNamespace{
+			want: &resolver.Schema{
+				Namespaces: map[types.Path]resolver.Namespace{
 					"App": {Name: "App"},
 				},
-				Entities: map[types.EntityType]resolver.ResolvedEntity{
+				Entities: map[types.EntityType]resolver.Entity{
 					"App::User": {
 						Name: "App::User",
 						Shape: &ast.RecordType{
@@ -787,8 +787,8 @@ func TestResolve(t *testing.T) {
 						},
 					},
 				},
-				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
-				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+				Enums:   map[types.EntityType]resolver.Enum{},
+				Actions: map[types.EntityUID]resolver.Action{},
 			},
 			errTest: testutil.OK,
 		},
@@ -798,11 +798,11 @@ func TestResolve(t *testing.T) {
 				entity User = { "f1": BadType, "f2": BadType };
 				type BadType = NonExistent;
 			}`,
-			want: &resolver.ResolvedSchema{
-				Namespaces: map[types.Path]resolver.ResolvedNamespace{
+			want: &resolver.Schema{
+				Namespaces: map[types.Path]resolver.Namespace{
 					"App": {Name: "App"},
 				},
-				Entities: map[types.EntityType]resolver.ResolvedEntity{
+				Entities: map[types.EntityType]resolver.Entity{
 					"App::User": {
 						Name: "App::User",
 						Shape: &ast.RecordType{
@@ -813,8 +813,8 @@ func TestResolve(t *testing.T) {
 						},
 					},
 				},
-				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
-				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+				Enums:   map[types.EntityType]resolver.Enum{},
+				Actions: map[types.EntityUID]resolver.Action{},
 			},
 			errTest: testutil.OK,
 		},
@@ -827,12 +827,12 @@ func TestResolve(t *testing.T) {
 			namespace Other {
 				entity User = { "field": Type2 };
 			}`,
-			want: &resolver.ResolvedSchema{
-				Namespaces: map[types.Path]resolver.ResolvedNamespace{
+			want: &resolver.Schema{
+				Namespaces: map[types.Path]resolver.Namespace{
 					"App":   {Name: "App"},
 					"Other": {Name: "Other"},
 				},
-				Entities: map[types.EntityType]resolver.ResolvedEntity{
+				Entities: map[types.EntityType]resolver.Entity{
 					"Other::User": {
 						Name: "Other::User",
 						Shape: &ast.RecordType{
@@ -842,8 +842,8 @@ func TestResolve(t *testing.T) {
 						},
 					},
 				},
-				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
-				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+				Enums:   map[types.EntityType]resolver.Enum{},
+				Actions: map[types.EntityUID]resolver.Action{},
 			},
 			errTest: testutil.OK, // Type2 is not accessible from Other namespace, becomes EntityTypeRef
 		},
@@ -852,9 +852,9 @@ func TestResolve(t *testing.T) {
 			in: `entity User;
 			type UserAlias = User;
 			entity Group = { "owner": UserAlias };`,
-			want: &resolver.ResolvedSchema{
-				Namespaces: map[types.Path]resolver.ResolvedNamespace{},
-				Entities: map[types.EntityType]resolver.ResolvedEntity{
+			want: &resolver.Schema{
+				Namespaces: map[types.Path]resolver.Namespace{},
+				Entities: map[types.EntityType]resolver.Entity{
 					"User": {Name: "User"},
 					"Group": {
 						Name: "Group",
@@ -865,8 +865,8 @@ func TestResolve(t *testing.T) {
 						},
 					},
 				},
-				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
-				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+				Enums:   map[types.EntityType]resolver.Enum{},
+				Actions: map[types.EntityUID]resolver.Action{},
 			},
 			errTest: testutil.OK, // User is treated as EntityTypeRef when used as type
 		},
@@ -877,11 +877,11 @@ func TestResolve(t *testing.T) {
 				type LocalType = GlobalType;
 				entity User = { "field": LocalType };
 			}`,
-			want: &resolver.ResolvedSchema{
-				Namespaces: map[types.Path]resolver.ResolvedNamespace{
+			want: &resolver.Schema{
+				Namespaces: map[types.Path]resolver.Namespace{
 					"App": {Name: "App"},
 				},
-				Entities: map[types.EntityType]resolver.ResolvedEntity{
+				Entities: map[types.EntityType]resolver.Entity{
 					"App::User": {
 						Name: "App::User",
 						Shape: &ast.RecordType{
@@ -891,8 +891,8 @@ func TestResolve(t *testing.T) {
 						},
 					},
 				},
-				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
-				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+				Enums:   map[types.EntityType]resolver.Enum{},
+				Actions: map[types.EntityUID]resolver.Action{},
 			},
 			errTest: testutil.OK, // Global types ARE accessible from namespaces
 		},
@@ -900,9 +900,9 @@ func TestResolve(t *testing.T) {
 			name: "error resolving global common type during lazy resolution",
 			in: `entity User = { "field": BadType };
 			type BadType = NonExistent;`,
-			want: &resolver.ResolvedSchema{
-				Namespaces: map[types.Path]resolver.ResolvedNamespace{},
-				Entities: map[types.EntityType]resolver.ResolvedEntity{
+			want: &resolver.Schema{
+				Namespaces: map[types.Path]resolver.Namespace{},
+				Entities: map[types.EntityType]resolver.Entity{
 					"User": {
 						Name: "User",
 						Shape: &ast.RecordType{
@@ -912,8 +912,8 @@ func TestResolve(t *testing.T) {
 						},
 					},
 				},
-				Enums:   map[types.EntityType]resolver.ResolvedEnum{},
-				Actions: map[types.EntityUID]resolver.ResolvedAction{},
+				Enums:   map[types.EntityType]resolver.Enum{},
+				Actions: map[types.EntityUID]resolver.Action{},
 			},
 			errTest: testutil.OK,
 		},
@@ -956,14 +956,14 @@ func TestResolve(t *testing.T) {
 					"duration": duration
 				}
 			};`,
-			want: &resolver.ResolvedSchema{
-				Namespaces: map[types.Path]resolver.ResolvedNamespace{},
-				Entities:   map[types.EntityType]resolver.ResolvedEntity{},
-				Enums:      map[types.EntityType]resolver.ResolvedEnum{},
-				Actions: map[types.EntityUID]resolver.ResolvedAction{
+			want: &resolver.Schema{
+				Namespaces: map[types.Path]resolver.Namespace{},
+				Entities:   map[types.EntityType]resolver.Entity{},
+				Enums:      map[types.EntityType]resolver.Enum{},
+				Actions: map[types.EntityUID]resolver.Action{
 					types.NewEntityUID("Action", "view"): {
 						Name: "view",
-						AppliesTo: &resolver.ResolvedAppliesTo{
+						AppliesTo: &resolver.AppliesTo{
 							Context: ast.RecordType{
 								Attributes: ast.Attributes{
 									"timestamp": ast.Attribute{Type: ast.ExtensionType{Name: "datetime"}},

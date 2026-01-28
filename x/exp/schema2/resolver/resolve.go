@@ -99,12 +99,12 @@ func (rd *resolveData) withNamespace(namespacePath types.Path) *resolveData {
 // Type references within namespaces are resolved relative to their namespace.
 // Top-level type references are resolved as-is.
 // Returns an error if any type reference cannot be resolved or if there are naming conflicts.
-func Resolve(s *ast.Schema) (*ResolvedSchema, error) {
-	resolved := &ResolvedSchema{
-		Namespaces: make(map[types.Path]ResolvedNamespace),
-		Entities:   make(map[types.EntityType]ResolvedEntity),
-		Enums:      make(map[types.EntityType]ResolvedEnum),
-		Actions:    make(map[types.EntityUID]ResolvedAction),
+func Resolve(s *ast.Schema) (*Schema, error) {
+	resolved := &Schema{
+		Namespaces: make(map[types.Path]Namespace),
+		Entities:   make(map[types.EntityType]Entity),
+		Enums:      make(map[types.EntityType]Enum),
+		Actions:    make(map[types.EntityUID]Action),
 	}
 
 	rd := newResolveData(s)
@@ -144,7 +144,7 @@ func Resolve(s *ast.Schema) (*ResolvedSchema, error) {
 	// Process namespaces
 	for nsPath, ns := range s.Namespaces {
 		// Store namespace annotations
-		resolved.Namespaces[nsPath] = ResolvedNamespace{
+		resolved.Namespaces[nsPath] = Namespace{
 			Name:        nsPath,
 			Annotations: ns.Annotations,
 		}

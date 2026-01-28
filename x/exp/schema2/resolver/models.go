@@ -7,24 +7,24 @@ import (
 	"github.com/cedar-policy/cedar-go/x/exp/schema2/ast"
 )
 
-// ResolvedSchema represents a schema with all type references resolved and indexed for efficient lookup.
-type ResolvedSchema struct {
-	Namespaces map[types.Path]ResolvedNamespace    // Namespace path -> ResolvedNamespace
-	Entities   map[types.EntityType]ResolvedEntity // Fully qualified entity type -> ResolvedEntity
-	Enums      map[types.EntityType]ResolvedEnum   // Fully qualified entity type -> ResolvedEnum
-	Actions    map[types.EntityUID]ResolvedAction  // Fully qualified action UID -> ResolvedAction
+// Schema represents a schema with all type references resolved and indexed for efficient lookup.
+type Schema struct {
+	Namespaces map[types.Path]Namespace    // Namespace path -> ResolvedNamespace
+	Entities   map[types.EntityType]Entity // Fully qualified entity type -> ResolvedEntity
+	Enums      map[types.EntityType]Enum   // Fully qualified entity type -> ResolvedEnum
+	Actions    map[types.EntityUID]Action  // Fully qualified action UID -> ResolvedAction
 }
 
-// ResolvedNamespace represents a namespace without the declarations included.
+// Namespace represents a namespace without the declarations included.
 // All declarations have been moved into the other maps.
-type ResolvedNamespace struct {
+type Namespace struct {
 	Name        types.Path
 	Annotations ast.Annotations
 }
 
-// ResolvedEntity represents an entity type with all type references fully resolved.
+// Entity represents an entity type with all type references fully resolved.
 // All EntityTypeRef references have been converted to types.EntityType.
-type ResolvedEntity struct {
+type Entity struct {
 	Name        types.EntityType   // Fully qualified entity type
 	Annotations ast.Annotations    // Entity annotations
 	MemberOf    []types.EntityType // Fully qualified parent entity types
@@ -32,8 +32,8 @@ type ResolvedEntity struct {
 	Tags        ast.IsType         // Tags type (with all type references resolved)
 }
 
-// ResolvedEnum represents an enum type with all references fully resolved.
-type ResolvedEnum struct {
+// Enum represents an enum type with all references fully resolved.
+type Enum struct {
 	Name        types.EntityType // Fully qualified enum type
 	Annotations ast.Annotations  // Enum annotations
 	Values      []types.String   // Enum values
@@ -41,7 +41,7 @@ type ResolvedEnum struct {
 
 // EntityUIDs returns an iterator over EntityUID values for each enum value.
 // The Name field should already be fully qualified.
-func (e ResolvedEnum) EntityUIDs() iter.Seq[types.EntityUID] {
+func (e Enum) EntityUIDs() iter.Seq[types.EntityUID] {
 	return func(yield func(types.EntityUID) bool) {
 		for _, v := range e.Values {
 			if !yield(types.NewEntityUID(e.Name, v)) {
@@ -51,19 +51,19 @@ func (e ResolvedEnum) EntityUIDs() iter.Seq[types.EntityUID] {
 	}
 }
 
-// ResolvedAppliesTo represents the appliesTo clause with all type references fully resolved.
+// AppliesTo represents the appliesTo clause with all type references fully resolved.
 // All EntityTypeRef references have been converted to types.EntityType.
-type ResolvedAppliesTo struct {
+type AppliesTo struct {
 	PrincipalTypes []types.EntityType // Fully qualified principal entity types
 	ResourceTypes  []types.EntityType // Fully qualified resource entity types
 	Context        ast.RecordType     // Context type (with all type references resolved)
 }
 
-// ResolvedAction represents an action with all type references fully resolved.
+// Action represents an action with all type references fully resolved.
 // All EntityTypeRef and EntityRef references have been converted to types.EntityType and types.EntityUID.
-type ResolvedAction struct {
-	Name        types.String       // Action name (local, not qualified)
-	Annotations ast.Annotations    // Action annotations
-	MemberOf    []types.EntityUID  // Fully qualified parent action UIDs
-	AppliesTo   *ResolvedAppliesTo // AppliesTo clause with all type references resolved
+type Action struct {
+	Name        types.String      // Action name (local, not qualified)
+	Annotations ast.Annotations   // Action annotations
+	MemberOf    []types.EntityUID // Fully qualified parent action UIDs
+	AppliesTo   *AppliesTo        // AppliesTo clause with all type references resolved
 }
