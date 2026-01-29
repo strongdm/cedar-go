@@ -51,6 +51,7 @@ type Enum struct {
 }
 
 // Action represents a Cedar action declaration.
+// In the case where AppliesTo is nil, the action will never apply.
 type Action struct {
 	Annotations Annotations
 	MemberOf    []EntityRef

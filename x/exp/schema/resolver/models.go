@@ -61,6 +61,7 @@ type AppliesTo struct {
 
 // Action represents an action with all type references fully resolved.
 // All EntityTypeRef and EntityRef references have been converted to types.EntityType and types.EntityUID.
+// In the case where AppliesTo is nil, the action will never apply.
 type Action struct {
 	Name        types.String      // Action name (local, not qualified)
 	Annotations ast.Annotations   // Action annotations
