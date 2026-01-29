@@ -406,8 +406,8 @@ var wantAST = &ast.Schema{
 	Actions: ast.Actions{
 		"audit": ast.Action{
 			AppliesTo: &ast.AppliesTo{
-				PrincipalTypes: []ast.EntityTypeRef{{Name: "Admin"}},
-				ResourceTypes:  []ast.EntityTypeRef{{Name: "MyApp::Document"}, {Name: "System"}},
+				Principals: []ast.EntityTypeRef{{Name: "Admin"}},
+				Resources:  []ast.EntityTypeRef{{Name: "MyApp::Document"}, {Name: "System"}},
 			},
 		},
 	},
@@ -477,8 +477,8 @@ var wantAST = &ast.Schema{
 						"doc": "View or edit document",
 					},
 					AppliesTo: &ast.AppliesTo{
-						PrincipalTypes: []ast.EntityTypeRef{{Name: "User"}},
-						ResourceTypes:  []ast.EntityTypeRef{{Name: "Document"}},
+						Principals: []ast.EntityTypeRef{{Name: "User"}},
+						Resources:  []ast.EntityTypeRef{{Name: "Document"}},
 						Context: ast.RecordType{
 							Attributes: ast.Attributes{
 								"ip":        ast.Attribute{Type: ast.TypeRef{Name: "ipaddr"}},
@@ -489,8 +489,8 @@ var wantAST = &ast.Schema{
 				},
 				"manage": ast.Action{
 					AppliesTo: &ast.AppliesTo{
-						PrincipalTypes: []ast.EntityTypeRef{{Name: "User"}},
-						ResourceTypes:  []ast.EntityTypeRef{{Name: "Document"}, {Name: "Group"}},
+						Principals: []ast.EntityTypeRef{{Name: "User"}},
+						Resources:  []ast.EntityTypeRef{{Name: "Document"}, {Name: "Group"}},
 					},
 				},
 				"view": ast.Action{
@@ -498,8 +498,8 @@ var wantAST = &ast.Schema{
 						"doc": "View or edit document",
 					},
 					AppliesTo: &ast.AppliesTo{
-						PrincipalTypes: []ast.EntityTypeRef{{Name: "User"}},
-						ResourceTypes:  []ast.EntityTypeRef{{Name: "Document"}},
+						Principals: []ast.EntityTypeRef{{Name: "User"}},
+						Resources:  []ast.EntityTypeRef{{Name: "Document"}},
 						Context: ast.RecordType{
 							Attributes: ast.Attributes{
 								"ip":        ast.Attribute{Type: ast.TypeRef{Name: "ipaddr"}},
@@ -640,9 +640,9 @@ var wantResolved = &resolver.Schema{
 			Annotations: nil,
 			MemberOf:    nil,
 			AppliesTo: &resolver.AppliesTo{
-				PrincipalTypes: []types.EntityType{"Admin"},
-				ResourceTypes:  []types.EntityType{"MyApp::Document", "System"},
-				Context:        ast.RecordType{},
+				Principals: []types.EntityType{"Admin"},
+				Resources:  []types.EntityType{"MyApp::Document", "System"},
+				Context:    ast.RecordType{},
 			},
 		},
 		types.NewEntityUID("MyApp::Action", "edit"): {
@@ -650,8 +650,8 @@ var wantResolved = &resolver.Schema{
 			Annotations: ast.Annotations{"doc": "View or edit document"},
 			MemberOf:    nil,
 			AppliesTo: &resolver.AppliesTo{
-				PrincipalTypes: []types.EntityType{"MyApp::User"},
-				ResourceTypes:  []types.EntityType{"MyApp::Document"},
+				Principals: []types.EntityType{"MyApp::User"},
+				Resources:  []types.EntityType{"MyApp::Document"},
 				Context: ast.RecordType{
 					Attributes: ast.Attributes{
 						"ip":        ast.Attribute{Type: ast.ExtensionType{Name: "ipaddr"}},
@@ -665,9 +665,9 @@ var wantResolved = &resolver.Schema{
 			Annotations: nil,
 			MemberOf:    nil,
 			AppliesTo: &resolver.AppliesTo{
-				PrincipalTypes: []types.EntityType{"MyApp::User"},
-				ResourceTypes:  []types.EntityType{"MyApp::Document", "MyApp::Group"},
-				Context:        ast.RecordType{},
+				Principals: []types.EntityType{"MyApp::User"},
+				Resources:  []types.EntityType{"MyApp::Document", "MyApp::Group"},
+				Context:    ast.RecordType{},
 			},
 		},
 		types.NewEntityUID("MyApp::Action", "view"): {
@@ -675,8 +675,8 @@ var wantResolved = &resolver.Schema{
 			Annotations: ast.Annotations{"doc": "View or edit document"},
 			MemberOf:    nil,
 			AppliesTo: &resolver.AppliesTo{
-				PrincipalTypes: []types.EntityType{"MyApp::User"},
-				ResourceTypes:  []types.EntityType{"MyApp::Document"},
+				Principals: []types.EntityType{"MyApp::User"},
+				Resources:  []types.EntityType{"MyApp::Document"},
 				Context: ast.RecordType{
 					Attributes: ast.Attributes{
 						"ip":        ast.Attribute{Type: ast.ExtensionType{Name: "ipaddr"}},

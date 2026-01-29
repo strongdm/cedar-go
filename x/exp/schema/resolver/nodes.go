@@ -77,20 +77,20 @@ func resolveAction(rd *resolveData, a ast.Action, name types.String) (Action, er
 		resolved.AppliesTo = &AppliesTo{}
 
 		// Convert PrincipalTypes from []EntityTypeRef to []types.EntityType
-		if len(a.AppliesTo.PrincipalTypes) > 0 {
-			resolved.AppliesTo.PrincipalTypes = make([]types.EntityType, len(a.AppliesTo.PrincipalTypes))
-			for i, ref := range a.AppliesTo.PrincipalTypes {
+		if len(a.AppliesTo.Principals) > 0 {
+			resolved.AppliesTo.Principals = make([]types.EntityType, len(a.AppliesTo.Principals))
+			for i, ref := range a.AppliesTo.Principals {
 				resolvedRef := resolveEntityTypeRef(rd, ref)
-				resolved.AppliesTo.PrincipalTypes[i] = resolvedRef.Name
+				resolved.AppliesTo.Principals[i] = resolvedRef.Name
 			}
 		}
 
 		// Convert ResourceTypes from []EntityTypeRef to []types.EntityType
-		if len(a.AppliesTo.ResourceTypes) > 0 {
-			resolved.AppliesTo.ResourceTypes = make([]types.EntityType, len(a.AppliesTo.ResourceTypes))
-			for i, ref := range a.AppliesTo.ResourceTypes {
+		if len(a.AppliesTo.Resources) > 0 {
+			resolved.AppliesTo.Resources = make([]types.EntityType, len(a.AppliesTo.Resources))
+			for i, ref := range a.AppliesTo.Resources {
 				resolvedRef := resolveEntityTypeRef(rd, ref)
-				resolved.AppliesTo.ResourceTypes[i] = resolvedRef.Name
+				resolved.AppliesTo.Resources[i] = resolvedRef.Name
 			}
 		}
 

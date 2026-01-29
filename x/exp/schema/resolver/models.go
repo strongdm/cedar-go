@@ -54,9 +54,9 @@ func (e Enum) EntityUIDs() iter.Seq[types.EntityUID] {
 // AppliesTo represents the appliesTo clause with all type references fully resolved.
 // All EntityTypeRef references have been converted to types.EntityType.
 type AppliesTo struct {
-	PrincipalTypes []types.EntityType // Fully qualified principal entity types
-	ResourceTypes  []types.EntityType // Fully qualified resource entity types
-	Context        ast.RecordType     // Context type (with all type references resolved)
+	Principals []types.EntityType // Fully qualified principal entity types
+	Resources  []types.EntityType // Fully qualified resource entity types
+	Context    ast.RecordType     // Context type (with all type references resolved)
 }
 
 // Action represents an action with all type references fully resolved.

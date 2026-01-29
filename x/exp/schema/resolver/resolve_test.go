@@ -296,8 +296,8 @@ func TestResolve(t *testing.T) {
 					types.NewEntityUID("Action", "view"): {
 						Name: "view",
 						AppliesTo: &resolver.AppliesTo{
-							PrincipalTypes: []types.EntityType{"User"},
-							ResourceTypes:  []types.EntityType{"Document"},
+							Principals: []types.EntityType{"User"},
+							Resources:  []types.EntityType{"Document"},
 							Context: ast.RecordType{
 								Attributes: ast.Attributes{
 									"ip": ast.Attribute{Type: ast.StringType{}},

@@ -163,17 +163,17 @@ func marshalAction(buf *bytes.Buffer, name types.String, a ast.Action, indent st
 		buf.WriteString(" appliesTo {\n")
 		innerIndent := indent + "  "
 
-		if len(a.AppliesTo.PrincipalTypes) > 0 {
+		if len(a.AppliesTo.Principals) > 0 {
 			buf.WriteString(innerIndent)
 			buf.WriteString("principal: ")
-			marshalEntityTypeRefs(buf, a.AppliesTo.PrincipalTypes)
+			marshalEntityTypeRefs(buf, a.AppliesTo.Principals)
 			buf.WriteString(",\n")
 		}
 
-		if len(a.AppliesTo.ResourceTypes) > 0 {
+		if len(a.AppliesTo.Resources) > 0 {
 			buf.WriteString(innerIndent)
 			buf.WriteString("resource: ")
-			marshalEntityTypeRefs(buf, a.AppliesTo.ResourceTypes)
+			marshalEntityTypeRefs(buf, a.AppliesTo.Resources)
 			buf.WriteString(",\n")
 		}
 

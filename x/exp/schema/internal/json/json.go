@@ -200,21 +200,21 @@ func addActionToNamespace(ns *Namespace, name string, a ast.Action) {
 
 	if a.AppliesTo != nil {
 		// Only emit appliesTo if there's meaningful content
-		hasPrincipals := len(a.AppliesTo.PrincipalTypes) > 0
-		hasResources := len(a.AppliesTo.ResourceTypes) > 0
+		hasPrincipals := len(a.AppliesTo.Principals) > 0
+		hasResources := len(a.AppliesTo.Resources) > 0
 		hasContext := a.AppliesTo.Context != nil
 
 		if hasPrincipals || hasResources || hasContext {
 			ja.AppliesTo = &AppliesTo{}
 			if hasPrincipals {
-				ja.AppliesTo.PrincipalTypes = make([]string, len(a.AppliesTo.PrincipalTypes))
-				for i, ref := range a.AppliesTo.PrincipalTypes {
+				ja.AppliesTo.PrincipalTypes = make([]string, len(a.AppliesTo.Principals))
+				for i, ref := range a.AppliesTo.Principals {
 					ja.AppliesTo.PrincipalTypes[i] = string(ref.Name)
 				}
 			}
 			if hasResources {
-				ja.AppliesTo.ResourceTypes = make([]string, len(a.AppliesTo.ResourceTypes))
-				for i, ref := range a.AppliesTo.ResourceTypes {
+				ja.AppliesTo.ResourceTypes = make([]string, len(a.AppliesTo.Resources))
+				for i, ref := range a.AppliesTo.Resources {
 					ja.AppliesTo.ResourceTypes[i] = string(ref.Name)
 				}
 			}
@@ -484,15 +484,15 @@ func parseAction(ja *Action) (ast.Action, error) {
 		if hasPrincipals || hasResources || hasContext {
 			a.AppliesTo = &ast.AppliesTo{}
 			if hasPrincipals {
-				a.AppliesTo.PrincipalTypes = make([]ast.EntityTypeRef, len(ja.AppliesTo.PrincipalTypes))
+				a.AppliesTo.Principals = make([]ast.EntityTypeRef, len(ja.AppliesTo.PrincipalTypes))
 				for i, ref := range ja.AppliesTo.PrincipalTypes {
-					a.AppliesTo.PrincipalTypes[i] = ast.EntityTypeRef{Name: types.EntityType(ref)}
+					a.AppliesTo.Principals[i] = ast.EntityTypeRef{Name: types.EntityType(ref)}
 				}
 			}
 			if hasResources {
-				a.AppliesTo.ResourceTypes = make([]ast.EntityTypeRef, len(ja.AppliesTo.ResourceTypes))
+				a.AppliesTo.Resources = make([]ast.EntityTypeRef, len(ja.AppliesTo.ResourceTypes))
 				for i, ref := range ja.AppliesTo.ResourceTypes {
-					a.AppliesTo.ResourceTypes[i] = ast.EntityTypeRef{Name: types.EntityType(ref)}
+					a.AppliesTo.Resources[i] = ast.EntityTypeRef{Name: types.EntityType(ref)}
 				}
 			}
 			if hasContext {

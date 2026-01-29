@@ -46,8 +46,8 @@ func TestParseNormalizations(t *testing.T) {
 			validate: func(t *testing.T, schema *ast.Schema) {
 				action := schema.Actions[types.String("view")]
 				testutil.Equals(t, action.AppliesTo != nil, true)
-				testutil.Equals(t, len(action.AppliesTo.PrincipalTypes), 1)
-				testutil.Equals(t, len(action.AppliesTo.ResourceTypes), 1)
+				testutil.Equals(t, len(action.AppliesTo.Principals), 1)
+				testutil.Equals(t, len(action.AppliesTo.Resources), 1)
 			},
 		},
 		{

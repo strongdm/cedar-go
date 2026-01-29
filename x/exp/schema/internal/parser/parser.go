@@ -633,9 +633,9 @@ func (p *Parser) parseAction(annotations ast.Annotations) (map[types.String]ast.
 		}
 		if hasAppliesTo {
 			action.AppliesTo = &ast.AppliesTo{
-				PrincipalTypes: principals,
-				ResourceTypes:  resources,
-				Context:        contextType,
+				Principals: principals,
+				Resources:  resources,
+				Context:    contextType,
 			}
 		}
 		actions[types.String(n)] = action

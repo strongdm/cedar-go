@@ -59,9 +59,9 @@ type Action struct {
 
 // AppliesTo represents the principal, resource, and context types for an action.
 type AppliesTo struct {
-	PrincipalTypes []EntityTypeRef
-	ResourceTypes  []EntityTypeRef
-	Context        IsType
+	Principals []EntityTypeRef
+	Resources  []EntityTypeRef
+	Context    IsType
 }
 
 // EntityRef represents a reference to a specific entity (type + id).

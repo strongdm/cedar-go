@@ -69,8 +69,8 @@ func TestMarshalOnlyFeatures(t *testing.T) {
 				Actions: ast.Actions{
 					types.String("view"): ast.Action{
 						AppliesTo: &ast.AppliesTo{
-							PrincipalTypes: []ast.EntityTypeRef{ast.EntityType(types.EntityType("User"))},
-							ResourceTypes:  []ast.EntityTypeRef{ast.EntityType(types.EntityType("Document"))},
+							Principals: []ast.EntityTypeRef{ast.EntityType(types.EntityType("User"))},
+							Resources:  []ast.EntityTypeRef{ast.EntityType(types.EntityType("Document"))},
 							Context: ast.Record(ast.Attributes{
 								"ip": ast.Attribute{Type: ast.IPAddr()},
 							}),

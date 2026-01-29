@@ -150,8 +150,8 @@ func TestSchemaRoundtrip(t *testing.T) {
 				Actions: ast.Actions{
 					types.String("view"): ast.Action{
 						AppliesTo: &ast.AppliesTo{
-							PrincipalTypes: []ast.EntityTypeRef{ast.EntityType(types.EntityType("User"))},
-							ResourceTypes:  []ast.EntityTypeRef{ast.EntityType(types.EntityType("Document"))},
+							Principals: []ast.EntityTypeRef{ast.EntityType(types.EntityType("User"))},
+							Resources:  []ast.EntityTypeRef{ast.EntityType(types.EntityType("Document"))},
 							Context: ast.Record(ast.Attributes{
 								"timestamp": ast.Attribute{Type: ast.Long()},
 							}),
@@ -345,11 +345,11 @@ func TestSchemaRoundtrip(t *testing.T) {
 				Actions: ast.Actions{
 					types.String("view"): ast.Action{
 						AppliesTo: &ast.AppliesTo{
-							PrincipalTypes: []ast.EntityTypeRef{
+							Principals: []ast.EntityTypeRef{
 								ast.EntityType(types.EntityType("Admin")),
 								ast.EntityType(types.EntityType("User")),
 							},
-							ResourceTypes: []ast.EntityTypeRef{ast.EntityType(types.EntityType("Document"))},
+							Resources: []ast.EntityTypeRef{ast.EntityType(types.EntityType("Document"))},
 						},
 					},
 				},
@@ -688,7 +688,7 @@ namespace MyApp {
 				Actions: ast.Actions{
 					types.String("view"): ast.Action{
 						AppliesTo: &ast.AppliesTo{
-							PrincipalTypes: []ast.EntityTypeRef{ast.EntityType(types.EntityType("User"))},
+							Principals: []ast.EntityTypeRef{ast.EntityType(types.EntityType("User"))},
 						},
 					},
 				},
@@ -704,7 +704,7 @@ namespace MyApp {
 				Actions: ast.Actions{
 					types.String("view"): ast.Action{
 						AppliesTo: &ast.AppliesTo{
-							ResourceTypes: []ast.EntityTypeRef{ast.EntityType(types.EntityType("Document"))},
+							Resources: []ast.EntityTypeRef{ast.EntityType(types.EntityType("Document"))},
 						},
 					},
 				},
