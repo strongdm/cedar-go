@@ -69,7 +69,7 @@ func (s *Schema) MarshalJSON() ([]byte, error) {
 		}
 	}
 
-	return json.MarshalIndent(namespaces, "", "    ")
+	return json.Marshal(namespaces)
 }
 
 // UnmarshalJSON deserializes Cedar JSON schema format into the schema.
