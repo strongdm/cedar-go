@@ -413,7 +413,7 @@ func (p *Parser) parseEntity(annotations ast.Annotations) (map[types.EntityType]
 
 	// Parse shared modifiers for all entities
 	var parents []ast.EntityTypeRef
-	var attrs ast.Attributes
+	var shape *ast.RecordType
 	var tagsType ast.IsType
 
 	// Parse "in" clause
@@ -432,10 +432,12 @@ func (p *Parser) parseEntity(annotations ast.Annotations) (map[types.EntityType]
 
 	// Parse shape
 	if p.peek().Text == "{" {
-		attrs, err = p.parseAttributes()
+		attrs, err := p.parseAttributes()
 		if err != nil {
 			return nil, err
 		}
+		s := ast.RecordType(attrs)
+		shape = &s
 	}
 
 	// Parse tags
@@ -457,10 +459,8 @@ func (p *Parser) parseEntity(annotations ast.Annotations) (map[types.EntityType]
 		entity := ast.Entity{
 			Annotations: annotations,
 			MemberOf:    parents,
+			Shape:       shape,
 			Tags:        tagsType,
-		}
-		if attrs != nil {
-			entity.Shape = &ast.RecordType{Attributes: attrs}
 		}
 		entities[types.EntityType(n)] = entity
 	}

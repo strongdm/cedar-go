@@ -21,9 +21,7 @@ type BoolType struct{}
 
 func (BoolType) isType() { _ = 0 }
 
-type ExtensionType struct {
-	Name types.Ident
-}
+type ExtensionType types.Ident
 
 func (ExtensionType) isType() { _ = 0 }
 
@@ -39,16 +37,12 @@ type Attribute struct {
 	Annotations Annotations
 }
 
-type Attributes map[types.String]Attribute
+type RecordType map[types.String]Attribute
 
-type RecordType struct {
-	Attributes Attributes
-}
+type Attributes = RecordType
 
 func (RecordType) isType() { _ = 0 }
 
-type EntityTypeRef struct {
-	Name types.EntityType
-}
+type EntityTypeRef types.EntityType
 
 func (EntityTypeRef) isType() { _ = 0 }

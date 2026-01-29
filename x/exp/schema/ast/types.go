@@ -27,19 +27,17 @@ func (BoolType) isType() { _ = 0 }
 
 func Bool() BoolType { return BoolType{} }
 
-type ExtensionType struct {
-	Name types.Ident
-}
+type ExtensionType types.Ident
 
 func (ExtensionType) isType() { _ = 0 }
 
-func IPAddr() ExtensionType { return ExtensionType{Name: "ipaddr"} }
+func IPAddr() ExtensionType { return ExtensionType("ipaddr") }
 
-func Decimal() ExtensionType { return ExtensionType{Name: "decimal"} }
+func Decimal() ExtensionType { return ExtensionType("decimal") }
 
-func Datetime() ExtensionType { return ExtensionType{Name: "datetime"} }
+func Datetime() ExtensionType { return ExtensionType("datetime") }
 
-func Duration() ExtensionType { return ExtensionType{Name: "duration"} }
+func Duration() ExtensionType { return ExtensionType("duration") }
 
 type SetType struct {
 	Element IsType
@@ -57,34 +55,28 @@ type Attribute struct {
 	Annotations Annotations
 }
 
-type Attributes map[types.String]Attribute
+type RecordType map[types.String]Attribute
 
-type RecordType struct {
-	Attributes Attributes
-}
+type Attributes = RecordType
 
 func (RecordType) isType() { _ = 0 }
 
 func Record(attrs Attributes) RecordType {
-	return RecordType{Attributes: attrs}
+	return RecordType(attrs)
 }
 
-type EntityTypeRef struct {
-	Name types.EntityType
-}
+type EntityTypeRef types.EntityType
 
 func (EntityTypeRef) isType() { _ = 0 }
 
 func EntityType(name types.EntityType) EntityTypeRef {
-	return EntityTypeRef{Name: name}
+	return EntityTypeRef(name)
 }
 
-type TypeRef struct {
-	Name types.Path
-}
+type TypeRef types.Path
 
 func (TypeRef) isType() { _ = 0 }
 
 func Type(name types.Path) TypeRef {
-	return TypeRef{Name: name}
+	return TypeRef(name)
 }

@@ -154,11 +154,11 @@ func addEntityToNamespace(ns *Namespace, name string, e ast.Entity) {
 	if len(e.MemberOf) > 0 {
 		je.MemberOfTypes = make([]string, len(e.MemberOf))
 		for i, ref := range e.MemberOf {
-			je.MemberOfTypes[i] = string(ref.Name)
+			je.MemberOfTypes[i] = string(ref)
 		}
 	}
 
-	if e.Shape != nil && len(e.Shape.Attributes) > 0 {
+	if e.Shape != nil && len(*e.Shape) > 0 {
 		je.Shape = typeToJSON(*e.Shape)
 	}
 
@@ -190,7 +190,7 @@ func addActionToNamespace(ns *Namespace, name string, a ast.Action) {
 	if len(a.MemberOf) > 0 {
 		ja.MemberOf = make([]EntityUID, len(a.MemberOf))
 		for i, ref := range a.MemberOf {
-			refType := string(ref.Type.Name)
+			refType := string(ref.Type)
 			ja.MemberOf[i] = EntityUID{
 				Type: refType,
 				ID:   string(ref.ID),
@@ -209,13 +209,13 @@ func addActionToNamespace(ns *Namespace, name string, a ast.Action) {
 			if hasPrincipals {
 				ja.AppliesTo.PrincipalTypes = make([]string, len(a.AppliesTo.Principals))
 				for i, ref := range a.AppliesTo.Principals {
-					ja.AppliesTo.PrincipalTypes[i] = string(ref.Name)
+					ja.AppliesTo.PrincipalTypes[i] = string(ref)
 				}
 			}
 			if hasResources {
 				ja.AppliesTo.ResourceTypes = make([]string, len(a.AppliesTo.Resources))
 				for i, ref := range a.AppliesTo.Resources {
-					ja.AppliesTo.ResourceTypes[i] = string(ref.Name)
+					ja.AppliesTo.ResourceTypes[i] = string(ref)
 				}
 			}
 			if hasContext {
@@ -251,7 +251,7 @@ func typeToJSONFromContext(t ast.IsType, fromContext bool) *Type {
 	case ast.BoolType:
 		return &Type{TypeName: "EntityOrCommon", Name: "Bool"}
 	case ast.ExtensionType:
-		return &Type{TypeName: "Extension", Name: string(v.Name)}
+		return &Type{TypeName: "Extension", Name: string(v)}
 	case ast.SetType:
 		return &Type{TypeName: "Set", Element: typeToJSON(v.Element)}
 	case ast.RecordType:
@@ -259,7 +259,7 @@ func typeToJSONFromContext(t ast.IsType, fromContext bool) *Type {
 			TypeName:   "Record",
 			Attributes: make(map[string]*Attr),
 		}
-		for key, attr := range v.Attributes {
+		for key, attr := range v {
 			jattr := attrToJSON(attr.Type)
 			if attr.Optional {
 				f := false
@@ -272,9 +272,9 @@ func typeToJSONFromContext(t ast.IsType, fromContext bool) *Type {
 		}
 		return jt
 	case ast.EntityTypeRef:
-		return &Type{TypeName: "EntityOrCommon", Name: string(v.Name)}
+		return &Type{TypeName: "EntityOrCommon", Name: string(v)}
 	case ast.TypeRef:
-		name := string(v.Name)
+		name := string(v)
 		if !fromContext {
 			return &Type{TypeName: "EntityOrCommon", Name: name}
 		}
@@ -434,7 +434,7 @@ func parseEntity(je *Entity) (ast.Entity, error) {
 	if len(je.MemberOfTypes) > 0 {
 		e.MemberOf = make([]ast.EntityTypeRef, len(je.MemberOfTypes))
 		for i, ref := range je.MemberOfTypes {
-			e.MemberOf[i] = ast.EntityTypeRef{Name: types.EntityType(ref)}
+			e.MemberOf[i] = ast.EntityTypeRef(types.EntityType(ref))
 		}
 	}
 
@@ -469,7 +469,7 @@ func parseAction(ja *Action) (ast.Action, error) {
 		for i, ref := range ja.MemberOf {
 			refType := ref.Type
 			a.MemberOf[i] = ast.EntityRef{
-				Type: ast.EntityTypeRef{Name: types.EntityType(refType)},
+				Type: ast.EntityTypeRef(types.EntityType(refType)),
 				ID:   types.String(ref.ID),
 			}
 		}
@@ -486,13 +486,13 @@ func parseAction(ja *Action) (ast.Action, error) {
 			if hasPrincipals {
 				a.AppliesTo.Principals = make([]ast.EntityTypeRef, len(ja.AppliesTo.PrincipalTypes))
 				for i, ref := range ja.AppliesTo.PrincipalTypes {
-					a.AppliesTo.Principals[i] = ast.EntityTypeRef{Name: types.EntityType(ref)}
+					a.AppliesTo.Principals[i] = ast.EntityTypeRef(types.EntityType(ref))
 				}
 			}
 			if hasResources {
 				a.AppliesTo.Resources = make([]ast.EntityTypeRef, len(ja.AppliesTo.ResourceTypes))
 				for i, ref := range ja.AppliesTo.ResourceTypes {
-					a.AppliesTo.Resources[i] = ast.EntityTypeRef{Name: types.EntityType(ref)}
+					a.AppliesTo.Resources[i] = ast.EntityTypeRef(types.EntityType(ref))
 				}
 			}
 			if hasContext {
@@ -519,7 +519,7 @@ func jsonToType(jt *Type) (ast.IsType, error) {
 	case "Bool":
 		return ast.BoolType{}, nil
 	case "Extension":
-		return ast.ExtensionType{Name: types.Ident(jt.Name)}, nil
+		return ast.ExtensionType(types.Ident(jt.Name)), nil
 	case "Set":
 		if jt.Element == nil {
 			return nil, fmt.Errorf("set type missing element")
@@ -550,9 +550,9 @@ func jsonToType(jt *Type) (ast.IsType, error) {
 				Annotations: mapToAnnotations(attr.Annotations),
 			}
 		}
-		return ast.RecordType{Attributes: attrs}, nil
+		return ast.RecordType(attrs), nil
 	case "Entity":
-		return ast.EntityTypeRef{Name: types.EntityType(jt.Name)}, nil
+		return ast.EntityTypeRef(types.EntityType(jt.Name)), nil
 	case "EntityOrCommon":
 		// EntityOrCommon is used by Rust CLI v4.8+ for all type references
 		// The actual type is in the "name" field
@@ -560,7 +560,7 @@ func jsonToType(jt *Type) (ast.IsType, error) {
 	default:
 		// Assume it's a type reference
 		if jt.TypeName != "" {
-			return ast.TypeRef{Name: types.Path(jt.TypeName)}, nil
+			return ast.TypeRef(types.Path(jt.TypeName)), nil
 		}
 		return nil, fmt.Errorf("unknown type: %v", jt)
 	}
@@ -579,7 +579,7 @@ func resolveEntityOrCommon(name string) (ast.IsType, error) {
 		return ast.BoolType{}, nil
 	default:
 		// Otherwise it's a type reference (could be entity or common type)
-		return ast.TypeRef{Name: types.Path(name)}, nil
+		return ast.TypeRef(types.Path(name)), nil
 	}
 }
 
@@ -592,7 +592,7 @@ func jsonAttrToType(ja *Attr) (ast.IsType, error) {
 	case "Bool":
 		return ast.BoolType{}, nil
 	case "Extension":
-		return ast.ExtensionType{Name: types.Ident(ja.Name)}, nil
+		return ast.ExtensionType(types.Ident(ja.Name)), nil
 	case "Set":
 		if ja.Element == nil {
 			return nil, fmt.Errorf("set type missing element")
@@ -623,16 +623,16 @@ func jsonAttrToType(ja *Attr) (ast.IsType, error) {
 				Annotations: mapToAnnotations(attr.Annotations),
 			}
 		}
-		return ast.RecordType{Attributes: attrs}, nil
+		return ast.RecordType(attrs), nil
 	case "Entity":
-		return ast.EntityTypeRef{Name: types.EntityType(ja.Name)}, nil
+		return ast.EntityTypeRef(types.EntityType(ja.Name)), nil
 	case "EntityOrCommon":
 		// EntityOrCommon is used by Rust CLI v4.8+ for all type references
 		return resolveEntityOrCommon(ja.Name)
 	default:
 		// Assume it's a type reference
 		if ja.TypeName != "" {
-			return ast.TypeRef{Name: types.Path(ja.TypeName)}, nil
+			return ast.TypeRef(types.Path(ja.TypeName)), nil
 		}
 		return nil, fmt.Errorf("unknown type: %v", ja)
 	}

@@ -11,11 +11,11 @@ func TestIsTypeMarkerMethods(t *testing.T) {
 		StringType{},
 		LongType{},
 		BoolType{},
-		ExtensionType{},
+		ExtensionType("test"),
 		SetType{},
 		RecordType{},
-		EntityTypeRef{},
-		TypeRef{},
+		EntityTypeRef("test"),
+		TypeRef("test"),
 	}
 
 	for _, tm := range typeMarkers {

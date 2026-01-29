@@ -365,36 +365,30 @@ var wantAST = &ast.Schema{
 				"personal_information": "",
 			},
 			Type: ast.RecordType{
-				Attributes: ast.Attributes{
-					"city": ast.Attribute{
-						Type: ast.StringType{},
-						Annotations: ast.Annotations{
-							"also": "town",
-						},
+				"city": ast.Attribute{
+					Type: ast.StringType{},
+					Annotations: ast.Annotations{
+						"also": "town",
 					},
-					"country": ast.Attribute{Type: ast.TypeRef{Name: "Country"}},
-					"street":  ast.Attribute{Type: ast.StringType{}},
-					"zipcode": ast.Attribute{Type: ast.StringType{}, Optional: true},
 				},
+				"country": ast.Attribute{Type: ast.TypeRef("Country")},
+				"street":  ast.Attribute{Type: ast.StringType{}},
+				"zipcode": ast.Attribute{Type: ast.StringType{}, Optional: true},
 			},
 		},
 		"decimal": ast.CommonType{
 			Type: ast.RecordType{
-				Attributes: ast.Attributes{
-					"decimal": ast.Attribute{Type: ast.LongType{}},
-					"whole":   ast.Attribute{Type: ast.LongType{}},
-				},
+				"decimal": ast.Attribute{Type: ast.LongType{}},
+				"whole":   ast.Attribute{Type: ast.LongType{}},
 			},
 		},
 	},
 	Entities: ast.Entities{
 		"Admin": ast.Entity{},
 		"System": ast.Entity{
-			MemberOf: []ast.EntityTypeRef{{Name: "Admin"}},
+			MemberOf: []ast.EntityTypeRef{ast.EntityTypeRef("Admin")},
 			Shape: &ast.RecordType{
-				Attributes: ast.Attributes{
-					"version": ast.Attribute{Type: ast.StringType{}},
-				},
+				"version": ast.Attribute{Type: ast.StringType{}},
 			},
 		},
 	},
@@ -406,8 +400,8 @@ var wantAST = &ast.Schema{
 	Actions: ast.Actions{
 		"audit": ast.Action{
 			AppliesTo: &ast.AppliesTo{
-				Principals: []ast.EntityTypeRef{{Name: "Admin"}},
-				Resources:  []ast.EntityTypeRef{{Name: "MyApp::Document"}, {Name: "System"}},
+				Principals: []ast.EntityTypeRef{ast.EntityTypeRef("Admin")},
+				Resources:  []ast.EntityTypeRef{ast.EntityTypeRef("MyApp::Document"), ast.EntityTypeRef("System")},
 			},
 		},
 	},
@@ -419,50 +413,40 @@ var wantAST = &ast.Schema{
 			CommonTypes: ast.CommonTypes{
 				"Metadata": ast.CommonType{
 					Type: ast.RecordType{
-						Attributes: ast.Attributes{
-							"created": ast.Attribute{Type: ast.TypeRef{Name: "datetime"}},
-							"tags":    ast.Attribute{Type: ast.SetType{Element: ast.StringType{}}},
-						},
+						"created": ast.Attribute{Type: ast.TypeRef("datetime")},
+						"tags":    ast.Attribute{Type: ast.SetType{Element: ast.StringType{}}},
 					},
 				},
 			},
 			Entities: ast.Entities{
 				"Department": ast.Entity{
 					Shape: &ast.RecordType{
-						Attributes: ast.Attributes{
-							"budget": ast.Attribute{Type: ast.TypeRef{Name: "decimal"}},
-						},
+						"budget": ast.Attribute{Type: ast.TypeRef("decimal")},
 					},
 				},
 				"Document": ast.Entity{
 					Shape: &ast.RecordType{
-						Attributes: ast.Attributes{
-							"public": ast.Attribute{Type: ast.BoolType{}},
-							"title":  ast.Attribute{Type: ast.StringType{}},
-						},
+						"public": ast.Attribute{Type: ast.BoolType{}},
+						"title":  ast.Attribute{Type: ast.StringType{}},
 					},
 				},
 				"Group": ast.Entity{
-					MemberOf: []ast.EntityTypeRef{{Name: "Department"}},
+					MemberOf: []ast.EntityTypeRef{ast.EntityTypeRef("Department")},
 					Shape: &ast.RecordType{
-						Attributes: ast.Attributes{
-							"metadata": ast.Attribute{Type: ast.TypeRef{Name: "Metadata"}},
-							"name":     ast.Attribute{Type: ast.StringType{}},
-						},
+						"metadata": ast.Attribute{Type: ast.TypeRef("Metadata")},
+						"name":     ast.Attribute{Type: ast.StringType{}},
 					},
 				},
 				"User": ast.Entity{
-					MemberOf: []ast.EntityTypeRef{{Name: "Group"}},
+					MemberOf: []ast.EntityTypeRef{ast.EntityTypeRef("Group")},
 					Annotations: ast.Annotations{
 						"doc": "User entity",
 					},
 					Shape: &ast.RecordType{
-						Attributes: ast.Attributes{
-							"active":  ast.Attribute{Type: ast.BoolType{}},
-							"address": ast.Attribute{Type: ast.TypeRef{Name: "Address"}},
-							"email":   ast.Attribute{Type: ast.StringType{}},
-							"level":   ast.Attribute{Type: ast.LongType{}},
-						},
+						"active":  ast.Attribute{Type: ast.BoolType{}},
+						"address": ast.Attribute{Type: ast.TypeRef("Address")},
+						"email":   ast.Attribute{Type: ast.StringType{}},
+						"level":   ast.Attribute{Type: ast.LongType{}},
 					},
 				},
 			},
@@ -477,20 +461,18 @@ var wantAST = &ast.Schema{
 						"doc": "View or edit document",
 					},
 					AppliesTo: &ast.AppliesTo{
-						Principals: []ast.EntityTypeRef{{Name: "User"}},
-						Resources:  []ast.EntityTypeRef{{Name: "Document"}},
+						Principals: []ast.EntityTypeRef{ast.EntityTypeRef("User")},
+						Resources:  []ast.EntityTypeRef{ast.EntityTypeRef("Document")},
 						Context: ast.RecordType{
-							Attributes: ast.Attributes{
-								"ip":        ast.Attribute{Type: ast.TypeRef{Name: "ipaddr"}},
-								"timestamp": ast.Attribute{Type: ast.TypeRef{Name: "datetime"}},
-							},
+							"ip":        ast.Attribute{Type: ast.TypeRef("ipaddr")},
+							"timestamp": ast.Attribute{Type: ast.TypeRef("datetime")},
 						},
 					},
 				},
 				"manage": ast.Action{
 					AppliesTo: &ast.AppliesTo{
-						Principals: []ast.EntityTypeRef{{Name: "User"}},
-						Resources:  []ast.EntityTypeRef{{Name: "Document"}, {Name: "Group"}},
+						Principals: []ast.EntityTypeRef{ast.EntityTypeRef("User")},
+						Resources:  []ast.EntityTypeRef{ast.EntityTypeRef("Document"), ast.EntityTypeRef("Group")},
 					},
 				},
 				"view": ast.Action{
@@ -498,13 +480,11 @@ var wantAST = &ast.Schema{
 						"doc": "View or edit document",
 					},
 					AppliesTo: &ast.AppliesTo{
-						Principals: []ast.EntityTypeRef{{Name: "User"}},
-						Resources:  []ast.EntityTypeRef{{Name: "Document"}},
+						Principals: []ast.EntityTypeRef{ast.EntityTypeRef("User")},
+						Resources:  []ast.EntityTypeRef{ast.EntityTypeRef("Document")},
 						Context: ast.RecordType{
-							Attributes: ast.Attributes{
-								"ip":        ast.Attribute{Type: ast.TypeRef{Name: "ipaddr"}},
-								"timestamp": ast.Attribute{Type: ast.TypeRef{Name: "datetime"}},
-							},
+							"ip":        ast.Attribute{Type: ast.TypeRef("ipaddr")},
+							"timestamp": ast.Attribute{Type: ast.TypeRef("datetime")},
 						},
 					},
 				},
@@ -537,9 +517,7 @@ var wantResolved = &resolver.Schema{
 			Annotations: nil,
 			MemberOf:    []types.EntityType{"Admin"},
 			Shape: &resolver.RecordType{
-				Attributes: resolver.Attributes{
-					"version": resolver.Attribute{Type: resolver.StringType{}},
-				},
+				"version": resolver.Attribute{Type: resolver.StringType{}},
 			},
 			Tags: nil,
 		},
@@ -548,14 +526,10 @@ var wantResolved = &resolver.Schema{
 			Annotations: nil,
 			MemberOf:    nil,
 			Shape: &resolver.RecordType{
-				Attributes: resolver.Attributes{
-					"budget": resolver.Attribute{
-						Type: resolver.RecordType{
-							Attributes: resolver.Attributes{
-								"decimal": resolver.Attribute{Type: resolver.LongType{}},
-								"whole":   resolver.Attribute{Type: resolver.LongType{}},
-							},
-						},
+				"budget": resolver.Attribute{
+					Type: resolver.RecordType{
+						"decimal": resolver.Attribute{Type: resolver.LongType{}},
+						"whole":   resolver.Attribute{Type: resolver.LongType{}},
 					},
 				},
 			},
@@ -566,10 +540,8 @@ var wantResolved = &resolver.Schema{
 			Annotations: nil,
 			MemberOf:    nil,
 			Shape: &resolver.RecordType{
-				Attributes: resolver.Attributes{
-					"public": resolver.Attribute{Type: resolver.BoolType{}},
-					"title":  resolver.Attribute{Type: resolver.StringType{}},
-				},
+				"public": resolver.Attribute{Type: resolver.BoolType{}},
+				"title":  resolver.Attribute{Type: resolver.StringType{}},
 			},
 			Tags: nil,
 		},
@@ -578,17 +550,13 @@ var wantResolved = &resolver.Schema{
 			Annotations: nil,
 			MemberOf:    []types.EntityType{"MyApp::Department"},
 			Shape: &resolver.RecordType{
-				Attributes: resolver.Attributes{
-					"metadata": resolver.Attribute{
-						Type: resolver.RecordType{
-							Attributes: resolver.Attributes{
-								"created": resolver.Attribute{Type: resolver.ExtensionType{Name: "datetime"}},
-								"tags":    resolver.Attribute{Type: resolver.SetType{Element: resolver.StringType{}}},
-							},
-						},
+				"metadata": resolver.Attribute{
+					Type: resolver.RecordType{
+						"created": resolver.Attribute{Type: resolver.ExtensionType("datetime")},
+						"tags":    resolver.Attribute{Type: resolver.SetType{Element: resolver.StringType{}}},
 					},
-					"name": resolver.Attribute{Type: resolver.StringType{}},
 				},
+				"name": resolver.Attribute{Type: resolver.StringType{}},
 			},
 			Tags: nil,
 		},
@@ -597,27 +565,23 @@ var wantResolved = &resolver.Schema{
 			Annotations: resolver.Annotations{"doc": "User entity"},
 			MemberOf:    []types.EntityType{"MyApp::Group"},
 			Shape: &resolver.RecordType{
-				Attributes: resolver.Attributes{
-					"active": resolver.Attribute{Type: resolver.BoolType{}},
-					"address": resolver.Attribute{
-						Type: resolver.RecordType{
-							// TODO: include annotations of the type?
-							Attributes: resolver.Attributes{
-								"city": resolver.Attribute{
-									Type: resolver.StringType{},
-									Annotations: resolver.Annotations{
-										"also": "town",
-									},
-								},
-								"country": resolver.Attribute{Type: resolver.EntityTypeRef{Name: types.EntityType("Country")}},
-								"street":  resolver.Attribute{Type: resolver.StringType{}},
-								"zipcode": resolver.Attribute{Type: resolver.StringType{}, Optional: true},
+				"active": resolver.Attribute{Type: resolver.BoolType{}},
+				"address": resolver.Attribute{
+					Type: resolver.RecordType{
+						// TODO: include annotations of the type?
+						"city": resolver.Attribute{
+							Type: resolver.StringType{},
+							Annotations: resolver.Annotations{
+								"also": "town",
 							},
 						},
+						"country": resolver.Attribute{Type: resolver.EntityTypeRef("Country")},
+						"street":  resolver.Attribute{Type: resolver.StringType{}},
+						"zipcode": resolver.Attribute{Type: resolver.StringType{}, Optional: true},
 					},
-					"email": resolver.Attribute{Type: resolver.StringType{}},
-					"level": resolver.Attribute{Type: resolver.LongType{}},
 				},
+				"email": resolver.Attribute{Type: resolver.StringType{}},
+				"level": resolver.Attribute{Type: resolver.LongType{}},
 			},
 			Tags: nil,
 		},
@@ -642,7 +606,7 @@ var wantResolved = &resolver.Schema{
 			AppliesTo: &resolver.AppliesTo{
 				Principals: []types.EntityType{"Admin"},
 				Resources:  []types.EntityType{"MyApp::Document", "System"},
-				Context:    resolver.RecordType{},
+				Context:    nil,
 			},
 		},
 		types.NewEntityUID("MyApp::Action", "edit"): {
@@ -653,10 +617,8 @@ var wantResolved = &resolver.Schema{
 				Principals: []types.EntityType{"MyApp::User"},
 				Resources:  []types.EntityType{"MyApp::Document"},
 				Context: resolver.RecordType{
-					Attributes: resolver.Attributes{
-						"ip":        resolver.Attribute{Type: resolver.ExtensionType{Name: "ipaddr"}},
-						"timestamp": resolver.Attribute{Type: resolver.ExtensionType{Name: "datetime"}},
-					},
+					"ip":        resolver.Attribute{Type: resolver.ExtensionType("ipaddr")},
+					"timestamp": resolver.Attribute{Type: resolver.ExtensionType("datetime")},
 				},
 			},
 		},
@@ -667,7 +629,7 @@ var wantResolved = &resolver.Schema{
 			AppliesTo: &resolver.AppliesTo{
 				Principals: []types.EntityType{"MyApp::User"},
 				Resources:  []types.EntityType{"MyApp::Document", "MyApp::Group"},
-				Context:    resolver.RecordType{},
+				Context:    nil,
 			},
 		},
 		types.NewEntityUID("MyApp::Action", "view"): {
@@ -678,10 +640,8 @@ var wantResolved = &resolver.Schema{
 				Principals: []types.EntityType{"MyApp::User"},
 				Resources:  []types.EntityType{"MyApp::Document"},
 				Context: resolver.RecordType{
-					Attributes: resolver.Attributes{
-						"ip":        resolver.Attribute{Type: resolver.ExtensionType{Name: "ipaddr"}},
-						"timestamp": resolver.Attribute{Type: resolver.ExtensionType{Name: "datetime"}},
-					},
+					"ip":        resolver.Attribute{Type: resolver.ExtensionType("ipaddr")},
+					"timestamp": resolver.Attribute{Type: resolver.ExtensionType("datetime")},
 				},
 			},
 		},

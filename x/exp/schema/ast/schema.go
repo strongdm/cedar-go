@@ -75,7 +75,7 @@ func EntityRefFromID(id types.String) EntityRef {
 // NewEntityRef creates an EntityRef with type and ID.
 func NewEntityRef(typ types.EntityType, id types.String) EntityRef {
 	return EntityRef{
-		Type: EntityTypeRef{Name: typ},
+		Type: EntityTypeRef(typ),
 		ID:   id,
 	}
 }

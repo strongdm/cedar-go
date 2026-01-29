@@ -31,28 +31,28 @@ func TestBool(t *testing.T) {
 
 func TestIPAddr(t *testing.T) {
 	t.Parallel()
-	want := ast.ExtensionType{Name: "ipaddr"}
+	want := ast.ExtensionType("ipaddr")
 	got := ast.IPAddr()
 	testutil.Equals(t, got, want)
 }
 
 func TestDecimal(t *testing.T) {
 	t.Parallel()
-	want := ast.ExtensionType{Name: "decimal"}
+	want := ast.ExtensionType("decimal")
 	got := ast.Decimal()
 	testutil.Equals(t, got, want)
 }
 
 func TestDatetime(t *testing.T) {
 	t.Parallel()
-	want := ast.ExtensionType{Name: "datetime"}
+	want := ast.ExtensionType("datetime")
 	got := ast.Datetime()
 	testutil.Equals(t, got, want)
 }
 
 func TestDuration(t *testing.T) {
 	t.Parallel()
-	want := ast.ExtensionType{Name: "duration"}
+	want := ast.ExtensionType("duration")
 	got := ast.Duration()
 	testutil.Equals(t, got, want)
 }
@@ -67,17 +67,15 @@ func TestSet(t *testing.T) {
 func TestRecord(t *testing.T) {
 	t.Parallel()
 	want := ast.RecordType{
-		Attributes: ast.Attributes{
-			"name": ast.Attribute{
-				Type:     ast.StringType{},
-				Optional: false,
-				Annotations: ast.Annotations{
-					"doc":      "User name",
-					"required": "true",
-				},
+		"name": ast.Attribute{
+			Type:     ast.StringType{},
+			Optional: false,
+			Annotations: ast.Annotations{
+				"doc":      "User name",
+				"required": "true",
 			},
-			"age": ast.Attribute{Type: ast.LongType{}, Optional: true},
 		},
+		"age": ast.Attribute{Type: ast.LongType{}, Optional: true},
 	}
 	got := ast.Record(ast.Attributes{
 		"name": ast.Attribute{
@@ -95,14 +93,14 @@ func TestRecord(t *testing.T) {
 
 func TestEntityType(t *testing.T) {
 	t.Parallel()
-	want := ast.EntityTypeRef{Name: types.EntityType("User")}
+	want := ast.EntityTypeRef(types.EntityType("User"))
 	got := ast.EntityType("User")
 	testutil.Equals(t, got, want)
 }
 
 func TestType(t *testing.T) {
 	t.Parallel()
-	want := ast.TypeRef{Name: types.Path("Common::Name")}
+	want := ast.TypeRef(types.Path("Common::Name"))
 	got := ast.Type("Common::Name")
 	testutil.Equals(t, got, want)
 }

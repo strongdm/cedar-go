@@ -42,10 +42,8 @@ func TestSchemaRoundtrip(t *testing.T) {
 				Entities: ast.Entities{
 					types.EntityType("User"): ast.Entity{
 						Shape: &ast.RecordType{
-							Attributes: ast.Attributes{
-								"email": ast.Attribute{Type: ast.String(), Optional: true},
-								"name":  ast.Attribute{Type: ast.String(), Optional: false},
-							},
+							"email": ast.Attribute{Type: ast.String(), Optional: true},
+							"name":  ast.Attribute{Type: ast.String(), Optional: false},
 						},
 					},
 				},
@@ -721,9 +719,7 @@ namespace MyApp {
 					types.EntityType("User"): ast.Entity{
 						MemberOf: []ast.EntityTypeRef{ast.EntityType(types.EntityType("Group"))},
 						Shape: &ast.RecordType{
-							Attributes: ast.Attributes{
-								"name": ast.Attribute{Type: ast.String()},
-							},
+							"name": ast.Attribute{Type: ast.String()},
 						},
 					},
 				},
@@ -739,9 +735,7 @@ namespace MyApp {
 				Entities: ast.Entities{
 					types.EntityType("Document"): ast.Entity{
 						Shape: &ast.RecordType{
-							Attributes: ast.Attributes{
-								"title": ast.Attribute{Type: ast.String()},
-							},
+							"title": ast.Attribute{Type: ast.String()},
 						},
 						Tags: ast.String(),
 					},
@@ -771,9 +765,7 @@ namespace MyApp {
 					types.EntityType("Document"): ast.Entity{
 						MemberOf: []ast.EntityTypeRef{ast.EntityType(types.EntityType("Folder"))},
 						Shape: &ast.RecordType{
-							Attributes: ast.Attributes{
-								"title": ast.Attribute{Type: ast.String()},
-							},
+							"title": ast.Attribute{Type: ast.String()},
 						},
 						Tags: ast.String(),
 					},

@@ -19,7 +19,7 @@ func TestUID(t *testing.T) {
 func TestEntityUID(t *testing.T) {
 	t.Parallel()
 	want := ast.EntityRef{
-		Type: ast.EntityTypeRef{Name: "User"},
+		Type: ast.EntityTypeRef("User"),
 		ID:   "alice",
 	}
 	got := ast.NewEntityRef("User", "alice")

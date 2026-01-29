@@ -213,7 +213,7 @@ func resolveEntity(rd *resolveData, e ast.Entity, name types.EntityType) Entity 
 		resolved.MemberOf = make([]types.EntityType, len(e.MemberOf))
 		for i, ref := range e.MemberOf {
 			resolvedRef := resolveEntityTypeRef(rd, ref)
-			resolved.MemberOf[i] = resolvedRef.Name
+			resolved.MemberOf[i] = types.EntityType(resolvedRef)
 		}
 	}
 
@@ -253,7 +253,7 @@ func resolveAction(rd *resolveData, a ast.Action, name types.String) (Action, er
 		resolved.MemberOf = make([]types.EntityUID, len(a.MemberOf))
 		for i, ref := range a.MemberOf {
 			resolvedType := resolveEntityTypeRef(rd, ref.Type)
-			resolved.MemberOf[i] = types.NewEntityUID(resolvedType.Name, ref.ID)
+			resolved.MemberOf[i] = types.NewEntityUID(types.EntityType(resolvedType), ref.ID)
 		}
 	}
 
@@ -266,7 +266,7 @@ func resolveAction(rd *resolveData, a ast.Action, name types.String) (Action, er
 			resolved.AppliesTo.Principals = make([]types.EntityType, len(a.AppliesTo.Principals))
 			for i, ref := range a.AppliesTo.Principals {
 				resolvedRef := resolveEntityTypeRef(rd, ref)
-				resolved.AppliesTo.Principals[i] = resolvedRef.Name
+				resolved.AppliesTo.Principals[i] = types.EntityType(resolvedRef)
 			}
 		}
 
@@ -275,7 +275,7 @@ func resolveAction(rd *resolveData, a ast.Action, name types.String) (Action, er
 			resolved.AppliesTo.Resources = make([]types.EntityType, len(a.AppliesTo.Resources))
 			for i, ref := range a.AppliesTo.Resources {
 				resolvedRef := resolveEntityTypeRef(rd, ref)
-				resolved.AppliesTo.Resources[i] = resolvedRef.Name
+				resolved.AppliesTo.Resources[i] = types.EntityType(resolvedRef)
 			}
 		}
 
@@ -310,7 +310,7 @@ func resolveType(rd *resolveData, in ast.IsType) IsType {
 	case ast.BoolType:
 		return BoolType{}
 	case ast.ExtensionType:
-		return ExtensionType{Name: t.Name}
+		return ExtensionType(t)
 	default:
 		panic(fmt.Sprintf("unknown type: %T", t))
 	}
@@ -325,7 +325,7 @@ func resolveSet(rd *resolveData, s ast.SetType) SetType {
 // resolve returns a new RecordType with all attribute types resolved.
 func resolveRecord(rd *resolveData, r ast.RecordType) RecordType {
 	resolvedAttrs := make(Attributes)
-	for key, attr := range r.Attributes {
+	for key, attr := range r {
 		resolvedType := resolveType(rd, attr.Type)
 		resolvedAttrs[key] = Attribute{
 			Type:        resolvedType,
@@ -333,7 +333,7 @@ func resolveRecord(rd *resolveData, r ast.RecordType) RecordType {
 			Annotations: Annotations(attr.Annotations),
 		}
 	}
-	return RecordType{Attributes: resolvedAttrs}
+	return RecordType(resolvedAttrs)
 }
 
 // willResolve resolves the entity type reference relative to the given namespace.
@@ -342,30 +342,30 @@ func resolveRecord(rd *resolveData, r ast.RecordType) RecordType {
 // This method never returns an error.
 func resolveEntityTypeRef(rd *resolveData, e ast.EntityTypeRef) EntityTypeRef {
 	if rd.namespacePath == "" {
-		return EntityTypeRef{Name: e.Name}
+		return EntityTypeRef(e)
 	}
 
-	name := string(e.Name)
+	name := string(e)
 	// If already qualified (contains "::"), return as-is
 	if strings.Contains(name, "::") || (len(name) > 0 && name[0] == ':') {
-		return EntityTypeRef{Name: e.Name}
+		return EntityTypeRef(e)
 	}
 
 	// Check if this entity exists in the empty namespace (global)
-	if rd.entityExistsInEmptyNamespace(e.Name) {
+	if rd.entityExistsInEmptyNamespace(types.EntityType(e)) {
 		// Keep it unqualified to reference the global entity
-		return EntityTypeRef{Name: e.Name}
+		return EntityTypeRef(e)
 	}
 
 	// Otherwise, qualify it with the current namespace
-	return EntityTypeRef{Name: types.EntityType(string(rd.namespacePath) + "::" + name)}
+	return EntityTypeRef(types.EntityType(string(rd.namespacePath) + "::" + name))
 }
 
 // resolve resolves the type reference relative to the given namespace and schema.
 // It searches for a matching CommonType in the namespace first, then in the entire schema.
 // If found, it returns the resolved concrete type. Otherwise, it treats it as an EntityTypeRef.
 func resolveTypeRef(rd *resolveData, t ast.TypeRef) IsType {
-	name := string(t.Name)
+	name := string(t)
 
 	// Try to find the type in the current namespace first (for unqualified names)
 	if rd.namespacePath != "" && len(name) > 0 && name[0] != ':' && !strings.Contains(name, "::") {
@@ -426,11 +426,11 @@ func resolveTypeRef(rd *resolveData, t ast.TypeRef) IsType {
 		extensionName = strings.TrimPrefix(name, "__cedar::")
 	}
 	if _, ok := knownExtensions[extensionName]; ok {
-		return ExtensionType{Name: types.Ident(extensionName)}
+		return ExtensionType(types.Ident(extensionName))
 	}
 
 	// Not found, treat as EntityTypeRef
-	return EntityTypeRef{Name: types.EntityType(name)}
+	return EntityTypeRef(types.EntityType(name))
 }
 
 var knownExtensions = map[string]struct{}{

@@ -118,7 +118,7 @@ func marshalEntity(buf *bytes.Buffer, name types.EntityType, e ast.Entity, inden
 		marshalEntityTypeRefs(buf, e.MemberOf)
 	}
 
-	if e.Shape != nil && len(e.Shape.Attributes) > 0 {
+	if e.Shape != nil && len(*e.Shape) > 0 {
 		buf.WriteString(" = ")
 		marshalRecordType(buf, *e.Shape, indent)
 	}
@@ -205,7 +205,7 @@ func marshalEntityTypeRefs(buf *bytes.Buffer, refs []ast.EntityTypeRef) {
 		if i > 0 {
 			buf.WriteString(", ")
 		}
-		buf.WriteString(string(ref.Name))
+		buf.WriteString(string(ref))
 	}
 	buf.WriteString("]")
 }
@@ -227,8 +227,8 @@ func marshalEntityRefs(buf *bytes.Buffer, refs []ast.EntityRef) {
 }
 
 func marshalEntityRef(buf *bytes.Buffer, ref ast.EntityRef) {
-	if ref.Type.Name != "" {
-		buf.WriteString(string(ref.Type.Name))
+	if ref.Type != "" {
+		buf.WriteString(string(ref.Type))
 		buf.WriteString("::")
 	}
 	buf.WriteString(quoteString(string(ref.ID)))
@@ -244,7 +244,7 @@ func marshalTypeIndented(buf *bytes.Buffer, t ast.IsType, indent string) {
 		buf.WriteString("Bool")
 	case ast.ExtensionType:
 		buf.WriteString("__cedar::")
-		buf.WriteString(string(v.Name))
+		buf.WriteString(string(v))
 	case ast.SetType:
 		buf.WriteString("Set<")
 		marshalTypeIndented(buf, v.Element, indent+"  ")
@@ -252,22 +252,22 @@ func marshalTypeIndented(buf *bytes.Buffer, t ast.IsType, indent string) {
 	case ast.RecordType:
 		marshalRecordType(buf, v, indent)
 	case ast.EntityTypeRef:
-		buf.WriteString(string(v.Name))
+		buf.WriteString(string(v))
 	case ast.TypeRef:
-		buf.WriteString(string(v.Name))
+		buf.WriteString(string(v))
 	}
 }
 
 func marshalRecordType(buf *bytes.Buffer, r ast.RecordType, indent string) {
 	buf.WriteString("{")
-	if len(r.Attributes) == 0 {
+	if len(r) == 0 {
 		buf.WriteString("}")
 		return
 	}
 
 	// Sort attribute keys for consistent output
-	keys := make([]string, 0, len(r.Attributes))
-	for key := range r.Attributes {
+	keys := make([]string, 0, len(r))
+	for key := range r {
 		keys = append(keys, string(key))
 	}
 	sort.Strings(keys)
@@ -278,7 +278,7 @@ func marshalRecordType(buf *bytes.Buffer, r ast.RecordType, indent string) {
 		if i > 0 {
 			buf.WriteString(",\n")
 		}
-		attr := r.Attributes[types.String(key)]
+		attr := r[types.String(key)]
 		marshalAnnotations(buf, attr.Annotations, innerIndent)
 		buf.WriteString(innerIndent)
 		buf.WriteString(quoteString(key))

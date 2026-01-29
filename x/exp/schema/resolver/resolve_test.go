@@ -137,11 +137,9 @@ func TestResolve(t *testing.T) {
 					"User": {
 						Name: "User",
 						Shape: &resolver.RecordType{
-							Attributes: resolver.Attributes{
-								"age":    resolver.Attribute{Type: resolver.LongType{}},
-								"active": resolver.Attribute{Type: resolver.BoolType{}},
-								"name":   resolver.Attribute{Type: resolver.StringType{}},
-							},
+							"age":    resolver.Attribute{Type: resolver.LongType{}},
+							"active": resolver.Attribute{Type: resolver.BoolType{}},
+							"name":   resolver.Attribute{Type: resolver.StringType{}},
 						},
 					},
 				},
@@ -162,10 +160,8 @@ func TestResolve(t *testing.T) {
 					"User": {
 						Name: "User",
 						Shape: &resolver.RecordType{
-							Attributes: resolver.Attributes{
-								"ip":     resolver.Attribute{Type: resolver.ExtensionType{Name: "ipaddr"}},
-								"amount": resolver.Attribute{Type: resolver.ExtensionType{Name: "decimal"}},
-							},
+							"ip":     resolver.Attribute{Type: resolver.ExtensionType("ipaddr")},
+							"amount": resolver.Attribute{Type: resolver.ExtensionType("decimal")},
 						},
 					},
 				},
@@ -185,9 +181,7 @@ func TestResolve(t *testing.T) {
 					"User": {
 						Name: "User",
 						Shape: &resolver.RecordType{
-							Attributes: resolver.Attributes{
-								"tags": resolver.Attribute{Type: resolver.SetType{Element: resolver.StringType{}}},
-							},
+							"tags": resolver.Attribute{Type: resolver.SetType{Element: resolver.StringType{}}},
 						},
 					},
 				},
@@ -210,14 +204,10 @@ func TestResolve(t *testing.T) {
 					"User": {
 						Name: "User",
 						Shape: &resolver.RecordType{
-							Attributes: resolver.Attributes{
-								"address": resolver.Attribute{
-									Type: resolver.RecordType{
-										Attributes: resolver.Attributes{
-											"street": resolver.Attribute{Type: resolver.StringType{}},
-											"city":   resolver.Attribute{Type: resolver.StringType{}},
-										},
-									},
+							"address": resolver.Attribute{
+								Type: resolver.RecordType{
+									"street": resolver.Attribute{Type: resolver.StringType{}},
+									"city":   resolver.Attribute{Type: resolver.StringType{}},
 								},
 							},
 						},
@@ -241,14 +231,10 @@ func TestResolve(t *testing.T) {
 					"Document": {
 						Name: "Document",
 						Shape: &resolver.RecordType{
-							Attributes: resolver.Attributes{
-								"title": resolver.Attribute{Type: resolver.StringType{}},
-							},
+							"title": resolver.Attribute{Type: resolver.StringType{}},
 						},
 						Tags: resolver.RecordType{
-							Attributes: resolver.Attributes{
-								"classification": resolver.Attribute{Type: resolver.StringType{}},
-							},
+							"classification": resolver.Attribute{Type: resolver.StringType{}},
 						},
 					},
 				},
@@ -299,9 +285,7 @@ func TestResolve(t *testing.T) {
 							Principals: []types.EntityType{"User"},
 							Resources:  []types.EntityType{"Document"},
 							Context: resolver.RecordType{
-								Attributes: resolver.Attributes{
-									"ip": resolver.Attribute{Type: resolver.StringType{}},
-								},
+								"ip": resolver.Attribute{Type: resolver.StringType{}},
 							},
 						},
 					},
@@ -341,14 +325,10 @@ func TestResolve(t *testing.T) {
 					"User": {
 						Name: "User",
 						Shape: &resolver.RecordType{
-							Attributes: resolver.Attributes{
-								"address": resolver.Attribute{
-									Type: resolver.RecordType{
-										Attributes: resolver.Attributes{
-											"street": resolver.Attribute{Type: resolver.StringType{}},
-											"city":   resolver.Attribute{Type: resolver.StringType{}},
-										},
-									},
+							"address": resolver.Attribute{
+								Type: resolver.RecordType{
+									"street": resolver.Attribute{Type: resolver.StringType{}},
+									"city":   resolver.Attribute{Type: resolver.StringType{}},
 								},
 							},
 						},
@@ -376,10 +356,8 @@ func TestResolve(t *testing.T) {
 					"App::User": {
 						Name: "App::User",
 						Shape: &resolver.RecordType{
-							Attributes: resolver.Attributes{
-								"field1": resolver.Attribute{Type: resolver.StringType{}},
-								"field2": resolver.Attribute{Type: resolver.StringType{}},
-							},
+							"field1": resolver.Attribute{Type: resolver.StringType{}},
+							"field2": resolver.Attribute{Type: resolver.StringType{}},
 						},
 					},
 				},
@@ -401,10 +379,8 @@ func TestResolve(t *testing.T) {
 					"User": {
 						Name: "User",
 						Shape: &resolver.RecordType{
-							Attributes: resolver.Attributes{
-								"field1": resolver.Attribute{Type: resolver.StringType{}},
-								"field2": resolver.Attribute{Type: resolver.StringType{}},
-							},
+							"field1": resolver.Attribute{Type: resolver.StringType{}},
+							"field2": resolver.Attribute{Type: resolver.StringType{}},
 						},
 					},
 				},
@@ -429,11 +405,9 @@ func TestResolve(t *testing.T) {
 					"User": {
 						Name: "User",
 						Shape: &resolver.RecordType{
-							Attributes: resolver.Attributes{
-								"field1": resolver.Attribute{Type: resolver.StringType{}},
-								"field2": resolver.Attribute{Type: resolver.StringType{}},
-								"field3": resolver.Attribute{Type: resolver.StringType{}},
-							},
+							"field1": resolver.Attribute{Type: resolver.StringType{}},
+							"field2": resolver.Attribute{Type: resolver.StringType{}},
+							"field3": resolver.Attribute{Type: resolver.StringType{}},
 						},
 					},
 				},
@@ -600,9 +574,7 @@ func TestResolve(t *testing.T) {
 					"User": {
 						Name: "User",
 						Shape: &resolver.RecordType{
-							Attributes: resolver.Attributes{
-								"field": resolver.Attribute{Type: resolver.EntityTypeRef{Name: "NonExistent"}},
-							},
+							"field": resolver.Attribute{Type: resolver.EntityTypeRef("NonExistent")},
 						},
 					},
 				},
@@ -619,7 +591,7 @@ func TestResolve(t *testing.T) {
 				Entities: map[types.EntityType]resolver.Entity{
 					"User": {
 						Name: "User",
-						Tags: resolver.EntityTypeRef{Name: "NonExistent"},
+						Tags: resolver.EntityTypeRef("NonExistent"),
 					},
 				},
 				Enums:   map[types.EntityType]resolver.Enum{},
@@ -685,9 +657,7 @@ func TestResolve(t *testing.T) {
 					"App::User": {
 						Name: "App::User",
 						Shape: &resolver.RecordType{
-							Attributes: resolver.Attributes{
-								"field": resolver.Attribute{Type: resolver.EntityTypeRef{Name: "NonExistent"}},
-							},
+							"field": resolver.Attribute{Type: resolver.EntityTypeRef("NonExistent")},
 						},
 					},
 				},
@@ -711,17 +681,13 @@ func TestResolve(t *testing.T) {
 					"App::User": {
 						Name: "App::User",
 						Shape: &resolver.RecordType{
-							Attributes: resolver.Attributes{
-								"field": resolver.Attribute{Type: resolver.StringType{}},
-							},
+							"field": resolver.Attribute{Type: resolver.StringType{}},
 						},
 					},
 					"App::Group": {
 						Name: "App::Group",
 						Shape: &resolver.RecordType{
-							Attributes: resolver.Attributes{
-								"field": resolver.Attribute{Type: resolver.StringType{}},
-							},
+							"field": resolver.Attribute{Type: resolver.StringType{}},
 						},
 					},
 				},
@@ -744,10 +710,8 @@ func TestResolve(t *testing.T) {
 					"App::User": {
 						Name: "App::User",
 						Shape: &resolver.RecordType{
-							Attributes: resolver.Attributes{
-								"f1": resolver.Attribute{Type: resolver.EntityTypeRef{Name: "NonExistent"}},
-								"f2": resolver.Attribute{Type: resolver.EntityTypeRef{Name: "NonExistent"}},
-							},
+							"f1": resolver.Attribute{Type: resolver.EntityTypeRef("NonExistent")},
+							"f2": resolver.Attribute{Type: resolver.EntityTypeRef("NonExistent")},
 						},
 					},
 				},
@@ -774,9 +738,7 @@ func TestResolve(t *testing.T) {
 					"Other::User": {
 						Name: "Other::User",
 						Shape: &resolver.RecordType{
-							Attributes: resolver.Attributes{
-								"field": resolver.Attribute{Type: resolver.EntityTypeRef{Name: "Type2"}},
-							},
+							"field": resolver.Attribute{Type: resolver.EntityTypeRef("Type2")},
 						},
 					},
 				},
@@ -797,9 +759,7 @@ func TestResolve(t *testing.T) {
 					"Group": {
 						Name: "Group",
 						Shape: &resolver.RecordType{
-							Attributes: resolver.Attributes{
-								"owner": resolver.Attribute{Type: resolver.EntityTypeRef{Name: "User"}},
-							},
+							"owner": resolver.Attribute{Type: resolver.EntityTypeRef("User")},
 						},
 					},
 				},
@@ -823,9 +783,7 @@ func TestResolve(t *testing.T) {
 					"App::User": {
 						Name: "App::User",
 						Shape: &resolver.RecordType{
-							Attributes: resolver.Attributes{
-								"field": resolver.Attribute{Type: resolver.StringType{}},
-							},
+							"field": resolver.Attribute{Type: resolver.StringType{}},
 						},
 					},
 				},
@@ -844,9 +802,7 @@ func TestResolve(t *testing.T) {
 					"User": {
 						Name: "User",
 						Shape: &resolver.RecordType{
-							Attributes: resolver.Attributes{
-								"field": resolver.Attribute{Type: resolver.EntityTypeRef{Name: "NonExistent"}},
-							},
+							"field": resolver.Attribute{Type: resolver.EntityTypeRef("NonExistent")},
 						},
 					},
 				},
@@ -874,10 +830,8 @@ func TestResolve(t *testing.T) {
 						Name: "view",
 						AppliesTo: &resolver.AppliesTo{
 							Context: resolver.RecordType{
-								Attributes: resolver.Attributes{
-									"timestamp": resolver.Attribute{Type: resolver.ExtensionType{Name: "datetime"}},
-									"duration":  resolver.Attribute{Type: resolver.ExtensionType{Name: "duration"}},
-								},
+								"timestamp": resolver.Attribute{Type: resolver.ExtensionType("datetime")},
+								"duration":  resolver.Attribute{Type: resolver.ExtensionType("duration")},
 							},
 						},
 					},
@@ -947,9 +901,7 @@ func TestEntityTypeRefInSet(t *testing.T) {
 			"User": ast.Entity{},
 			"Group": ast.Entity{
 				Shape: &ast.RecordType{
-					Attributes: ast.Attributes{
-						"members": ast.Attribute{Type: ast.Set(ast.EntityType("User"))},
-					},
+					"members": ast.Attribute{Type: ast.Set(ast.EntityType("User"))},
 				},
 			},
 		},
@@ -965,8 +917,8 @@ func TestEntityTypeRefInSet(t *testing.T) {
 	// Verify Group entity has correct shape with resolved User reference
 	group := resolved.Entities["Group"]
 	testutil.Equals(t, group.Name, types.EntityType("Group"))
-	testutil.Equals(t, len(group.Shape.Attributes), 1)
-	membersAttr, exists := group.Shape.Attributes["members"]
+	testutil.Equals(t, len(*group.Shape), 1)
+	membersAttr, exists := (*group.Shape)["members"]
 	testutil.Equals(t, exists, true)
 
 	// The Set element should still be EntityTypeRef, just with name resolved
@@ -974,7 +926,7 @@ func TestEntityTypeRefInSet(t *testing.T) {
 	testutil.Equals(t, ok, true)
 	entityRef, ok := setType.Element.(resolver.EntityTypeRef)
 	testutil.Equals(t, ok, true)
-	testutil.Equals(t, entityRef.Name, types.EntityType("User"))
+	testutil.Equals(t, entityRef, resolver.EntityTypeRef("User"))
 }
 
 // TestEnumEntityUIDs tests the EntityUIDs iterator method.
@@ -1314,9 +1266,7 @@ func TestDirectAST(t *testing.T) {
 			Entities: ast.Entities{
 				"Thing": ast.Entity{
 					Shape: &ast.RecordType{
-						Attributes: ast.Attributes{
-							"ext": ast.Attribute{Type: ast.IPAddr()},
-						},
+						"ext": ast.Attribute{Type: ast.IPAddr()},
 					},
 				},
 			},
@@ -1324,8 +1274,8 @@ func TestDirectAST(t *testing.T) {
 
 		out, err := resolver.Resolve(schema)
 		testutil.OK(t, err)
-		want := resolver.ExtensionType{Name: "ipaddr"}
-		testutil.Equals(t, out.Entities["Thing"].Shape.Attributes["ext"].Type, resolver.IsType(want))
+		want := resolver.ExtensionType("ipaddr")
+		testutil.Equals(t, (*out.Entities["Thing"].Shape)["ext"].Type, resolver.IsType(want))
 	})
 
 	t.Run("panic on nil type", func(t *testing.T) {
@@ -1335,9 +1285,7 @@ func TestDirectAST(t *testing.T) {
 				Entities: ast.Entities{
 					"Thing": ast.Entity{
 						Shape: &ast.RecordType{
-							Attributes: ast.Attributes{
-								"ext": ast.Attribute{Type: nil},
-							},
+							"ext": ast.Attribute{Type: nil},
 						},
 					},
 				},
@@ -1532,7 +1480,7 @@ func TestDirectAST(t *testing.T) {
 			Actions: ast.Actions{
 				"view": ast.Action{
 					AppliesTo: &ast.AppliesTo{
-						Context: ast.TypeRef{Name: "BadContext"},
+						Context: ast.TypeRef("BadContext"),
 					},
 				},
 			},
@@ -1563,7 +1511,7 @@ func TestDirectAST(t *testing.T) {
 					Actions: ast.Actions{
 						"view": ast.Action{
 							AppliesTo: &ast.AppliesTo{
-								Context: ast.TypeRef{Name: "BadContext"},
+								Context: ast.TypeRef("BadContext"),
 							},
 						},
 					},
