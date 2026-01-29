@@ -24,13 +24,13 @@ func (s *Schema) SetFilename(filename string) {
 	s.filename = filename
 }
 
-// MarshalJSON encodes the Schema in the JSON format specified by the Cedar documentation.
+// MarshalJSON encodes the Schema in the JSON format.
 func (s *Schema) MarshalJSON() ([]byte, error) {
 	jsonSchema := (*json.Schema)(s.schema)
 	return jsonSchema.MarshalJSON()
 }
 
-// UnmarshalJSON parses a Schema in the JSON format specified by the Cedar documentation.
+// UnmarshalJSON parses a Schema in the JSON format.
 func (s *Schema) UnmarshalJSON(b []byte) error {
 	var jsonSchema json.Schema
 	if err := jsonSchema.UnmarshalJSON(b); err != nil {
@@ -40,12 +40,12 @@ func (s *Schema) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-// MarshalCedar encodes the Schema in the human-readable format specified by the Cedar documentation.
+// MarshalCedar encodes the Schema in the human-readable format.
 func (s *Schema) MarshalCedar() ([]byte, error) {
 	return parser.MarshalSchema(s.schema), nil
 }
 
-// UnmarshalCedar parses a Schema in the human-readable format specified by the Cedar documentation.
+// UnmarshalCedar parses a Schema in the human-readable format.
 func (s *Schema) UnmarshalCedar(b []byte) error {
 	schema, err := parser.ParseSchema(s.filename, b)
 	if err != nil {
