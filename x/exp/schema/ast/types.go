@@ -5,6 +5,8 @@ import (
 )
 
 // IsType is the interface implemented by all type expressions.
+//
+//sumtype:decl
 type IsType interface {
 	isType()
 }
