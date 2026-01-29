@@ -47,21 +47,19 @@ func newResolveData(schema *ast.Schema) *resolveData {
 	// Build schema-wide common types map (fully qualified names)
 	// Top-level common types (unqualified)
 	for name, ct := range schema.CommonTypes {
-		ctCopy := ct
 		rd.schemaCommonTypes[string(name)] = &commonTypeEntry{
 			resolved: false,
-			in:       ctCopy,
+			in:       ct,
 		}
 	}
 
 	// Namespace common types (fully qualified)
 	for nsPath, ns := range schema.Namespaces {
 		for name, ct := range ns.CommonTypes {
-			ctCopy := ct
 			fullName := string(nsPath) + "::" + string(name)
 			rd.schemaCommonTypes[fullName] = &commonTypeEntry{
 				resolved: false,
-				in:       ctCopy,
+				in:       ct,
 			}
 		}
 	}
@@ -80,10 +78,9 @@ func (rd *resolveData) withNamespace(namespacePath types.Path) *resolveData {
 	if namespacePath != "" {
 		if ns, exists := rd.schema.Namespaces[namespacePath]; exists {
 			for name, ct := range ns.CommonTypes {
-				ctCopy := ct
 				namespaceCommonTypes[string(name)] = &commonTypeEntry{
 					resolved: false,
-					in:       ctCopy,
+					in:       ct,
 				}
 			}
 		}
