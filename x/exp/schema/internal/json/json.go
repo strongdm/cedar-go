@@ -151,19 +151,19 @@ func getOrCreateNamespace(namespaces map[string]*Namespace, name string, annotat
 func addEntityToNamespace(ns *Namespace, name string, e ast.Entity) {
 	je := &Entity{}
 
-	if len(e.MemberOfVal) > 0 {
-		je.MemberOfTypes = make([]string, len(e.MemberOfVal))
-		for i, ref := range e.MemberOfVal {
+	if len(e.MemberOf) > 0 {
+		je.MemberOfTypes = make([]string, len(e.MemberOf))
+		for i, ref := range e.MemberOf {
 			je.MemberOfTypes[i] = string(ref.Name)
 		}
 	}
 
-	if e.ShapeVal != nil && len(e.ShapeVal.Attributes) > 0 {
-		je.Shape = typeToJSON(*e.ShapeVal)
+	if e.Shape != nil && len(e.Shape.Attributes) > 0 {
+		je.Shape = typeToJSON(*e.Shape)
 	}
 
-	if e.TagsVal != nil {
-		je.Tags = typeToJSON(e.TagsVal)
+	if e.Tags != nil {
+		je.Tags = typeToJSON(e.Tags)
 	}
 
 	je.Annotations = annotationsToMap(e.Annotations)
@@ -187,9 +187,9 @@ func addEnumToNamespace(ns *Namespace, name string, e ast.Enum) {
 func addActionToNamespace(ns *Namespace, name string, a ast.Action) {
 	ja := &Action{}
 
-	if len(a.MemberOfVal) > 0 {
-		ja.MemberOf = make([]EntityUID, len(a.MemberOfVal))
-		for i, ref := range a.MemberOfVal {
+	if len(a.MemberOf) > 0 {
+		ja.MemberOf = make([]EntityUID, len(a.MemberOf))
+		for i, ref := range a.MemberOf {
 			refType := string(ref.Type.Name)
 			ja.MemberOf[i] = EntityUID{
 				Type: refType,
@@ -198,28 +198,28 @@ func addActionToNamespace(ns *Namespace, name string, a ast.Action) {
 		}
 	}
 
-	if a.AppliesToVal != nil {
+	if a.AppliesTo != nil {
 		// Only emit appliesTo if there's meaningful content
-		hasPrincipals := len(a.AppliesToVal.PrincipalTypes) > 0
-		hasResources := len(a.AppliesToVal.ResourceTypes) > 0
-		hasContext := a.AppliesToVal.Context != nil
+		hasPrincipals := len(a.AppliesTo.PrincipalTypes) > 0
+		hasResources := len(a.AppliesTo.ResourceTypes) > 0
+		hasContext := a.AppliesTo.Context != nil
 
 		if hasPrincipals || hasResources || hasContext {
 			ja.AppliesTo = &AppliesTo{}
 			if hasPrincipals {
-				ja.AppliesTo.PrincipalTypes = make([]string, len(a.AppliesToVal.PrincipalTypes))
-				for i, ref := range a.AppliesToVal.PrincipalTypes {
+				ja.AppliesTo.PrincipalTypes = make([]string, len(a.AppliesTo.PrincipalTypes))
+				for i, ref := range a.AppliesTo.PrincipalTypes {
 					ja.AppliesTo.PrincipalTypes[i] = string(ref.Name)
 				}
 			}
 			if hasResources {
-				ja.AppliesTo.ResourceTypes = make([]string, len(a.AppliesToVal.ResourceTypes))
-				for i, ref := range a.AppliesToVal.ResourceTypes {
+				ja.AppliesTo.ResourceTypes = make([]string, len(a.AppliesTo.ResourceTypes))
+				for i, ref := range a.AppliesTo.ResourceTypes {
 					ja.AppliesTo.ResourceTypes[i] = string(ref.Name)
 				}
 			}
 			if hasContext {
-				ja.AppliesTo.Context = typeToJSONFromContext(a.AppliesToVal.Context, true)
+				ja.AppliesTo.Context = typeToJSONFromContext(a.AppliesTo.Context, true)
 			}
 		}
 	}
@@ -432,9 +432,9 @@ func parseEntity(je *Entity) (ast.Entity, error) {
 	e := ast.Entity{}
 
 	if len(je.MemberOfTypes) > 0 {
-		e.MemberOfVal = make([]ast.EntityTypeRef, len(je.MemberOfTypes))
+		e.MemberOf = make([]ast.EntityTypeRef, len(je.MemberOfTypes))
 		for i, ref := range je.MemberOfTypes {
-			e.MemberOfVal[i] = ast.EntityTypeRef{Name: types.EntityType(ref)}
+			e.MemberOf[i] = ast.EntityTypeRef{Name: types.EntityType(ref)}
 		}
 	}
 
@@ -444,7 +444,7 @@ func parseEntity(je *Entity) (ast.Entity, error) {
 			return e, err
 		}
 		if rt, ok := t.(ast.RecordType); ok {
-			e.ShapeVal = &rt
+			e.Shape = &rt
 		}
 	}
 
@@ -453,7 +453,7 @@ func parseEntity(je *Entity) (ast.Entity, error) {
 		if err != nil {
 			return e, err
 		}
-		e.TagsVal = t
+		e.Tags = t
 	}
 
 	e.Annotations = mapToAnnotations(je.Annotations)
@@ -465,10 +465,10 @@ func parseAction(ja *Action) (ast.Action, error) {
 	a := ast.Action{}
 
 	if len(ja.MemberOf) > 0 {
-		a.MemberOfVal = make([]ast.EntityRef, len(ja.MemberOf))
+		a.MemberOf = make([]ast.EntityRef, len(ja.MemberOf))
 		for i, ref := range ja.MemberOf {
 			refType := ref.Type
-			a.MemberOfVal[i] = ast.EntityRef{
+			a.MemberOf[i] = ast.EntityRef{
 				Type: ast.EntityTypeRef{Name: types.EntityType(refType)},
 				ID:   types.String(ref.ID),
 			}
@@ -476,23 +476,23 @@ func parseAction(ja *Action) (ast.Action, error) {
 	}
 
 	if ja.AppliesTo != nil {
-		// Only create AppliesToVal if there's meaningful content
+		// Only create AppliesTo if there's meaningful content
 		hasPrincipals := len(ja.AppliesTo.PrincipalTypes) > 0
 		hasResources := len(ja.AppliesTo.ResourceTypes) > 0
 		hasContext := ja.AppliesTo.Context != nil
 
 		if hasPrincipals || hasResources || hasContext {
-			a.AppliesToVal = &ast.AppliesTo{}
+			a.AppliesTo = &ast.AppliesTo{}
 			if hasPrincipals {
-				a.AppliesToVal.PrincipalTypes = make([]ast.EntityTypeRef, len(ja.AppliesTo.PrincipalTypes))
+				a.AppliesTo.PrincipalTypes = make([]ast.EntityTypeRef, len(ja.AppliesTo.PrincipalTypes))
 				for i, ref := range ja.AppliesTo.PrincipalTypes {
-					a.AppliesToVal.PrincipalTypes[i] = ast.EntityTypeRef{Name: types.EntityType(ref)}
+					a.AppliesTo.PrincipalTypes[i] = ast.EntityTypeRef{Name: types.EntityType(ref)}
 				}
 			}
 			if hasResources {
-				a.AppliesToVal.ResourceTypes = make([]ast.EntityTypeRef, len(ja.AppliesTo.ResourceTypes))
+				a.AppliesTo.ResourceTypes = make([]ast.EntityTypeRef, len(ja.AppliesTo.ResourceTypes))
 				for i, ref := range ja.AppliesTo.ResourceTypes {
-					a.AppliesToVal.ResourceTypes[i] = ast.EntityTypeRef{Name: types.EntityType(ref)}
+					a.AppliesTo.ResourceTypes[i] = ast.EntityTypeRef{Name: types.EntityType(ref)}
 				}
 			}
 			if hasContext {
@@ -500,7 +500,7 @@ func parseAction(ja *Action) (ast.Action, error) {
 				if err != nil {
 					return a, err
 				}
-				a.AppliesToVal.Context = t
+				a.AppliesTo.Context = t
 			}
 		}
 	}

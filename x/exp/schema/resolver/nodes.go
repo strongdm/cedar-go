@@ -24,23 +24,23 @@ func resolveEntity(rd *resolveData, e ast.Entity, name types.EntityType) Entity 
 	}
 
 	// Resolve and convert MemberOf references from []EntityTypeRef to []types.EntityType
-	if len(e.MemberOfVal) > 0 {
-		resolved.MemberOf = make([]types.EntityType, len(e.MemberOfVal))
-		for i, ref := range e.MemberOfVal {
+	if len(e.MemberOf) > 0 {
+		resolved.MemberOf = make([]types.EntityType, len(e.MemberOf))
+		for i, ref := range e.MemberOf {
 			resolvedRef := resolveEntityTypeRef(rd, ref)
 			resolved.MemberOf[i] = resolvedRef.Name
 		}
 	}
 
 	// Resolve Shape
-	if e.ShapeVal != nil {
-		resolvedShape := resolveRecord(rd, *e.ShapeVal)
+	if e.Shape != nil {
+		resolvedShape := resolveRecord(rd, *e.Shape)
 		resolved.Shape = &resolvedShape
 	}
 
 	// Resolve Tags
-	if e.TagsVal != nil {
-		resolvedTags := resolveType(rd, e.TagsVal)
+	if e.Tags != nil {
+		resolvedTags := resolveType(rd, e.Tags)
 		resolved.Tags = resolvedTags
 	}
 
@@ -64,39 +64,39 @@ func resolveAction(rd *resolveData, a ast.Action, name types.String) (Action, er
 	}
 
 	// Resolve and convert MemberOf references from []EntityRef to []types.EntityUID
-	if len(a.MemberOfVal) > 0 {
-		resolved.MemberOf = make([]types.EntityUID, len(a.MemberOfVal))
-		for i, ref := range a.MemberOfVal {
+	if len(a.MemberOf) > 0 {
+		resolved.MemberOf = make([]types.EntityUID, len(a.MemberOf))
+		for i, ref := range a.MemberOf {
 			resolvedType := resolveEntityTypeRef(rd, ref.Type)
 			resolved.MemberOf[i] = types.NewEntityUID(resolvedType.Name, ref.ID)
 		}
 	}
 
 	// Resolve and convert AppliesTo
-	if a.AppliesToVal != nil {
+	if a.AppliesTo != nil {
 		resolved.AppliesTo = &AppliesTo{}
 
 		// Convert PrincipalTypes from []EntityTypeRef to []types.EntityType
-		if len(a.AppliesToVal.PrincipalTypes) > 0 {
-			resolved.AppliesTo.PrincipalTypes = make([]types.EntityType, len(a.AppliesToVal.PrincipalTypes))
-			for i, ref := range a.AppliesToVal.PrincipalTypes {
+		if len(a.AppliesTo.PrincipalTypes) > 0 {
+			resolved.AppliesTo.PrincipalTypes = make([]types.EntityType, len(a.AppliesTo.PrincipalTypes))
+			for i, ref := range a.AppliesTo.PrincipalTypes {
 				resolvedRef := resolveEntityTypeRef(rd, ref)
 				resolved.AppliesTo.PrincipalTypes[i] = resolvedRef.Name
 			}
 		}
 
 		// Convert ResourceTypes from []EntityTypeRef to []types.EntityType
-		if len(a.AppliesToVal.ResourceTypes) > 0 {
-			resolved.AppliesTo.ResourceTypes = make([]types.EntityType, len(a.AppliesToVal.ResourceTypes))
-			for i, ref := range a.AppliesToVal.ResourceTypes {
+		if len(a.AppliesTo.ResourceTypes) > 0 {
+			resolved.AppliesTo.ResourceTypes = make([]types.EntityType, len(a.AppliesTo.ResourceTypes))
+			for i, ref := range a.AppliesTo.ResourceTypes {
 				resolvedRef := resolveEntityTypeRef(rd, ref)
 				resolved.AppliesTo.ResourceTypes[i] = resolvedRef.Name
 			}
 		}
 
 		// Resolve Context type
-		if a.AppliesToVal.Context != nil {
-			resolvedContext := resolveType(rd, a.AppliesToVal.Context)
+		if a.AppliesTo.Context != nil {
+			resolvedContext := resolveType(rd, a.AppliesTo.Context)
 			recordContext, ok := resolvedContext.(ast.RecordType)
 			if resolvedContext != nil && !ok {
 				return Action{}, fmt.Errorf("action %q context resolved to %T", name, resolvedContext)

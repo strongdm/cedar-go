@@ -41,7 +41,7 @@ func TestSchemaRoundtrip(t *testing.T) {
 			ast: &ast.Schema{
 				Entities: ast.Entities{
 					types.EntityType("User"): ast.Entity{
-						ShapeVal: &ast.RecordType{
+						Shape: &ast.RecordType{
 							Attributes: ast.Attributes{
 								"email": ast.Attribute{Type: ast.String(), Optional: true},
 								"name":  ast.Attribute{Type: ast.String(), Optional: false},
@@ -57,7 +57,7 @@ func TestSchemaRoundtrip(t *testing.T) {
 			ast: &ast.Schema{
 				Entities: ast.Entities{
 					types.EntityType("User"): ast.Entity{
-						MemberOfVal: []ast.EntityTypeRef{ast.EntityType(types.EntityType("Group"))},
+						MemberOf: []ast.EntityTypeRef{ast.EntityType(types.EntityType("Group"))},
 					},
 				},
 			},
@@ -68,7 +68,7 @@ func TestSchemaRoundtrip(t *testing.T) {
 			ast: &ast.Schema{
 				Entities: ast.Entities{
 					types.EntityType("User"): ast.Entity{
-						MemberOfVal: []ast.EntityTypeRef{
+						MemberOf: []ast.EntityTypeRef{
 							ast.EntityType(types.EntityType("Group")),
 							ast.EntityType(types.EntityType("Team")),
 						},
@@ -82,7 +82,7 @@ func TestSchemaRoundtrip(t *testing.T) {
 			ast: &ast.Schema{
 				Entities: ast.Entities{
 					types.EntityType("Document"): ast.Entity{
-						TagsVal: ast.String(),
+						Tags: ast.String(),
 					},
 				},
 			},
@@ -149,7 +149,7 @@ func TestSchemaRoundtrip(t *testing.T) {
 			ast: &ast.Schema{
 				Actions: ast.Actions{
 					types.String("view"): ast.Action{
-						AppliesToVal: &ast.AppliesTo{
+						AppliesTo: &ast.AppliesTo{
 							PrincipalTypes: []ast.EntityTypeRef{ast.EntityType(types.EntityType("User"))},
 							ResourceTypes:  []ast.EntityTypeRef{ast.EntityType(types.EntityType("Document"))},
 							Context: ast.Record(ast.Attributes{
@@ -166,7 +166,7 @@ func TestSchemaRoundtrip(t *testing.T) {
 			ast: &ast.Schema{
 				Actions: ast.Actions{
 					types.String("view"): ast.Action{
-						MemberOfVal: []ast.EntityRef{ast.EntityRefFromID("readActions")},
+						MemberOf: []ast.EntityRef{ast.EntityRefFromID("readActions")},
 					},
 				},
 			},
@@ -264,7 +264,7 @@ func TestSchemaRoundtrip(t *testing.T) {
 			ast: &ast.Schema{
 				Actions: ast.Actions{
 					types.String("view"): ast.Action{
-						MemberOfVal: []ast.EntityRef{ast.NewEntityRef(types.EntityType("MyApp::Action"), "allActions")},
+						MemberOf: []ast.EntityRef{ast.NewEntityRef(types.EntityType("MyApp::Action"), "allActions")},
 					},
 				},
 			},
@@ -344,7 +344,7 @@ func TestSchemaRoundtrip(t *testing.T) {
 			ast: &ast.Schema{
 				Actions: ast.Actions{
 					types.String("view"): ast.Action{
-						AppliesToVal: &ast.AppliesTo{
+						AppliesTo: &ast.AppliesTo{
 							PrincipalTypes: []ast.EntityTypeRef{
 								ast.EntityType(types.EntityType("Admin")),
 								ast.EntityType(types.EntityType("User")),
@@ -362,7 +362,7 @@ func TestSchemaRoundtrip(t *testing.T) {
 			ast: &ast.Schema{
 				Actions: ast.Actions{
 					types.String("view"): ast.Action{
-						MemberOfVal: []ast.EntityRef{
+						MemberOf: []ast.EntityRef{
 							ast.EntityRefFromID("readActions"),
 							ast.EntityRefFromID("viewActions"),
 						},
@@ -653,7 +653,7 @@ namespace MyApp {
 			ast: &ast.Schema{
 				Actions: ast.Actions{
 					types.String("view"): ast.Action{
-						MemberOfVal: []ast.EntityRef{ast.NewEntityRef("", "someAction")},
+						MemberOf: []ast.EntityRef{ast.NewEntityRef("", "someAction")},
 					},
 				},
 			},
@@ -669,7 +669,7 @@ namespace MyApp {
 			ast: &ast.Schema{
 				Actions: ast.Actions{
 					types.String("view"): ast.Action{
-						AppliesToVal: &ast.AppliesTo{
+						AppliesTo: &ast.AppliesTo{
 							Context: ast.Record(ast.Attributes{
 								"timestamp": ast.Attribute{Type: ast.Long()},
 							}),
@@ -687,7 +687,7 @@ namespace MyApp {
 			ast: &ast.Schema{
 				Actions: ast.Actions{
 					types.String("view"): ast.Action{
-						AppliesToVal: &ast.AppliesTo{
+						AppliesTo: &ast.AppliesTo{
 							PrincipalTypes: []ast.EntityTypeRef{ast.EntityType(types.EntityType("User"))},
 						},
 					},
@@ -703,7 +703,7 @@ namespace MyApp {
 			ast: &ast.Schema{
 				Actions: ast.Actions{
 					types.String("view"): ast.Action{
-						AppliesToVal: &ast.AppliesTo{
+						AppliesTo: &ast.AppliesTo{
 							ResourceTypes: []ast.EntityTypeRef{ast.EntityType(types.EntityType("Document"))},
 						},
 					},
@@ -719,8 +719,8 @@ namespace MyApp {
 			ast: &ast.Schema{
 				Entities: ast.Entities{
 					types.EntityType("User"): ast.Entity{
-						MemberOfVal: []ast.EntityTypeRef{ast.EntityType(types.EntityType("Group"))},
-						ShapeVal: &ast.RecordType{
+						MemberOf: []ast.EntityTypeRef{ast.EntityType(types.EntityType("Group"))},
+						Shape: &ast.RecordType{
 							Attributes: ast.Attributes{
 								"name": ast.Attribute{Type: ast.String()},
 							},
@@ -738,12 +738,12 @@ namespace MyApp {
 			ast: &ast.Schema{
 				Entities: ast.Entities{
 					types.EntityType("Document"): ast.Entity{
-						ShapeVal: &ast.RecordType{
+						Shape: &ast.RecordType{
 							Attributes: ast.Attributes{
 								"title": ast.Attribute{Type: ast.String()},
 							},
 						},
-						TagsVal: ast.String(),
+						Tags: ast.String(),
 					},
 				},
 			},
@@ -754,8 +754,8 @@ namespace MyApp {
 			ast: &ast.Schema{
 				Entities: ast.Entities{
 					types.EntityType("Document"): ast.Entity{
-						MemberOfVal: []ast.EntityTypeRef{ast.EntityType(types.EntityType("Folder"))},
-						TagsVal:     ast.String(),
+						MemberOf: []ast.EntityTypeRef{ast.EntityType(types.EntityType("Folder"))},
+						Tags:     ast.String(),
 					},
 				},
 			},
@@ -769,13 +769,13 @@ namespace MyApp {
 			ast: &ast.Schema{
 				Entities: ast.Entities{
 					types.EntityType("Document"): ast.Entity{
-						MemberOfVal: []ast.EntityTypeRef{ast.EntityType(types.EntityType("Folder"))},
-						ShapeVal: &ast.RecordType{
+						MemberOf: []ast.EntityTypeRef{ast.EntityType(types.EntityType("Folder"))},
+						Shape: &ast.RecordType{
 							Attributes: ast.Attributes{
 								"title": ast.Attribute{Type: ast.String()},
 							},
 						},
-						TagsVal: ast.String(),
+						Tags: ast.String(),
 					},
 				},
 			},

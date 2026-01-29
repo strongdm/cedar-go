@@ -390,8 +390,8 @@ var wantAST = &ast.Schema{
 	Entities: ast.Entities{
 		"Admin": ast.Entity{},
 		"System": ast.Entity{
-			MemberOfVal: []ast.EntityTypeRef{{Name: "Admin"}},
-			ShapeVal: &ast.RecordType{
+			MemberOf: []ast.EntityTypeRef{{Name: "Admin"}},
+			Shape: &ast.RecordType{
 				Attributes: ast.Attributes{
 					"version": ast.Attribute{Type: ast.StringType{}},
 				},
@@ -405,7 +405,7 @@ var wantAST = &ast.Schema{
 	},
 	Actions: ast.Actions{
 		"audit": ast.Action{
-			AppliesToVal: &ast.AppliesTo{
+			AppliesTo: &ast.AppliesTo{
 				PrincipalTypes: []ast.EntityTypeRef{{Name: "Admin"}},
 				ResourceTypes:  []ast.EntityTypeRef{{Name: "MyApp::Document"}, {Name: "System"}},
 			},
@@ -428,14 +428,14 @@ var wantAST = &ast.Schema{
 			},
 			Entities: ast.Entities{
 				"Department": ast.Entity{
-					ShapeVal: &ast.RecordType{
+					Shape: &ast.RecordType{
 						Attributes: ast.Attributes{
 							"budget": ast.Attribute{Type: ast.TypeRef{Name: "decimal"}},
 						},
 					},
 				},
 				"Document": ast.Entity{
-					ShapeVal: &ast.RecordType{
+					Shape: &ast.RecordType{
 						Attributes: ast.Attributes{
 							"public": ast.Attribute{Type: ast.BoolType{}},
 							"title":  ast.Attribute{Type: ast.StringType{}},
@@ -443,8 +443,8 @@ var wantAST = &ast.Schema{
 					},
 				},
 				"Group": ast.Entity{
-					MemberOfVal: []ast.EntityTypeRef{{Name: "Department"}},
-					ShapeVal: &ast.RecordType{
+					MemberOf: []ast.EntityTypeRef{{Name: "Department"}},
+					Shape: &ast.RecordType{
 						Attributes: ast.Attributes{
 							"metadata": ast.Attribute{Type: ast.TypeRef{Name: "Metadata"}},
 							"name":     ast.Attribute{Type: ast.StringType{}},
@@ -452,11 +452,11 @@ var wantAST = &ast.Schema{
 					},
 				},
 				"User": ast.Entity{
-					MemberOfVal: []ast.EntityTypeRef{{Name: "Group"}},
+					MemberOf: []ast.EntityTypeRef{{Name: "Group"}},
 					Annotations: ast.Annotations{
 						"doc": "User entity",
 					},
-					ShapeVal: &ast.RecordType{
+					Shape: &ast.RecordType{
 						Attributes: ast.Attributes{
 							"active":  ast.Attribute{Type: ast.BoolType{}},
 							"address": ast.Attribute{Type: ast.TypeRef{Name: "Address"}},
@@ -476,7 +476,7 @@ var wantAST = &ast.Schema{
 					Annotations: ast.Annotations{
 						"doc": "View or edit document",
 					},
-					AppliesToVal: &ast.AppliesTo{
+					AppliesTo: &ast.AppliesTo{
 						PrincipalTypes: []ast.EntityTypeRef{{Name: "User"}},
 						ResourceTypes:  []ast.EntityTypeRef{{Name: "Document"}},
 						Context: ast.RecordType{
@@ -488,7 +488,7 @@ var wantAST = &ast.Schema{
 					},
 				},
 				"manage": ast.Action{
-					AppliesToVal: &ast.AppliesTo{
+					AppliesTo: &ast.AppliesTo{
 						PrincipalTypes: []ast.EntityTypeRef{{Name: "User"}},
 						ResourceTypes:  []ast.EntityTypeRef{{Name: "Document"}, {Name: "Group"}},
 					},
@@ -497,7 +497,7 @@ var wantAST = &ast.Schema{
 					Annotations: ast.Annotations{
 						"doc": "View or edit document",
 					},
-					AppliesToVal: &ast.AppliesTo{
+					AppliesTo: &ast.AppliesTo{
 						PrincipalTypes: []ast.EntityTypeRef{{Name: "User"}},
 						ResourceTypes:  []ast.EntityTypeRef{{Name: "Document"}},
 						Context: ast.RecordType{

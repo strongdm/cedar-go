@@ -24,7 +24,7 @@ func TestParseNormalizations(t *testing.T) {
 			input: `entity User in Group;`,
 			validate: func(t *testing.T, schema *ast.Schema) {
 				entity := schema.Entities[types.EntityType("User")]
-				testutil.Equals(t, len(entity.MemberOfVal), 1)
+				testutil.Equals(t, len(entity.MemberOf), 1)
 			},
 		},
 		{
@@ -34,7 +34,7 @@ func TestParseNormalizations(t *testing.T) {
 			};`,
 			validate: func(t *testing.T, schema *ast.Schema) {
 				entity := schema.Entities[types.EntityType("User")]
-				testutil.Equals(t, entity.ShapeVal != nil, true)
+				testutil.Equals(t, entity.Shape != nil, true)
 			},
 		},
 		{
@@ -45,9 +45,9 @@ func TestParseNormalizations(t *testing.T) {
 			};`,
 			validate: func(t *testing.T, schema *ast.Schema) {
 				action := schema.Actions[types.String("view")]
-				testutil.Equals(t, action.AppliesToVal != nil, true)
-				testutil.Equals(t, len(action.AppliesToVal.PrincipalTypes), 1)
-				testutil.Equals(t, len(action.AppliesToVal.ResourceTypes), 1)
+				testutil.Equals(t, action.AppliesTo != nil, true)
+				testutil.Equals(t, len(action.AppliesTo.PrincipalTypes), 1)
+				testutil.Equals(t, len(action.AppliesTo.ResourceTypes), 1)
 			},
 		},
 		{
@@ -55,8 +55,8 @@ func TestParseNormalizations(t *testing.T) {
 			input: `action view in "readActions";`,
 			validate: func(t *testing.T, schema *ast.Schema) {
 				action := schema.Actions[types.String("view")]
-				testutil.Equals(t, len(action.MemberOfVal), 1)
-				testutil.Equals(t, action.MemberOfVal[0].ID, types.String("readActions"))
+				testutil.Equals(t, len(action.MemberOf), 1)
+				testutil.Equals(t, action.MemberOf[0].ID, types.String("readActions"))
 			},
 		},
 		{
@@ -67,8 +67,8 @@ func TestParseNormalizations(t *testing.T) {
 			};`,
 			validate: func(t *testing.T, schema *ast.Schema) {
 				action := schema.Actions[types.String("edit")]
-				testutil.Equals(t, len(action.MemberOfVal), 1)
-				testutil.Equals(t, action.MemberOfVal[0].ID, types.String("view"))
+				testutil.Equals(t, len(action.MemberOf), 1)
+				testutil.Equals(t, action.MemberOf[0].ID, types.String("view"))
 			},
 		},
 		{

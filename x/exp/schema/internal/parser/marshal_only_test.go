@@ -68,7 +68,7 @@ func TestMarshalOnlyFeatures(t *testing.T) {
 			ast: &ast.Schema{
 				Actions: ast.Actions{
 					types.String("view"): ast.Action{
-						AppliesToVal: &ast.AppliesTo{
+						AppliesTo: &ast.AppliesTo{
 							PrincipalTypes: []ast.EntityTypeRef{ast.EntityType(types.EntityType("User"))},
 							ResourceTypes:  []ast.EntityTypeRef{ast.EntityType(types.EntityType("Document"))},
 							Context: ast.Record(ast.Attributes{

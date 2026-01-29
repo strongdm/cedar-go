@@ -456,11 +456,11 @@ func (p *Parser) parseEntity(annotations ast.Annotations) (map[types.EntityType]
 	for _, n := range names {
 		entity := ast.Entity{
 			Annotations: annotations,
-			MemberOfVal: parents,
-			TagsVal:     tagsType,
+			MemberOf:    parents,
+			Tags:        tagsType,
 		}
 		if attrs != nil {
-			entity.ShapeVal = &ast.RecordType{Attributes: attrs}
+			entity.Shape = &ast.RecordType{Attributes: attrs}
 		}
 		entities[types.EntityType(n)] = entity
 	}
@@ -629,10 +629,10 @@ func (p *Parser) parseAction(annotations ast.Annotations) (map[types.String]ast.
 	for _, n := range names {
 		action := ast.Action{
 			Annotations: annotations,
-			MemberOfVal: memberOf,
+			MemberOf:    memberOf,
 		}
 		if hasAppliesTo {
-			action.AppliesToVal = &ast.AppliesTo{
+			action.AppliesTo = &ast.AppliesTo{
 				PrincipalTypes: principals,
 				ResourceTypes:  resources,
 				Context:        contextType,

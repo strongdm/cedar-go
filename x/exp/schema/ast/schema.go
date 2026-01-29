@@ -39,9 +39,9 @@ type CommonType struct {
 // Entity represents a Cedar entity type declaration.
 type Entity struct {
 	Annotations Annotations
-	MemberOfVal []EntityTypeRef
-	ShapeVal    *RecordType
-	TagsVal     IsType
+	MemberOf    []EntityTypeRef
+	Shape       *RecordType
+	Tags        IsType
 }
 
 // Enum represents a Cedar enum entity type declaration.
@@ -52,9 +52,9 @@ type Enum struct {
 
 // Action represents a Cedar action declaration.
 type Action struct {
-	Annotations  Annotations
-	MemberOfVal  []EntityRef
-	AppliesToVal *AppliesTo
+	Annotations Annotations
+	MemberOf    []EntityRef
+	AppliesTo   *AppliesTo
 }
 
 // AppliesTo represents the principal, resource, and context types for an action.

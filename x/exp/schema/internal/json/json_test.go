@@ -59,7 +59,7 @@ func TestJSONRoundTrip(t *testing.T) {
 			schema: &ast.Schema{
 				Entities: ast.Entities{
 					"User": ast.Entity{
-						MemberOfVal: []ast.EntityTypeRef{
+						MemberOf: []ast.EntityTypeRef{
 							{Name: types.EntityType("Group")},
 						},
 					},
@@ -90,7 +90,7 @@ func TestJSONRoundTrip(t *testing.T) {
 			schema: &ast.Schema{
 				Entities: ast.Entities{
 					"User": ast.Entity{
-						ShapeVal: &ast.RecordType{
+						Shape: &ast.RecordType{
 							Attributes: ast.Attributes{
 								"name":   ast.Attribute{Type: ast.StringType{}, Optional: false},
 								"age":    ast.Attribute{Type: ast.LongType{}, Optional: false},
@@ -117,7 +117,7 @@ func TestJSONRoundTrip(t *testing.T) {
 			schema: &ast.Schema{
 				Entities: ast.Entities{
 					"Resource": ast.Entity{
-						TagsVal: ast.StringType{},
+						Tags: ast.StringType{},
 					},
 				},
 			},
@@ -137,7 +137,7 @@ func TestJSONRoundTrip(t *testing.T) {
 			schema: &ast.Schema{
 				Entities: ast.Entities{
 					"Resource": ast.Entity{
-						TagsVal: ast.LongType{},
+						Tags: ast.LongType{},
 					},
 				},
 			},
@@ -187,7 +187,7 @@ func TestJSONRoundTrip(t *testing.T) {
 				},
 				Actions: ast.Actions{
 					"view": ast.Action{
-						AppliesToVal: &ast.AppliesTo{
+						AppliesTo: &ast.AppliesTo{
 							PrincipalTypes: []ast.EntityTypeRef{{Name: "User"}},
 							ResourceTypes:  []ast.EntityTypeRef{{Name: "Doc"}},
 						},
@@ -210,7 +210,7 @@ func TestJSONRoundTrip(t *testing.T) {
 			schema: &ast.Schema{
 				Actions: ast.Actions{
 					"view": ast.Action{
-						MemberOfVal: []ast.EntityRef{
+						MemberOf: []ast.EntityRef{
 							{Type: ast.EntityTypeRef{Name: "Action"}, ID: "readOnly"},
 						},
 					},
@@ -232,7 +232,7 @@ func TestJSONRoundTrip(t *testing.T) {
 			schema: &ast.Schema{
 				Actions: ast.Actions{
 					"write": ast.Action{
-						MemberOfVal: []ast.EntityRef{
+						MemberOf: []ast.EntityRef{
 							{Type: ast.EntityTypeRef{Name: ""}, ID: "read"},
 						},
 					},
@@ -270,7 +270,7 @@ func TestJSONRoundTrip(t *testing.T) {
 				},
 				Actions: ast.Actions{
 					"view": ast.Action{
-						AppliesToVal: &ast.AppliesTo{
+						AppliesTo: &ast.AppliesTo{
 							PrincipalTypes: []ast.EntityTypeRef{{Name: "User"}},
 							ResourceTypes:  []ast.EntityTypeRef{{Name: "Doc"}},
 							Context: ast.RecordType{
@@ -317,7 +317,7 @@ func TestJSONRoundTrip(t *testing.T) {
 				},
 				Actions: ast.Actions{
 					"view": ast.Action{
-						AppliesToVal: &ast.AppliesTo{
+						AppliesTo: &ast.AppliesTo{
 							PrincipalTypes: []ast.EntityTypeRef{{Name: "User"}},
 							ResourceTypes:  []ast.EntityTypeRef{{Name: "Doc"}},
 							Context:        ast.TypeRef{Name: "ContextType"},
@@ -433,7 +433,7 @@ func TestJSONRoundTrip(t *testing.T) {
 			schema: &ast.Schema{
 				Entities: ast.Entities{
 					"User": ast.Entity{
-						ShapeVal: &ast.RecordType{
+						Shape: &ast.RecordType{
 							Attributes: ast.Attributes{
 								"name": ast.Attribute{Type: ast.TypeRef{Name: "Name"}, Optional: false},
 							},
@@ -524,7 +524,7 @@ func TestJSONRoundTrip(t *testing.T) {
 				Entities: ast.Entities{
 					"User": ast.Entity{},
 					"Doc": ast.Entity{
-						ShapeVal: &ast.RecordType{
+						Shape: &ast.RecordType{
 							Attributes: ast.Attributes{
 								"owner": ast.Attribute{Type: ast.TypeRef{Name: "User"}, Optional: false},
 							},
@@ -558,7 +558,7 @@ func TestJSONRoundTrip(t *testing.T) {
 			schema: &ast.Schema{
 				Entities: ast.Entities{
 					"Config": ast.Entity{
-						ShapeVal: &ast.RecordType{
+						Shape: &ast.RecordType{
 							Attributes: ast.Attributes{
 								"nested": ast.Attribute{
 									Type: ast.RecordType{
@@ -600,7 +600,7 @@ func TestJSONRoundTrip(t *testing.T) {
 			schema: &ast.Schema{
 				Entities: ast.Entities{
 					"Config": ast.Entity{
-						ShapeVal: &ast.RecordType{
+						Shape: &ast.RecordType{
 							Attributes: ast.Attributes{
 								"nested": ast.Attribute{
 									Type: ast.RecordType{
@@ -638,7 +638,7 @@ func TestJSONRoundTrip(t *testing.T) {
 			schema: &ast.Schema{
 				Entities: ast.Entities{
 					"Request": ast.Entity{
-						ShapeVal: &ast.RecordType{
+						Shape: &ast.RecordType{
 							Attributes: ast.Attributes{
 								"ip":   ast.Attribute{Type: ast.ExtensionType{Name: "ipaddr"}, Optional: false},
 								"time": ast.Attribute{Type: ast.ExtensionType{Name: "datetime"}, Optional: false},
@@ -865,7 +865,7 @@ func TestJSONRoundTrip(t *testing.T) {
 			schema: &ast.Schema{
 				Entities: ast.Entities{
 					"User": ast.Entity{
-						ShapeVal: &ast.RecordType{
+						Shape: &ast.RecordType{
 							Attributes: ast.Attributes{
 								"name": ast.Attribute{
 									Type:        ast.StringType{},
@@ -910,7 +910,7 @@ func TestJSONRoundTrip(t *testing.T) {
 			schema: &ast.Schema{
 				Entities: ast.Entities{
 					"Config": ast.Entity{
-						ShapeVal: &ast.RecordType{
+						Shape: &ast.RecordType{
 							Attributes: ast.Attributes{
 								"settings": ast.Attribute{
 									Type: ast.RecordType{
@@ -965,7 +965,7 @@ func TestJSONRoundTrip(t *testing.T) {
 			schema: &ast.Schema{
 				Entities: ast.Entities{
 					"User": ast.Entity{
-						ShapeVal: &ast.RecordType{
+						Shape: &ast.RecordType{
 							Attributes: ast.Attributes{
 								"name": ast.Attribute{
 									Type:        ast.StringType{},
@@ -1123,7 +1123,7 @@ func TestJSONRoundTrip(t *testing.T) {
 			schema: &ast.Schema{
 				Entities: ast.Entities{
 					"E": ast.Entity{
-						ShapeVal: &ast.RecordType{
+						Shape: &ast.RecordType{
 							Attributes: ast.Attributes{
 								"a": ast.Attribute{Type: ast.StringType{}, Optional: false},
 								"b": ast.Attribute{Type: ast.LongType{}, Optional: false},
@@ -1222,7 +1222,7 @@ func TestEntityTypeRefMarshaling(t *testing.T) {
 		Entities: ast.Entities{
 			"User": ast.Entity{},
 			"Doc": ast.Entity{
-				ShapeVal: &ast.RecordType{
+				Shape: &ast.RecordType{
 					Attributes: ast.Attributes{
 						"owner": ast.Attribute{Type: ast.EntityTypeRef{Name: "User"}, Optional: false},
 					},
@@ -1252,7 +1252,7 @@ func TestEntityTypeRefMarshaling(t *testing.T) {
 	schema4 := &ast.Schema{
 		Entities: ast.Entities{
 			"Empty": ast.Entity{
-				ShapeVal: &ast.RecordType{
+				Shape: &ast.RecordType{
 					Attributes: nil,
 				},
 			},
@@ -1267,7 +1267,7 @@ func TestEntityTypeRefMarshaling(t *testing.T) {
 	schema5 := &ast.Schema{
 		Entities: ast.Entities{
 			"Config": ast.Entity{
-				ShapeVal: &ast.RecordType{
+				Shape: &ast.RecordType{
 					Attributes: ast.Attributes{
 						"nested": ast.Attribute{
 							Type: ast.RecordType{
@@ -1358,7 +1358,7 @@ func TestAttributeSetType(t *testing.T) {
 	schema := (*ast.Schema)(&s)
 
 	entity := schema.Entities["User"]
-	attr := entity.ShapeVal.Attributes["tags"]
+	attr := entity.Shape.Attributes["tags"]
 	_, ok := attr.Type.(ast.SetType)
 	testutil.Equals(t, ok, true)
 }
@@ -1415,7 +1415,7 @@ func TestTypeRefInAttribute(t *testing.T) {
 	schema := (*ast.Schema)(&s)
 
 	entity := schema.Entities["User"]
-	attr := entity.ShapeVal.Attributes["customType"]
+	attr := entity.Shape.Attributes["customType"]
 	typeRef, ok := attr.Type.(ast.TypeRef)
 	testutil.Equals(t, ok, true)
 	testutil.Equals(t, string(typeRef.Name), "MyCustomType")

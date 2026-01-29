@@ -1037,7 +1037,7 @@ func TestEntityTypeRefInSet(t *testing.T) {
 		Entities: ast.Entities{
 			"User": ast.Entity{},
 			"Group": ast.Entity{
-				ShapeVal: &ast.RecordType{
+				Shape: &ast.RecordType{
 					Attributes: ast.Attributes{
 						"members": ast.Attribute{Type: ast.Set(ast.EntityType("User"))},
 					},
@@ -1530,7 +1530,7 @@ func TestDirectAST(t *testing.T) {
 			CommonTypes: ast.CommonTypes{},
 			Actions: ast.Actions{
 				"view": ast.Action{
-					AppliesToVal: &ast.AppliesTo{
+					AppliesTo: &ast.AppliesTo{
 						Context: ast.SetType{Element: ast.StringType{}},
 					},
 				},
@@ -1557,7 +1557,7 @@ func TestDirectAST(t *testing.T) {
 					CommonTypes: ast.CommonTypes{},
 					Actions: ast.Actions{
 						"view": ast.Action{
-							AppliesToVal: &ast.AppliesTo{
+							AppliesTo: &ast.AppliesTo{
 								Context: ast.StringType{},
 							},
 						},
@@ -1583,7 +1583,7 @@ func TestDirectAST(t *testing.T) {
 			Enums:    ast.Enums{},
 			Actions: ast.Actions{
 				"view": ast.Action{
-					AppliesToVal: &ast.AppliesTo{
+					AppliesTo: &ast.AppliesTo{
 						Context: ast.TypeRef{Name: "BadContext"},
 					},
 				},
@@ -1614,7 +1614,7 @@ func TestDirectAST(t *testing.T) {
 					Enums:    ast.Enums{},
 					Actions: ast.Actions{
 						"view": ast.Action{
-							AppliesToVal: &ast.AppliesTo{
+							AppliesTo: &ast.AppliesTo{
 								Context: ast.TypeRef{Name: "BadContext"},
 							},
 						},

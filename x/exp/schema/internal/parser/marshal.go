@@ -113,19 +113,19 @@ func marshalEntity(buf *bytes.Buffer, name types.EntityType, e ast.Entity, inden
 	buf.WriteString("entity ")
 	buf.WriteString(string(name))
 
-	if len(e.MemberOfVal) > 0 {
+	if len(e.MemberOf) > 0 {
 		buf.WriteString(" in ")
-		marshalEntityTypeRefs(buf, e.MemberOfVal)
+		marshalEntityTypeRefs(buf, e.MemberOf)
 	}
 
-	if e.ShapeVal != nil && len(e.ShapeVal.Attributes) > 0 {
+	if e.Shape != nil && len(e.Shape.Attributes) > 0 {
 		buf.WriteString(" = ")
-		marshalRecordType(buf, *e.ShapeVal, indent)
+		marshalRecordType(buf, *e.Shape, indent)
 	}
 
-	if e.TagsVal != nil {
+	if e.Tags != nil {
 		buf.WriteString(" tags ")
-		marshalTypeIndented(buf, e.TagsVal, indent+"  ")
+		marshalTypeIndented(buf, e.Tags, indent+"  ")
 	}
 
 	buf.WriteString(";\n")
@@ -154,33 +154,33 @@ func marshalAction(buf *bytes.Buffer, name types.String, a ast.Action, indent st
 	buf.WriteString("action ")
 	marshalActionName(buf, string(name))
 
-	if len(a.MemberOfVal) > 0 {
+	if len(a.MemberOf) > 0 {
 		buf.WriteString(" in ")
-		marshalEntityRefs(buf, a.MemberOfVal)
+		marshalEntityRefs(buf, a.MemberOf)
 	}
 
-	if a.AppliesToVal != nil {
+	if a.AppliesTo != nil {
 		buf.WriteString(" appliesTo {\n")
 		innerIndent := indent + "  "
 
-		if len(a.AppliesToVal.PrincipalTypes) > 0 {
+		if len(a.AppliesTo.PrincipalTypes) > 0 {
 			buf.WriteString(innerIndent)
 			buf.WriteString("principal: ")
-			marshalEntityTypeRefs(buf, a.AppliesToVal.PrincipalTypes)
+			marshalEntityTypeRefs(buf, a.AppliesTo.PrincipalTypes)
 			buf.WriteString(",\n")
 		}
 
-		if len(a.AppliesToVal.ResourceTypes) > 0 {
+		if len(a.AppliesTo.ResourceTypes) > 0 {
 			buf.WriteString(innerIndent)
 			buf.WriteString("resource: ")
-			marshalEntityTypeRefs(buf, a.AppliesToVal.ResourceTypes)
+			marshalEntityTypeRefs(buf, a.AppliesTo.ResourceTypes)
 			buf.WriteString(",\n")
 		}
 
-		if a.AppliesToVal.Context != nil {
+		if a.AppliesTo.Context != nil {
 			buf.WriteString(innerIndent)
 			buf.WriteString("context: ")
-			marshalTypeIndented(buf, a.AppliesToVal.Context, innerIndent)
+			marshalTypeIndented(buf, a.AppliesTo.Context, innerIndent)
 			buf.WriteString("\n")
 		}
 
