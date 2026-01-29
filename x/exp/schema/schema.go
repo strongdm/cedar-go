@@ -1,4 +1,4 @@
-// Package schema provides a new implementation of Cedar schema parsing and serialization.
+// Package schema provides schema parsing, serialization, and resolution.
 package schema
 
 import (
