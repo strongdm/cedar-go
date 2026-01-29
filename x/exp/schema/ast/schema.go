@@ -49,7 +49,7 @@ type Enum struct {
 // If AppliesTo is nil, the action never applies.
 type Action struct {
 	Annotations Annotations
-	MemberOf    []EntityRef
+	MemberOf    []ParentRef
 	AppliesTo   *AppliesTo
 }
 
@@ -59,22 +59,22 @@ type AppliesTo struct {
 	Context    IsType
 }
 
-type EntityRef struct {
+type ParentRef struct {
 	Type EntityTypeRef
 	ID   types.String
 }
 
-// EntityRefFromID creates an EntityRef with only an ID.
+// ParentRefFromID creates an ParentRef with only an ID.
 // Type is inferred as Action.
-func EntityRefFromID(id types.String) EntityRef {
-	return EntityRef{
+func ParentRefFromID(id types.String) ParentRef {
+	return ParentRef{
 		ID: id,
 	}
 }
 
-// NewEntityRef creates an EntityRef with type and ID.
-func NewEntityRef(typ types.EntityType, id types.String) EntityRef {
-	return EntityRef{
+// NewParentRef creates an ParentRef with type and ID.
+func NewParentRef(typ types.EntityType, id types.String) ParentRef {
+	return ParentRef{
 		Type: EntityTypeRef(typ),
 		ID:   id,
 	}

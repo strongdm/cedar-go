@@ -164,7 +164,7 @@ func TestSchemaRoundtrip(t *testing.T) {
 			ast: &ast.Schema{
 				Actions: ast.Actions{
 					types.String("view"): ast.Action{
-						MemberOf: []ast.EntityRef{ast.EntityRefFromID("readActions")},
+						MemberOf: []ast.ParentRef{ast.ParentRefFromID("readActions")},
 					},
 				},
 			},
@@ -262,7 +262,7 @@ func TestSchemaRoundtrip(t *testing.T) {
 			ast: &ast.Schema{
 				Actions: ast.Actions{
 					types.String("view"): ast.Action{
-						MemberOf: []ast.EntityRef{ast.NewEntityRef(types.EntityType("MyApp::Action"), "allActions")},
+						MemberOf: []ast.ParentRef{ast.NewParentRef(types.EntityType("MyApp::Action"), "allActions")},
 					},
 				},
 			},
@@ -360,9 +360,9 @@ func TestSchemaRoundtrip(t *testing.T) {
 			ast: &ast.Schema{
 				Actions: ast.Actions{
 					types.String("view"): ast.Action{
-						MemberOf: []ast.EntityRef{
-							ast.EntityRefFromID("readActions"),
-							ast.EntityRefFromID("viewActions"),
+						MemberOf: []ast.ParentRef{
+							ast.ParentRefFromID("readActions"),
+							ast.ParentRefFromID("viewActions"),
 						},
 					},
 				},
@@ -651,7 +651,7 @@ namespace MyApp {
 			ast: &ast.Schema{
 				Actions: ast.Actions{
 					types.String("view"): ast.Action{
-						MemberOf: []ast.EntityRef{ast.NewEntityRef("", "someAction")},
+						MemberOf: []ast.ParentRef{ast.NewParentRef("", "someAction")},
 					},
 				},
 			},

@@ -208,7 +208,7 @@ func TestJSONRoundTrip(t *testing.T) {
 			schema: &ast.Schema{
 				Actions: ast.Actions{
 					"view": ast.Action{
-						MemberOf: []ast.EntityRef{
+						MemberOf: []ast.ParentRef{
 							{Type: ast.EntityTypeRef("Action"), ID: "readOnly"},
 						},
 					},
@@ -230,7 +230,7 @@ func TestJSONRoundTrip(t *testing.T) {
 			schema: &ast.Schema{
 				Actions: ast.Actions{
 					"write": ast.Action{
-						MemberOf: []ast.EntityRef{
+						MemberOf: []ast.ParentRef{
 							{Type: ast.EntityTypeRef(""), ID: "read"},
 						},
 					},

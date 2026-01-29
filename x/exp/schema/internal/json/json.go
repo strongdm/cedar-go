@@ -465,10 +465,10 @@ func parseAction(ja *Action) (ast.Action, error) {
 	a := ast.Action{}
 
 	if len(ja.MemberOf) > 0 {
-		a.MemberOf = make([]ast.EntityRef, len(ja.MemberOf))
+		a.MemberOf = make([]ast.ParentRef, len(ja.MemberOf))
 		for i, ref := range ja.MemberOf {
 			refType := ref.Type
-			a.MemberOf[i] = ast.EntityRef{
+			a.MemberOf[i] = ast.ParentRef{
 				Type: ast.EntityTypeRef(refType),
 				ID:   types.String(ref.ID),
 			}

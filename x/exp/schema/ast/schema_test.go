@@ -9,19 +9,19 @@ import (
 
 func TestUID(t *testing.T) {
 	t.Parallel()
-	want := ast.EntityRef{
+	want := ast.ParentRef{
 		ID: "view",
 	}
-	got := ast.EntityRefFromID("view")
+	got := ast.ParentRefFromID("view")
 	testutil.Equals(t, got, want)
 }
 
 func TestEntityUID(t *testing.T) {
 	t.Parallel()
-	want := ast.EntityRef{
+	want := ast.ParentRef{
 		Type: ast.EntityTypeRef("User"),
 		ID:   "alice",
 	}
-	got := ast.NewEntityRef("User", "alice")
+	got := ast.NewParentRef("User", "alice")
 	testutil.Equals(t, got, want)
 }

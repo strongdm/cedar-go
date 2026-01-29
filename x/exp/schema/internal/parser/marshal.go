@@ -210,7 +210,7 @@ func marshalEntityTypeRefs(buf *bytes.Buffer, refs []ast.EntityTypeRef) {
 	buf.WriteString("]")
 }
 
-func marshalEntityRefs(buf *bytes.Buffer, refs []ast.EntityRef) {
+func marshalEntityRefs(buf *bytes.Buffer, refs []ast.ParentRef) {
 	if len(refs) == 1 {
 		marshalEntityRef(buf, refs[0])
 		return
@@ -226,7 +226,7 @@ func marshalEntityRefs(buf *bytes.Buffer, refs []ast.EntityRef) {
 	buf.WriteString("]")
 }
 
-func marshalEntityRef(buf *bytes.Buffer, ref ast.EntityRef) {
+func marshalEntityRef(buf *bytes.Buffer, ref ast.ParentRef) {
 	if ref.Type != "" {
 		buf.WriteString(string(ref.Type))
 		buf.WriteString("::")
