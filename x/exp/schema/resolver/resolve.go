@@ -11,7 +11,8 @@ import (
 // commonTypeEntry represents a common type that may or may not be resolved yet.
 type commonTypeEntry struct {
 	resolved bool
-	node     ast.CommonType
+	in       ast.CommonType
+	out      IsType
 }
 
 // resolveData contains cached information for efficient type resolution.
@@ -49,7 +50,7 @@ func newResolveData(schema *ast.Schema) *resolveData {
 		ctCopy := ct
 		rd.schemaCommonTypes[string(name)] = &commonTypeEntry{
 			resolved: false,
-			node:     ctCopy,
+			in:       ctCopy,
 		}
 	}
 
@@ -60,7 +61,7 @@ func newResolveData(schema *ast.Schema) *resolveData {
 			fullName := string(nsPath) + "::" + string(name)
 			rd.schemaCommonTypes[fullName] = &commonTypeEntry{
 				resolved: false,
-				node:     ctCopy,
+				in:       ctCopy,
 			}
 		}
 	}
@@ -82,7 +83,7 @@ func (rd *resolveData) withNamespace(namespacePath types.Path) *resolveData {
 				ctCopy := ct
 				namespaceCommonTypes[string(name)] = &commonTypeEntry{
 					resolved: false,
-					node:     ctCopy,
+					in:       ctCopy,
 				}
 			}
 		}
@@ -112,7 +113,7 @@ func Resolve(s *ast.Schema) (*Schema, error) {
 
 	// Process top-level common types (resolve but don't add to output)
 	for _, ct := range s.CommonTypes {
-		_ = resolveCommonType(rd, ct)
+		_ = resolveType(rd, ct.Type)
 	}
 
 	// Process top-level entities
@@ -147,7 +148,7 @@ func Resolve(s *ast.Schema) (*Schema, error) {
 		// Store namespace annotations
 		resolved.Namespaces[nsPath] = Namespace{
 			Name:        nsPath,
-			Annotations: ns.Annotations,
+			Annotations: Annotations(ns.Annotations),
 		}
 
 		// Create resolve data with this namespace
@@ -155,7 +156,7 @@ func Resolve(s *ast.Schema) (*Schema, error) {
 
 		// Process namespace common types
 		for _, ct := range ns.CommonTypes {
-			_ = resolveCommonType(nsRd, ct)
+			_ = resolveType(nsRd, ct.Type)
 		}
 
 		// Process namespace entities
@@ -200,20 +201,11 @@ func Resolve(s *ast.Schema) (*Schema, error) {
 	return resolved, nil
 }
 
-// resolve returns a new CommonTypeNode with all type references resolved.
-func resolveCommonType(rd *resolveData, c ast.CommonType) ast.CommonType {
-	resolvedType := resolveType(rd, c.Type)
-	return ast.CommonType{
-		Annotations: c.Annotations,
-		Type:        resolvedType,
-	}
-}
-
 // resolve returns a ResolvedEntity with all type references resolved and name fully qualified.
 func resolveEntity(rd *resolveData, e ast.Entity, name types.EntityType) Entity {
 	resolved := Entity{
 		Name:        name,
-		Annotations: e.Annotations,
+		Annotations: Annotations(e.Annotations),
 	}
 
 	// Resolve and convert MemberOf references from []EntityTypeRef to []types.EntityType
@@ -244,7 +236,7 @@ func resolveEntity(rd *resolveData, e ast.Entity, name types.EntityType) Entity 
 func resolveEnum(rd *resolveData, e ast.Enum, name types.EntityType) Enum {
 	return Enum{
 		Name:        name,
-		Annotations: e.Annotations,
+		Annotations: Annotations(e.Annotations),
 		Values:      e.Values,
 	}
 }
@@ -253,7 +245,7 @@ func resolveEnum(rd *resolveData, e ast.Enum, name types.EntityType) Enum {
 func resolveAction(rd *resolveData, a ast.Action, name types.String) (Action, error) {
 	resolved := Action{
 		Name:        name,
-		Annotations: a.Annotations,
+		Annotations: Annotations(a.Annotations),
 	}
 
 	// Resolve and convert MemberOf references from []EntityRef to []types.EntityUID
@@ -290,7 +282,7 @@ func resolveAction(rd *resolveData, a ast.Action, name types.String) (Action, er
 		// Resolve Context type
 		if a.AppliesTo.Context != nil {
 			resolvedContext := resolveType(rd, a.AppliesTo.Context)
-			recordContext, ok := resolvedContext.(ast.RecordType)
+			recordContext, ok := resolvedContext.(RecordType)
 			if resolvedContext != nil && !ok {
 				return Action{}, fmt.Errorf("action %q context resolved to %T", name, resolvedContext)
 			}
@@ -301,7 +293,7 @@ func resolveAction(rd *resolveData, a ast.Action, name types.String) (Action, er
 	return resolved, nil
 }
 
-func resolveType(rd *resolveData, in ast.IsType) ast.IsType {
+func resolveType(rd *resolveData, in ast.IsType) IsType {
 	switch t := in.(type) {
 	case ast.SetType:
 		return resolveSet(rd, t)
@@ -311,60 +303,68 @@ func resolveType(rd *resolveData, in ast.IsType) ast.IsType {
 		return resolveEntityTypeRef(rd, t)
 	case ast.TypeRef:
 		return resolveTypeRef(rd, t)
+	case ast.StringType:
+		return StringType{}
+	case ast.LongType:
+		return LongType{}
+	case ast.BoolType:
+		return BoolType{}
+	case ast.ExtensionType:
+		return ExtensionType{Name: t.Name}
 	default:
-		return in
+		panic(fmt.Sprintf("unknown type: %T", t))
 	}
 }
 
 // resolve returns a new SetType with the element type resolved.
-func resolveSet(rd *resolveData, s ast.SetType) ast.SetType {
+func resolveSet(rd *resolveData, s ast.SetType) SetType {
 	resolved := resolveType(rd, s.Element)
-	return ast.SetType{Element: resolved}
+	return SetType{Element: resolved}
 }
 
 // resolve returns a new RecordType with all attribute types resolved.
-func resolveRecord(rd *resolveData, r ast.RecordType) ast.RecordType {
-	resolvedAttrs := make(ast.Attributes)
+func resolveRecord(rd *resolveData, r ast.RecordType) RecordType {
+	resolvedAttrs := make(Attributes)
 	for key, attr := range r.Attributes {
 		resolvedType := resolveType(rd, attr.Type)
-		resolvedAttrs[key] = ast.Attribute{
+		resolvedAttrs[key] = Attribute{
 			Type:        resolvedType,
 			Optional:    attr.Optional,
-			Annotations: attr.Annotations,
+			Annotations: Annotations(attr.Annotations),
 		}
 	}
-	return ast.RecordType{Attributes: resolvedAttrs}
+	return RecordType{Attributes: resolvedAttrs}
 }
 
 // willResolve resolves the entity type reference relative to the given namespace.
 // If the name is unqualified and namespace is provided, it checks if the entity exists
 // in the empty namespace first before qualifying it with the current namespace.
 // This method never returns an error.
-func resolveEntityTypeRef(rd *resolveData, e ast.EntityTypeRef) ast.EntityTypeRef {
+func resolveEntityTypeRef(rd *resolveData, e ast.EntityTypeRef) EntityTypeRef {
 	if rd.namespacePath == "" {
-		return e
+		return EntityTypeRef{Name: e.Name}
 	}
 
 	name := string(e.Name)
 	// If already qualified (contains "::"), return as-is
 	if strings.Contains(name, "::") || (len(name) > 0 && name[0] == ':') {
-		return e
+		return EntityTypeRef{Name: e.Name}
 	}
 
 	// Check if this entity exists in the empty namespace (global)
 	if rd.entityExistsInEmptyNamespace(e.Name) {
 		// Keep it unqualified to reference the global entity
-		return e
+		return EntityTypeRef{Name: e.Name}
 	}
 
 	// Otherwise, qualify it with the current namespace
-	return ast.EntityTypeRef{Name: types.EntityType(string(rd.namespacePath) + "::" + name)}
+	return EntityTypeRef{Name: types.EntityType(string(rd.namespacePath) + "::" + name)}
 }
 
 // resolve resolves the type reference relative to the given namespace and schema.
 // It searches for a matching CommonType in the namespace first, then in the entire schema.
 // If found, it returns the resolved concrete type. Otherwise, it treats it as an EntityTypeRef.
-func resolveTypeRef(rd *resolveData, t ast.TypeRef) ast.IsType {
+func resolveTypeRef(rd *resolveData, t ast.TypeRef) IsType {
 	name := string(t.Name)
 
 	// Try to find the type in the current namespace first (for unqualified names)
@@ -373,14 +373,14 @@ func resolveTypeRef(rd *resolveData, t ast.TypeRef) ast.IsType {
 		if entry, found := rd.namespaceCommonTypes[name]; found {
 			// If already resolved, return cached type
 			if entry.resolved {
-				return entry.node.Type
+				return entry.out
 			}
 			// Resolve lazily
-			resolvedNode := resolveCommonType(rd, entry.node)
+			resolvedType := resolveType(rd, entry.in.Type)
 			// Cache the resolved node
-			entry.node = resolvedNode
+			entry.out = resolvedType
 			entry.resolved = true
-			return resolvedNode.Type
+			return resolvedType
 		}
 	}
 
@@ -388,7 +388,7 @@ func resolveTypeRef(rd *resolveData, t ast.TypeRef) ast.IsType {
 	if entry, found := rd.schemaCommonTypes[name]; found {
 		// If already resolved, return cached type
 		if entry.resolved {
-			return entry.node.Type
+			return entry.out
 		}
 		// Resolve lazily with the common type's namespace context
 		// Find the namespace for this common type by checking where it's declared
@@ -413,11 +413,11 @@ func resolveTypeRef(rd *resolveData, t ast.TypeRef) ast.IsType {
 		ctRd := rd.withNamespace(nsPath)
 
 		// Resolve lazily
-		resolvedNode := resolveCommonType(ctRd, entry.node)
+		resolvedType := resolveType(ctRd, entry.in.Type)
 		// Cache the resolved node
-		entry.node = resolvedNode
+		entry.out = resolvedType
 		entry.resolved = true
-		return resolvedNode.Type
+		return resolvedType
 	}
 
 	// Check for known extension types (with or without __cedar:: prefix)
@@ -426,11 +426,11 @@ func resolveTypeRef(rd *resolveData, t ast.TypeRef) ast.IsType {
 		extensionName = strings.TrimPrefix(name, "__cedar::")
 	}
 	if _, ok := knownExtensions[extensionName]; ok {
-		return ast.ExtensionType{Name: types.Ident(extensionName)}
+		return ExtensionType{Name: types.Ident(extensionName)}
 	}
 
 	// Not found, treat as EntityTypeRef
-	return ast.EntityTypeRef{Name: types.EntityType(name)}
+	return EntityTypeRef{Name: types.EntityType(name)}
 }
 
 var knownExtensions = map[string]struct{}{

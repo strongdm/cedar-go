@@ -519,7 +519,7 @@ var wantResolved = &resolver.Schema{
 	Namespaces: map[types.Path]resolver.Namespace{
 		"MyApp": {
 			Name: "MyApp",
-			Annotations: ast.Annotations{
+			Annotations: resolver.Annotations{
 				"doc": "Doc manager",
 			},
 		},
@@ -536,9 +536,9 @@ var wantResolved = &resolver.Schema{
 			Name:        "System",
 			Annotations: nil,
 			MemberOf:    []types.EntityType{"Admin"},
-			Shape: &ast.RecordType{
-				Attributes: ast.Attributes{
-					"version": ast.Attribute{Type: ast.StringType{}},
+			Shape: &resolver.RecordType{
+				Attributes: resolver.Attributes{
+					"version": resolver.Attribute{Type: resolver.StringType{}},
 				},
 			},
 			Tags: nil,
@@ -547,13 +547,13 @@ var wantResolved = &resolver.Schema{
 			Name:        "MyApp::Department",
 			Annotations: nil,
 			MemberOf:    nil,
-			Shape: &ast.RecordType{
-				Attributes: ast.Attributes{
-					"budget": ast.Attribute{
-						Type: ast.RecordType{
-							Attributes: ast.Attributes{
-								"decimal": ast.Attribute{Type: ast.LongType{}},
-								"whole":   ast.Attribute{Type: ast.LongType{}},
+			Shape: &resolver.RecordType{
+				Attributes: resolver.Attributes{
+					"budget": resolver.Attribute{
+						Type: resolver.RecordType{
+							Attributes: resolver.Attributes{
+								"decimal": resolver.Attribute{Type: resolver.LongType{}},
+								"whole":   resolver.Attribute{Type: resolver.LongType{}},
 							},
 						},
 					},
@@ -565,10 +565,10 @@ var wantResolved = &resolver.Schema{
 			Name:        "MyApp::Document",
 			Annotations: nil,
 			MemberOf:    nil,
-			Shape: &ast.RecordType{
-				Attributes: ast.Attributes{
-					"public": ast.Attribute{Type: ast.BoolType{}},
-					"title":  ast.Attribute{Type: ast.StringType{}},
+			Shape: &resolver.RecordType{
+				Attributes: resolver.Attributes{
+					"public": resolver.Attribute{Type: resolver.BoolType{}},
+					"title":  resolver.Attribute{Type: resolver.StringType{}},
 				},
 			},
 			Tags: nil,
@@ -577,46 +577,46 @@ var wantResolved = &resolver.Schema{
 			Name:        "MyApp::Group",
 			Annotations: nil,
 			MemberOf:    []types.EntityType{"MyApp::Department"},
-			Shape: &ast.RecordType{
-				Attributes: ast.Attributes{
-					"metadata": ast.Attribute{
-						Type: ast.RecordType{
-							Attributes: ast.Attributes{
-								"created": ast.Attribute{Type: ast.ExtensionType{Name: "datetime"}},
-								"tags":    ast.Attribute{Type: ast.SetType{Element: ast.StringType{}}},
+			Shape: &resolver.RecordType{
+				Attributes: resolver.Attributes{
+					"metadata": resolver.Attribute{
+						Type: resolver.RecordType{
+							Attributes: resolver.Attributes{
+								"created": resolver.Attribute{Type: resolver.ExtensionType{Name: "datetime"}},
+								"tags":    resolver.Attribute{Type: resolver.SetType{Element: resolver.StringType{}}},
 							},
 						},
 					},
-					"name": ast.Attribute{Type: ast.StringType{}},
+					"name": resolver.Attribute{Type: resolver.StringType{}},
 				},
 			},
 			Tags: nil,
 		},
 		"MyApp::User": {
 			Name:        "MyApp::User",
-			Annotations: ast.Annotations{"doc": "User entity"},
+			Annotations: resolver.Annotations{"doc": "User entity"},
 			MemberOf:    []types.EntityType{"MyApp::Group"},
-			Shape: &ast.RecordType{
-				Attributes: ast.Attributes{
-					"active": ast.Attribute{Type: ast.BoolType{}},
-					"address": ast.Attribute{
-						Type: ast.RecordType{
+			Shape: &resolver.RecordType{
+				Attributes: resolver.Attributes{
+					"active": resolver.Attribute{Type: resolver.BoolType{}},
+					"address": resolver.Attribute{
+						Type: resolver.RecordType{
 							// TODO: include annotations of the type?
-							Attributes: ast.Attributes{
-								"city": ast.Attribute{
-									Type: ast.StringType{},
-									Annotations: ast.Annotations{
+							Attributes: resolver.Attributes{
+								"city": resolver.Attribute{
+									Type: resolver.StringType{},
+									Annotations: resolver.Annotations{
 										"also": "town",
 									},
 								},
-								"country": ast.Attribute{Type: ast.EntityTypeRef{Name: types.EntityType("Country")}},
-								"street":  ast.Attribute{Type: ast.StringType{}},
-								"zipcode": ast.Attribute{Type: ast.StringType{}, Optional: true},
+								"country": resolver.Attribute{Type: resolver.EntityTypeRef{Name: types.EntityType("Country")}},
+								"street":  resolver.Attribute{Type: resolver.StringType{}},
+								"zipcode": resolver.Attribute{Type: resolver.StringType{}, Optional: true},
 							},
 						},
 					},
-					"email": ast.Attribute{Type: ast.StringType{}},
-					"level": ast.Attribute{Type: ast.LongType{}},
+					"email": resolver.Attribute{Type: resolver.StringType{}},
+					"level": resolver.Attribute{Type: resolver.LongType{}},
 				},
 			},
 			Tags: nil,
@@ -642,20 +642,20 @@ var wantResolved = &resolver.Schema{
 			AppliesTo: &resolver.AppliesTo{
 				Principals: []types.EntityType{"Admin"},
 				Resources:  []types.EntityType{"MyApp::Document", "System"},
-				Context:    ast.RecordType{},
+				Context:    resolver.RecordType{},
 			},
 		},
 		types.NewEntityUID("MyApp::Action", "edit"): {
 			Name:        "edit",
-			Annotations: ast.Annotations{"doc": "View or edit document"},
+			Annotations: resolver.Annotations{"doc": "View or edit document"},
 			MemberOf:    nil,
 			AppliesTo: &resolver.AppliesTo{
 				Principals: []types.EntityType{"MyApp::User"},
 				Resources:  []types.EntityType{"MyApp::Document"},
-				Context: ast.RecordType{
-					Attributes: ast.Attributes{
-						"ip":        ast.Attribute{Type: ast.ExtensionType{Name: "ipaddr"}},
-						"timestamp": ast.Attribute{Type: ast.ExtensionType{Name: "datetime"}},
+				Context: resolver.RecordType{
+					Attributes: resolver.Attributes{
+						"ip":        resolver.Attribute{Type: resolver.ExtensionType{Name: "ipaddr"}},
+						"timestamp": resolver.Attribute{Type: resolver.ExtensionType{Name: "datetime"}},
 					},
 				},
 			},
@@ -667,20 +667,20 @@ var wantResolved = &resolver.Schema{
 			AppliesTo: &resolver.AppliesTo{
 				Principals: []types.EntityType{"MyApp::User"},
 				Resources:  []types.EntityType{"MyApp::Document", "MyApp::Group"},
-				Context:    ast.RecordType{},
+				Context:    resolver.RecordType{},
 			},
 		},
 		types.NewEntityUID("MyApp::Action", "view"): {
 			Name:        "view",
-			Annotations: ast.Annotations{"doc": "View or edit document"},
+			Annotations: resolver.Annotations{"doc": "View or edit document"},
 			MemberOf:    nil,
 			AppliesTo: &resolver.AppliesTo{
 				Principals: []types.EntityType{"MyApp::User"},
 				Resources:  []types.EntityType{"MyApp::Document"},
-				Context: ast.RecordType{
-					Attributes: ast.Attributes{
-						"ip":        ast.Attribute{Type: ast.ExtensionType{Name: "ipaddr"}},
-						"timestamp": ast.Attribute{Type: ast.ExtensionType{Name: "datetime"}},
+				Context: resolver.RecordType{
+					Attributes: resolver.Attributes{
+						"ip":        resolver.Attribute{Type: resolver.ExtensionType{Name: "ipaddr"}},
+						"timestamp": resolver.Attribute{Type: resolver.ExtensionType{Name: "datetime"}},
 					},
 				},
 			},

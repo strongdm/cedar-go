@@ -136,11 +136,11 @@ func TestResolve(t *testing.T) {
 				Entities: map[types.EntityType]resolver.Entity{
 					"User": {
 						Name: "User",
-						Shape: &ast.RecordType{
-							Attributes: ast.Attributes{
-								"age":    ast.Attribute{Type: ast.LongType{}},
-								"active": ast.Attribute{Type: ast.BoolType{}},
-								"name":   ast.Attribute{Type: ast.StringType{}},
+						Shape: &resolver.RecordType{
+							Attributes: resolver.Attributes{
+								"age":    resolver.Attribute{Type: resolver.LongType{}},
+								"active": resolver.Attribute{Type: resolver.BoolType{}},
+								"name":   resolver.Attribute{Type: resolver.StringType{}},
 							},
 						},
 					},
@@ -161,10 +161,10 @@ func TestResolve(t *testing.T) {
 				Entities: map[types.EntityType]resolver.Entity{
 					"User": {
 						Name: "User",
-						Shape: &ast.RecordType{
-							Attributes: ast.Attributes{
-								"ip":     ast.Attribute{Type: ast.ExtensionType{Name: "ipaddr"}},
-								"amount": ast.Attribute{Type: ast.ExtensionType{Name: "decimal"}},
+						Shape: &resolver.RecordType{
+							Attributes: resolver.Attributes{
+								"ip":     resolver.Attribute{Type: resolver.ExtensionType{Name: "ipaddr"}},
+								"amount": resolver.Attribute{Type: resolver.ExtensionType{Name: "decimal"}},
 							},
 						},
 					},
@@ -184,9 +184,9 @@ func TestResolve(t *testing.T) {
 				Entities: map[types.EntityType]resolver.Entity{
 					"User": {
 						Name: "User",
-						Shape: &ast.RecordType{
-							Attributes: ast.Attributes{
-								"tags": ast.Attribute{Type: ast.SetType{Element: ast.StringType{}}},
+						Shape: &resolver.RecordType{
+							Attributes: resolver.Attributes{
+								"tags": resolver.Attribute{Type: resolver.SetType{Element: resolver.StringType{}}},
 							},
 						},
 					},
@@ -209,13 +209,13 @@ func TestResolve(t *testing.T) {
 				Entities: map[types.EntityType]resolver.Entity{
 					"User": {
 						Name: "User",
-						Shape: &ast.RecordType{
-							Attributes: ast.Attributes{
-								"address": ast.Attribute{
-									Type: ast.RecordType{
-										Attributes: ast.Attributes{
-											"street": ast.Attribute{Type: ast.StringType{}},
-											"city":   ast.Attribute{Type: ast.StringType{}},
+						Shape: &resolver.RecordType{
+							Attributes: resolver.Attributes{
+								"address": resolver.Attribute{
+									Type: resolver.RecordType{
+										Attributes: resolver.Attributes{
+											"street": resolver.Attribute{Type: resolver.StringType{}},
+											"city":   resolver.Attribute{Type: resolver.StringType{}},
 										},
 									},
 								},
@@ -240,14 +240,14 @@ func TestResolve(t *testing.T) {
 				Entities: map[types.EntityType]resolver.Entity{
 					"Document": {
 						Name: "Document",
-						Shape: &ast.RecordType{
-							Attributes: ast.Attributes{
-								"title": ast.Attribute{Type: ast.StringType{}},
+						Shape: &resolver.RecordType{
+							Attributes: resolver.Attributes{
+								"title": resolver.Attribute{Type: resolver.StringType{}},
 							},
 						},
-						Tags: ast.RecordType{
-							Attributes: ast.Attributes{
-								"classification": ast.Attribute{Type: ast.StringType{}},
+						Tags: resolver.RecordType{
+							Attributes: resolver.Attributes{
+								"classification": resolver.Attribute{Type: resolver.StringType{}},
 							},
 						},
 					},
@@ -298,9 +298,9 @@ func TestResolve(t *testing.T) {
 						AppliesTo: &resolver.AppliesTo{
 							Principals: []types.EntityType{"User"},
 							Resources:  []types.EntityType{"Document"},
-							Context: ast.RecordType{
-								Attributes: ast.Attributes{
-									"ip": ast.Attribute{Type: ast.StringType{}},
+							Context: resolver.RecordType{
+								Attributes: resolver.Attributes{
+									"ip": resolver.Attribute{Type: resolver.StringType{}},
 								},
 							},
 						},
@@ -340,13 +340,13 @@ func TestResolve(t *testing.T) {
 				Entities: map[types.EntityType]resolver.Entity{
 					"User": {
 						Name: "User",
-						Shape: &ast.RecordType{
-							Attributes: ast.Attributes{
-								"address": ast.Attribute{
-									Type: ast.RecordType{
-										Attributes: ast.Attributes{
-											"street": ast.Attribute{Type: ast.StringType{}},
-											"city":   ast.Attribute{Type: ast.StringType{}},
+						Shape: &resolver.RecordType{
+							Attributes: resolver.Attributes{
+								"address": resolver.Attribute{
+									Type: resolver.RecordType{
+										Attributes: resolver.Attributes{
+											"street": resolver.Attribute{Type: resolver.StringType{}},
+											"city":   resolver.Attribute{Type: resolver.StringType{}},
 										},
 									},
 								},
@@ -375,10 +375,10 @@ func TestResolve(t *testing.T) {
 				Entities: map[types.EntityType]resolver.Entity{
 					"App::User": {
 						Name: "App::User",
-						Shape: &ast.RecordType{
-							Attributes: ast.Attributes{
-								"field1": ast.Attribute{Type: ast.StringType{}},
-								"field2": ast.Attribute{Type: ast.StringType{}},
+						Shape: &resolver.RecordType{
+							Attributes: resolver.Attributes{
+								"field1": resolver.Attribute{Type: resolver.StringType{}},
+								"field2": resolver.Attribute{Type: resolver.StringType{}},
 							},
 						},
 					},
@@ -400,10 +400,10 @@ func TestResolve(t *testing.T) {
 				Entities: map[types.EntityType]resolver.Entity{
 					"User": {
 						Name: "User",
-						Shape: &ast.RecordType{
-							Attributes: ast.Attributes{
-								"field1": ast.Attribute{Type: ast.StringType{}},
-								"field2": ast.Attribute{Type: ast.StringType{}},
+						Shape: &resolver.RecordType{
+							Attributes: resolver.Attributes{
+								"field1": resolver.Attribute{Type: resolver.StringType{}},
+								"field2": resolver.Attribute{Type: resolver.StringType{}},
 							},
 						},
 					},
@@ -428,11 +428,11 @@ func TestResolve(t *testing.T) {
 				Entities: map[types.EntityType]resolver.Entity{
 					"User": {
 						Name: "User",
-						Shape: &ast.RecordType{
-							Attributes: ast.Attributes{
-								"field1": ast.Attribute{Type: ast.StringType{}},
-								"field2": ast.Attribute{Type: ast.StringType{}},
-								"field3": ast.Attribute{Type: ast.StringType{}},
+						Shape: &resolver.RecordType{
+							Attributes: resolver.Attributes{
+								"field1": resolver.Attribute{Type: resolver.StringType{}},
+								"field2": resolver.Attribute{Type: resolver.StringType{}},
+								"field3": resolver.Attribute{Type: resolver.StringType{}},
 							},
 						},
 					},
@@ -452,7 +452,7 @@ func TestResolve(t *testing.T) {
 				Namespaces: map[types.Path]resolver.Namespace{
 					"App": {
 						Name: "App",
-						Annotations: ast.Annotations{
+						Annotations: resolver.Annotations{
 							"doc": "My application",
 						},
 					},
@@ -474,7 +474,7 @@ func TestResolve(t *testing.T) {
 				Entities: map[types.EntityType]resolver.Entity{
 					"User": {
 						Name: "User",
-						Annotations: ast.Annotations{
+						Annotations: resolver.Annotations{
 							"doc": "User entity",
 						},
 					},
@@ -599,9 +599,9 @@ func TestResolve(t *testing.T) {
 				Entities: map[types.EntityType]resolver.Entity{
 					"User": {
 						Name: "User",
-						Shape: &ast.RecordType{
-							Attributes: ast.Attributes{
-								"field": ast.Attribute{Type: ast.EntityTypeRef{Name: "NonExistent"}},
+						Shape: &resolver.RecordType{
+							Attributes: resolver.Attributes{
+								"field": resolver.Attribute{Type: resolver.EntityTypeRef{Name: "NonExistent"}},
 							},
 						},
 					},
@@ -619,7 +619,7 @@ func TestResolve(t *testing.T) {
 				Entities: map[types.EntityType]resolver.Entity{
 					"User": {
 						Name: "User",
-						Tags: ast.EntityTypeRef{Name: "NonExistent"},
+						Tags: resolver.EntityTypeRef{Name: "NonExistent"},
 					},
 				},
 				Enums:   map[types.EntityType]resolver.Enum{},
@@ -669,68 +669,6 @@ func TestResolve(t *testing.T) {
 			},
 			errTest: testutil.OK,
 		},
-		// Note: The following duplicate detection tests now fail at parse time rather than resolve time
-		// This is because the parser has been improved to catch these errors earlier
-		// Keeping these commented out as they demonstrate that the parser is correctly handling these cases
-		// {
-		// 	name:    "duplicate entity definition",
-		// 	in:      `entity User; entity User;`,
-		// 	errTest: testutil.Error,
-		// },
-		// {
-		// 	name:    "duplicate enum definition",
-		// 	in:      `entity Status enum ["active"]; entity Status enum ["inactive"];`,
-		// 	errTest: testutil.Error,
-		// },
-		// {
-		// 	name:    "duplicate action definition",
-		// 	in:      `action view; action view;`,
-		// 	errTest: testutil.Error,
-		// },
-		// {
-		// 	name:    "entity and enum with same name",
-		// 	in:      `entity Thing; entity Thing enum ["value"];`,
-		// 	errTest: testutil.Error,
-		// },
-		// {
-		// 	name:    "enum and entity with same name",
-		// 	in:      `entity Status enum ["active"]; entity Status;`,
-		// 	errTest: testutil.Error,
-		// },
-		// {
-		// 	name:    "duplicate entity in namespace",
-		// 	in:      `namespace App { entity User; entity User; }`,
-		// 	errTest: testutil.Error,
-		// },
-		// Note: These duplicate namespace tests now fail at parse time
-		// {
-		// 	name: "nested namespace vs qualified name conflict - entity",
-		// 	in: `namespace Goat::Gorilla {
-		// 		entity Cows;
-		// 	}
-		// 	namespace Goat::Gorilla {
-		// 		entity Cows;
-		// 	}`,
-		// 	errTest: testutil.Error,
-		// },
-		// {
-		// 	name: "nested namespace vs qualified name conflict - enum",
-		// 	in: `namespace Goat::Gorilla {
-		// 		entity Status enum ["active"];
-		// 	}
-		// 	namespace Goat::Gorilla {
-		// 		entity Status enum ["inactive"];
-		// 	}`,
-		// 	errTest: testutil.Error,
-		// },
-		// {
-		// 	name: "action conflict in same namespace",
-		// 	in: `namespace Goat::Gorilla {
-		// 		action view;
-		// 		action view;
-		// 	}`,
-		// 	errTest: testutil.Error,
-		// },
 		{
 			name: "undefined type in lazy resolution",
 			in: `namespace App {
@@ -746,9 +684,9 @@ func TestResolve(t *testing.T) {
 				Entities: map[types.EntityType]resolver.Entity{
 					"App::User": {
 						Name: "App::User",
-						Shape: &ast.RecordType{
-							Attributes: ast.Attributes{
-								"field": ast.Attribute{Type: ast.EntityTypeRef{Name: "NonExistent"}},
+						Shape: &resolver.RecordType{
+							Attributes: resolver.Attributes{
+								"field": resolver.Attribute{Type: resolver.EntityTypeRef{Name: "NonExistent"}},
 							},
 						},
 					},
@@ -772,17 +710,17 @@ func TestResolve(t *testing.T) {
 				Entities: map[types.EntityType]resolver.Entity{
 					"App::User": {
 						Name: "App::User",
-						Shape: &ast.RecordType{
-							Attributes: ast.Attributes{
-								"field": ast.Attribute{Type: ast.StringType{}},
+						Shape: &resolver.RecordType{
+							Attributes: resolver.Attributes{
+								"field": resolver.Attribute{Type: resolver.StringType{}},
 							},
 						},
 					},
 					"App::Group": {
 						Name: "App::Group",
-						Shape: &ast.RecordType{
-							Attributes: ast.Attributes{
-								"field": ast.Attribute{Type: ast.StringType{}},
+						Shape: &resolver.RecordType{
+							Attributes: resolver.Attributes{
+								"field": resolver.Attribute{Type: resolver.StringType{}},
 							},
 						},
 					},
@@ -805,10 +743,10 @@ func TestResolve(t *testing.T) {
 				Entities: map[types.EntityType]resolver.Entity{
 					"App::User": {
 						Name: "App::User",
-						Shape: &ast.RecordType{
-							Attributes: ast.Attributes{
-								"f1": ast.Attribute{Type: ast.EntityTypeRef{Name: "NonExistent"}},
-								"f2": ast.Attribute{Type: ast.EntityTypeRef{Name: "NonExistent"}},
+						Shape: &resolver.RecordType{
+							Attributes: resolver.Attributes{
+								"f1": resolver.Attribute{Type: resolver.EntityTypeRef{Name: "NonExistent"}},
+								"f2": resolver.Attribute{Type: resolver.EntityTypeRef{Name: "NonExistent"}},
 							},
 						},
 					},
@@ -835,9 +773,9 @@ func TestResolve(t *testing.T) {
 				Entities: map[types.EntityType]resolver.Entity{
 					"Other::User": {
 						Name: "Other::User",
-						Shape: &ast.RecordType{
-							Attributes: ast.Attributes{
-								"field": ast.Attribute{Type: ast.EntityTypeRef{Name: "Type2"}},
+						Shape: &resolver.RecordType{
+							Attributes: resolver.Attributes{
+								"field": resolver.Attribute{Type: resolver.EntityTypeRef{Name: "Type2"}},
 							},
 						},
 					},
@@ -858,9 +796,9 @@ func TestResolve(t *testing.T) {
 					"User": {Name: "User"},
 					"Group": {
 						Name: "Group",
-						Shape: &ast.RecordType{
-							Attributes: ast.Attributes{
-								"owner": ast.Attribute{Type: ast.EntityTypeRef{Name: "User"}},
+						Shape: &resolver.RecordType{
+							Attributes: resolver.Attributes{
+								"owner": resolver.Attribute{Type: resolver.EntityTypeRef{Name: "User"}},
 							},
 						},
 					},
@@ -884,9 +822,9 @@ func TestResolve(t *testing.T) {
 				Entities: map[types.EntityType]resolver.Entity{
 					"App::User": {
 						Name: "App::User",
-						Shape: &ast.RecordType{
-							Attributes: ast.Attributes{
-								"field": ast.Attribute{Type: ast.StringType{}},
+						Shape: &resolver.RecordType{
+							Attributes: resolver.Attributes{
+								"field": resolver.Attribute{Type: resolver.StringType{}},
 							},
 						},
 					},
@@ -905,9 +843,9 @@ func TestResolve(t *testing.T) {
 				Entities: map[types.EntityType]resolver.Entity{
 					"User": {
 						Name: "User",
-						Shape: &ast.RecordType{
-							Attributes: ast.Attributes{
-								"field": ast.Attribute{Type: ast.EntityTypeRef{Name: "NonExistent"}},
+						Shape: &resolver.RecordType{
+							Attributes: resolver.Attributes{
+								"field": resolver.Attribute{Type: resolver.EntityTypeRef{Name: "NonExistent"}},
 							},
 						},
 					},
@@ -917,35 +855,6 @@ func TestResolve(t *testing.T) {
 			},
 			errTest: testutil.OK,
 		},
-		// Note: This test now fails at parse time due to duplicate namespace "App"
-		// {
-		// 	name: "lazy resolution finds namespaced common type in schema cache",
-		// 	in: `namespace App {
-		// 		type Type1 = String;
-		// 		type Type2 = Type1;
-		// 	}
-		// 	namespace App {
-		// 		entity User = { "field": Type2 };
-		// 	}`,
-		// 	want: &resolver.ResolvedSchema{
-		// 		Namespaces: map[types.Path]resolver.ResolvedNamespace{
-		// 			"App": {Name: "App"},
-		// 		},
-		// 		Entities: map[types.EntityType]resolver.ResolvedEntity{
-		// 			"App::User": {
-		// 				Name: "App::User",
-		// 				Shape: &ast.RecordType{
-		// 					Attributes: ast.Attributes{
-		// 						"field": ast.Attribute{Type: ast.EntityTypeRef{Name: "Type2"}},
-		// 					},
-		// 				},
-		// 			},
-		// 		},
-		// 		Enums:   map[types.EntityType]resolver.ResolvedEnum{},
-		// 		Actions: map[types.EntityUID]resolver.ResolvedAction{},
-		// 	},
-		// 	errTest: testutil.OK, // Type2 not found in namespace-local cache, not qualified for schema cache
-		// },
 		{
 			name: "action context with unqualified extension type",
 			in: `action view appliesTo {
@@ -964,10 +873,10 @@ func TestResolve(t *testing.T) {
 					types.NewEntityUID("Action", "view"): {
 						Name: "view",
 						AppliesTo: &resolver.AppliesTo{
-							Context: ast.RecordType{
-								Attributes: ast.Attributes{
-									"timestamp": ast.Attribute{Type: ast.ExtensionType{Name: "datetime"}},
-									"duration":  ast.Attribute{Type: ast.ExtensionType{Name: "duration"}},
+							Context: resolver.RecordType{
+								Attributes: resolver.Attributes{
+									"timestamp": resolver.Attribute{Type: resolver.ExtensionType{Name: "datetime"}},
+									"duration":  resolver.Attribute{Type: resolver.ExtensionType{Name: "duration"}},
 								},
 							},
 						},
@@ -1061,9 +970,9 @@ func TestEntityTypeRefInSet(t *testing.T) {
 	testutil.Equals(t, exists, true)
 
 	// The Set element should still be EntityTypeRef, just with name resolved
-	setType, ok := membersAttr.Type.(ast.SetType)
+	setType, ok := membersAttr.Type.(resolver.SetType)
 	testutil.Equals(t, ok, true)
-	entityRef, ok := setType.Element.(ast.EntityTypeRef)
+	entityRef, ok := setType.Element.(resolver.EntityTypeRef)
 	testutil.Equals(t, ok, true)
 	testutil.Equals(t, entityRef.Name, types.EntityType("User"))
 }
@@ -1397,6 +1306,45 @@ func TestEdgeCases(t *testing.T) {
 // schemas that the parser wouldn't allow, ensuring proper error handling.
 func TestDirectAST(t *testing.T) {
 	t.Parallel()
+
+	t.Run("extension types work", func(t *testing.T) {
+		t.Parallel()
+
+		schema := &ast.Schema{
+			Entities: ast.Entities{
+				"Thing": ast.Entity{
+					Shape: &ast.RecordType{
+						Attributes: ast.Attributes{
+							"ext": ast.Attribute{Type: ast.IPAddr()},
+						},
+					},
+				},
+			},
+		}
+
+		out, err := resolver.Resolve(schema)
+		testutil.OK(t, err)
+		want := resolver.ExtensionType{Name: "ipaddr"}
+		testutil.Equals(t, out.Entities["Thing"].Shape.Attributes["ext"].Type, resolver.IsType(want))
+	})
+
+	t.Run("panic on nil type", func(t *testing.T) {
+		t.Parallel()
+		testutil.Panic(t, func() {
+			schema := &ast.Schema{
+				Entities: ast.Entities{
+					"Thing": ast.Entity{
+						Shape: &ast.RecordType{
+							Attributes: ast.Attributes{
+								"ext": ast.Attribute{Type: nil},
+							},
+						},
+					},
+				},
+			}
+			_, _ = resolver.Resolve(schema)
+		})
+	})
 
 	t.Run("top-level entity and enum with same name", func(t *testing.T) {
 		t.Parallel()

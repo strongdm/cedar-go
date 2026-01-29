@@ -7,6 +7,8 @@ import (
 	"github.com/cedar-policy/cedar-go/x/exp/schema/ast"
 )
 
+type Annotations ast.Annotations
+
 // Schema represents a schema with all type references resolved and indexed for efficient lookup.
 type Schema struct {
 	Namespaces map[types.Path]Namespace    // Namespace path -> ResolvedNamespace
@@ -19,23 +21,23 @@ type Schema struct {
 // All declarations have been moved into the other maps.
 type Namespace struct {
 	Name        types.Path
-	Annotations ast.Annotations
+	Annotations Annotations
 }
 
 // Entity represents an entity type with all type references fully resolved.
 // All EntityTypeRef references have been converted to types.EntityType.
 type Entity struct {
 	Name        types.EntityType   // Fully qualified entity type
-	Annotations ast.Annotations    // Entity annotations
+	Annotations Annotations        // Entity annotations
 	MemberOf    []types.EntityType // Fully qualified parent entity types
-	Shape       *ast.RecordType    // Entity shape (with all type references resolved)
-	Tags        ast.IsType         // Tags type (with all type references resolved)
+	Shape       *RecordType        // Entity shape (with all type references resolved)
+	Tags        IsType             // Tags type (with all type references resolved)
 }
 
 // Enum represents an enum type with all references fully resolved.
 type Enum struct {
 	Name        types.EntityType // Fully qualified enum type
-	Annotations ast.Annotations  // Enum annotations
+	Annotations Annotations      // Enum annotations
 	Values      []types.String   // Enum values
 }
 
@@ -56,7 +58,7 @@ func (e Enum) EntityUIDs() iter.Seq[types.EntityUID] {
 type AppliesTo struct {
 	Principals []types.EntityType // Fully qualified principal entity types
 	Resources  []types.EntityType // Fully qualified resource entity types
-	Context    ast.RecordType     // Context type (with all type references resolved)
+	Context    RecordType         // Context type (with all type references resolved)
 }
 
 // Action represents an action with all type references fully resolved.
@@ -64,7 +66,7 @@ type AppliesTo struct {
 // In the case where AppliesTo is nil, the action will never apply.
 type Action struct {
 	Name        types.String      // Action name (local, not qualified)
-	Annotations ast.Annotations   // Action annotations
+	Annotations Annotations       // Action annotations
 	MemberOf    []types.EntityUID // Fully qualified parent action UIDs
 	AppliesTo   *AppliesTo        // AppliesTo clause with all type references resolved
 }
