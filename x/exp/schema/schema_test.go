@@ -386,7 +386,7 @@ var wantAST = &ast.Schema{
 	Entities: ast.Entities{
 		"Admin": ast.Entity{},
 		"System": ast.Entity{
-			MemberOf: []ast.EntityTypeRef{ast.EntityTypeRef("Admin")},
+			MemberOf: []ast.EntityTypeRef{"Admin"},
 			Shape: &ast.RecordType{
 				"version": ast.Attribute{Type: ast.StringType{}},
 			},
@@ -400,8 +400,8 @@ var wantAST = &ast.Schema{
 	Actions: ast.Actions{
 		"audit": ast.Action{
 			AppliesTo: &ast.AppliesTo{
-				Principals: []ast.EntityTypeRef{ast.EntityTypeRef("Admin")},
-				Resources:  []ast.EntityTypeRef{ast.EntityTypeRef("MyApp::Document"), ast.EntityTypeRef("System")},
+				Principals: []ast.EntityTypeRef{"Admin"},
+				Resources:  []ast.EntityTypeRef{"MyApp::Document", "System"},
 			},
 		},
 	},
@@ -431,14 +431,14 @@ var wantAST = &ast.Schema{
 					},
 				},
 				"Group": ast.Entity{
-					MemberOf: []ast.EntityTypeRef{ast.EntityTypeRef("Department")},
+					MemberOf: []ast.EntityTypeRef{"Department"},
 					Shape: &ast.RecordType{
 						"metadata": ast.Attribute{Type: ast.TypeRef("Metadata")},
 						"name":     ast.Attribute{Type: ast.StringType{}},
 					},
 				},
 				"User": ast.Entity{
-					MemberOf: []ast.EntityTypeRef{ast.EntityTypeRef("Group")},
+					MemberOf: []ast.EntityTypeRef{"Group"},
 					Annotations: ast.Annotations{
 						"doc": "User entity",
 					},
@@ -461,8 +461,8 @@ var wantAST = &ast.Schema{
 						"doc": "View or edit document",
 					},
 					AppliesTo: &ast.AppliesTo{
-						Principals: []ast.EntityTypeRef{ast.EntityTypeRef("User")},
-						Resources:  []ast.EntityTypeRef{ast.EntityTypeRef("Document")},
+						Principals: []ast.EntityTypeRef{"User"},
+						Resources:  []ast.EntityTypeRef{"Document"},
 						Context: ast.RecordType{
 							"ip":        ast.Attribute{Type: ast.TypeRef("ipaddr")},
 							"timestamp": ast.Attribute{Type: ast.TypeRef("datetime")},
@@ -471,8 +471,8 @@ var wantAST = &ast.Schema{
 				},
 				"manage": ast.Action{
 					AppliesTo: &ast.AppliesTo{
-						Principals: []ast.EntityTypeRef{ast.EntityTypeRef("User")},
-						Resources:  []ast.EntityTypeRef{ast.EntityTypeRef("Document"), ast.EntityTypeRef("Group")},
+						Principals: []ast.EntityTypeRef{"User"},
+						Resources:  []ast.EntityTypeRef{"Document", "Group"},
 					},
 				},
 				"view": ast.Action{
@@ -480,8 +480,8 @@ var wantAST = &ast.Schema{
 						"doc": "View or edit document",
 					},
 					AppliesTo: &ast.AppliesTo{
-						Principals: []ast.EntityTypeRef{ast.EntityTypeRef("User")},
-						Resources:  []ast.EntityTypeRef{ast.EntityTypeRef("Document")},
+						Principals: []ast.EntityTypeRef{"User"},
+						Resources:  []ast.EntityTypeRef{"Document"},
 						Context: ast.RecordType{
 							"ip":        ast.Attribute{Type: ast.TypeRef("ipaddr")},
 							"timestamp": ast.Attribute{Type: ast.TypeRef("datetime")},

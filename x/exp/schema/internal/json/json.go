@@ -434,7 +434,7 @@ func parseEntity(je *Entity) (ast.Entity, error) {
 	if len(je.MemberOfTypes) > 0 {
 		e.MemberOf = make([]ast.EntityTypeRef, len(je.MemberOfTypes))
 		for i, ref := range je.MemberOfTypes {
-			e.MemberOf[i] = ast.EntityTypeRef(types.EntityType(ref))
+			e.MemberOf[i] = ast.EntityTypeRef(ref)
 		}
 	}
 
@@ -469,7 +469,7 @@ func parseAction(ja *Action) (ast.Action, error) {
 		for i, ref := range ja.MemberOf {
 			refType := ref.Type
 			a.MemberOf[i] = ast.EntityRef{
-				Type: ast.EntityTypeRef(types.EntityType(refType)),
+				Type: ast.EntityTypeRef(refType),
 				ID:   types.String(ref.ID),
 			}
 		}
@@ -486,13 +486,13 @@ func parseAction(ja *Action) (ast.Action, error) {
 			if hasPrincipals {
 				a.AppliesTo.Principals = make([]ast.EntityTypeRef, len(ja.AppliesTo.PrincipalTypes))
 				for i, ref := range ja.AppliesTo.PrincipalTypes {
-					a.AppliesTo.Principals[i] = ast.EntityTypeRef(types.EntityType(ref))
+					a.AppliesTo.Principals[i] = ast.EntityTypeRef(ref)
 				}
 			}
 			if hasResources {
 				a.AppliesTo.Resources = make([]ast.EntityTypeRef, len(ja.AppliesTo.ResourceTypes))
 				for i, ref := range ja.AppliesTo.ResourceTypes {
-					a.AppliesTo.Resources[i] = ast.EntityTypeRef(types.EntityType(ref))
+					a.AppliesTo.Resources[i] = ast.EntityTypeRef(ref)
 				}
 			}
 			if hasContext {
@@ -552,7 +552,7 @@ func jsonToType(jt *Type) (ast.IsType, error) {
 		}
 		return ast.RecordType(attrs), nil
 	case "Entity":
-		return ast.EntityTypeRef(types.EntityType(jt.Name)), nil
+		return ast.EntityTypeRef(jt.Name), nil
 	case "EntityOrCommon":
 		// EntityOrCommon is used by Rust CLI v4.8+ for all type references
 		// The actual type is in the "name" field
@@ -560,7 +560,7 @@ func jsonToType(jt *Type) (ast.IsType, error) {
 	default:
 		// Assume it's a type reference
 		if jt.TypeName != "" {
-			return ast.TypeRef(types.Path(jt.TypeName)), nil
+			return ast.TypeRef(jt.TypeName), nil
 		}
 		return nil, fmt.Errorf("unknown type: %v", jt)
 	}
@@ -579,7 +579,7 @@ func resolveEntityOrCommon(name string) (ast.IsType, error) {
 		return ast.BoolType{}, nil
 	default:
 		// Otherwise it's a type reference (could be entity or common type)
-		return ast.TypeRef(types.Path(name)), nil
+		return ast.TypeRef(name), nil
 	}
 }
 
@@ -625,14 +625,14 @@ func jsonAttrToType(ja *Attr) (ast.IsType, error) {
 		}
 		return ast.RecordType(attrs), nil
 	case "Entity":
-		return ast.EntityTypeRef(types.EntityType(ja.Name)), nil
+		return ast.EntityTypeRef(ja.Name), nil
 	case "EntityOrCommon":
 		// EntityOrCommon is used by Rust CLI v4.8+ for all type references
 		return resolveEntityOrCommon(ja.Name)
 	default:
 		// Assume it's a type reference
 		if ja.TypeName != "" {
-			return ast.TypeRef(types.Path(ja.TypeName)), nil
+			return ast.TypeRef(ja.TypeName), nil
 		}
 		return nil, fmt.Errorf("unknown type: %v", ja)
 	}

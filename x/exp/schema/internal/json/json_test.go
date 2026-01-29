@@ -60,7 +60,7 @@ func TestJSONRoundTrip(t *testing.T) {
 				Entities: ast.Entities{
 					"User": ast.Entity{
 						MemberOf: []ast.EntityTypeRef{
-							ast.EntityTypeRef(types.EntityType("Group")),
+							"Group",
 						},
 					},
 					"Group": ast.Entity{},
@@ -186,8 +186,8 @@ func TestJSONRoundTrip(t *testing.T) {
 				Actions: ast.Actions{
 					"view": ast.Action{
 						AppliesTo: &ast.AppliesTo{
-							Principals: []ast.EntityTypeRef{ast.EntityTypeRef("User")},
-							Resources:  []ast.EntityTypeRef{ast.EntityTypeRef("Doc")},
+							Principals: []ast.EntityTypeRef{"User"},
+							Resources:  []ast.EntityTypeRef{"Doc"},
 						},
 					},
 				},
@@ -269,8 +269,8 @@ func TestJSONRoundTrip(t *testing.T) {
 				Actions: ast.Actions{
 					"view": ast.Action{
 						AppliesTo: &ast.AppliesTo{
-							Principals: []ast.EntityTypeRef{ast.EntityTypeRef("User")},
-							Resources:  []ast.EntityTypeRef{ast.EntityTypeRef("Doc")},
+							Principals: []ast.EntityTypeRef{"User"},
+							Resources:  []ast.EntityTypeRef{"Doc"},
 							Context: ast.RecordType{
 								"ip": ast.Attribute{Type: ast.ExtensionType("ipaddr"), Optional: false},
 							},
@@ -314,8 +314,8 @@ func TestJSONRoundTrip(t *testing.T) {
 				Actions: ast.Actions{
 					"view": ast.Action{
 						AppliesTo: &ast.AppliesTo{
-							Principals: []ast.EntityTypeRef{ast.EntityTypeRef("User")},
-							Resources:  []ast.EntityTypeRef{ast.EntityTypeRef("Doc")},
+							Principals: []ast.EntityTypeRef{"User"},
+							Resources:  []ast.EntityTypeRef{"Doc"},
 							Context:    ast.TypeRef("ContextType"),
 						},
 					},

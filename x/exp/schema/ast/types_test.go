@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/cedar-policy/cedar-go/internal/testutil"
-	"github.com/cedar-policy/cedar-go/types"
 	"github.com/cedar-policy/cedar-go/x/exp/schema/ast"
 )
 
@@ -93,14 +92,14 @@ func TestRecord(t *testing.T) {
 
 func TestEntityType(t *testing.T) {
 	t.Parallel()
-	want := ast.EntityTypeRef(types.EntityType("User"))
+	want := ast.EntityTypeRef("User")
 	got := ast.EntityType("User")
 	testutil.Equals(t, got, want)
 }
 
 func TestType(t *testing.T) {
 	t.Parallel()
-	want := ast.TypeRef(types.Path("Common::Name"))
+	want := ast.TypeRef("Common::Name")
 	got := ast.Type("Common::Name")
 	testutil.Equals(t, got, want)
 }
