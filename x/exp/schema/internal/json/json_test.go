@@ -1229,7 +1229,7 @@ func TestEntityTypeRefMarshaling(t *testing.T) {
 			"Config": ast.Entity{
 				Shape: &ast.RecordType{
 					"nested": ast.Attribute{
-						Type: ast.RecordType{}, // empty attributes in nested record
+						Type:     ast.RecordType{}, // empty attributes in nested record
 						Optional: false,
 					},
 				},
