@@ -12,7 +12,6 @@ type Actions map[types.String]Action
 type CommonTypes map[types.Ident]CommonType
 type Namespaces map[types.Path]Namespace
 
-// Schema represents a Cedar schema containing a list of nodes.
 type Schema struct {
 	Entities    Entities
 	Enums       Enums
@@ -21,7 +20,6 @@ type Schema struct {
 	Namespaces  Namespaces
 }
 
-// Namespace represents a Cedar namespace declaration.
 type Namespace struct {
 	Annotations Annotations
 	Entities    Entities
@@ -30,13 +28,11 @@ type Namespace struct {
 	CommonTypes CommonTypes
 }
 
-// CommonType represents a Cedar common type declaration (type alias).
 type CommonType struct {
 	Annotations Annotations
 	Type        IsType
 }
 
-// Entity represents a Cedar entity type declaration.
 type Entity struct {
 	Annotations Annotations
 	MemberOf    []EntityTypeRef
@@ -44,41 +40,39 @@ type Entity struct {
 	Tags        IsType
 }
 
-// Enum represents a Cedar enum entity type declaration.
 type Enum struct {
 	Annotations Annotations
 	Values      []types.String
 }
 
-// Action represents a Cedar action declaration.
-// In the case where AppliesTo is nil, the action will never apply.
+// Action defines what principals can do to resources.
+// If AppliesTo is nil, the action never applies.
 type Action struct {
 	Annotations Annotations
 	MemberOf    []EntityRef
 	AppliesTo   *AppliesTo
 }
 
-// AppliesTo represents the principal, resource, and context types for an action.
 type AppliesTo struct {
 	Principals []EntityTypeRef
 	Resources  []EntityTypeRef
 	Context    IsType
 }
 
-// EntityRef represents a reference to a specific entity (type + id).
 type EntityRef struct {
 	Type EntityTypeRef
 	ID   types.String
 }
 
-// EntityRefFromID creates an EntityRef with just an ID (type is inferred as Action).
+// EntityRefFromID creates an EntityRef with only an ID.
+// Type is inferred as Action.
 func EntityRefFromID(id types.String) EntityRef {
 	return EntityRef{
 		ID: id,
 	}
 }
 
-// NewEntityRef creates an EntityRef with an explicit type and ID.
+// NewEntityRef creates an EntityRef with type and ID.
 func NewEntityRef(typ types.EntityType, id types.String) EntityRef {
 	return EntityRef{
 		Type: EntityTypeRef{Name: typ},

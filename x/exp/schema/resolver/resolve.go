@@ -97,10 +97,10 @@ func (rd *resolveData) withNamespace(namespacePath types.Path) *resolveData {
 	}
 }
 
-// Resolve returns a ResolvedSchema with all type references resolved and indexed.
-// Type references within namespaces are resolved relative to their namespace.
-// Top-level type references are resolved as-is.
-// Returns an error if any type reference cannot be resolved or if there are naming conflicts.
+// Resolve converts an AST schema to a resolver.Schema with resolved types and indexed declarations.
+//
+// Common types are inlined. Entity and enum names are fully qualified.
+// Namespace-relative references are resolved in context. Declarations are indexed in flat maps.
 func Resolve(s *ast.Schema) (*Schema, error) {
 	resolved := &Schema{
 		Namespaces: make(map[types.Path]Namespace),

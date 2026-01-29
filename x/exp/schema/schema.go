@@ -8,17 +8,18 @@ import (
 	"github.com/cedar-policy/cedar-go/x/exp/schema/resolver"
 )
 
-// Schema represents a Cedar schema with parsing and marshaling capabilities.
+// Schema provides parsing and marshaling for Cedar schemas.
 type Schema struct {
 	filename string
 	schema   *ast.Schema
 }
 
+// NewSchemaFromAST creates a Schema from an AST.
 func NewSchemaFromAST(in *ast.Schema) *Schema {
 	return &Schema{schema: in}
 }
 
-// SetFilename sets the filename for this schema.
+// SetFilename sets the filename for error reporting.
 func (s *Schema) SetFilename(filename string) {
 	s.filename = filename
 }
@@ -54,15 +55,12 @@ func (s *Schema) UnmarshalCedar(b []byte) error {
 	return nil
 }
 
-// AST returns the underlying AST schema.
+// AST returns the underlying AST.
 func (s *Schema) AST() *ast.Schema {
 	return s.schema
 }
 
-// Resolve returns a ResolvedSchema with all type references resolved and indexed for efficient lookup.
-// Type references within namespaces are resolved relative to their namespace.
-// Top-level type references are resolved as-is.
-// Returns an error if any type reference cannot be resolved.
+// Resolve returns a resolver.Schema with type references resolved and declarations indexed.
 func (s *Schema) Resolve() (*resolver.Schema, error) {
 	return resolver.Resolve(s.schema)
 }

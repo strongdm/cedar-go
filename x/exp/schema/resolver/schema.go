@@ -9,40 +9,35 @@ import (
 
 type Annotations ast.Annotations
 
-// Schema represents a schema with all type references resolved and indexed for efficient lookup.
+// Schema is a Cedar schema with resolved types and indexed declarations.
+// Common types are inlined. All names are fully qualified.
 type Schema struct {
-	Namespaces map[types.Path]Namespace    // Namespace path -> ResolvedNamespace
-	Entities   map[types.EntityType]Entity // Fully qualified entity type -> ResolvedEntity
-	Enums      map[types.EntityType]Enum   // Fully qualified entity type -> ResolvedEnum
-	Actions    map[types.EntityUID]Action  // Fully qualified action UID -> ResolvedAction
+	Namespaces map[types.Path]Namespace
+	Entities   map[types.EntityType]Entity
+	Enums      map[types.EntityType]Enum
+	Actions    map[types.EntityUID]Action
 }
 
-// Namespace represents a namespace without the declarations included.
-// All declarations have been moved into the other maps.
 type Namespace struct {
 	Name        types.Path
 	Annotations Annotations
 }
 
-// Entity represents an entity type with all type references fully resolved.
-// All EntityTypeRef references have been converted to types.EntityType.
 type Entity struct {
-	Name        types.EntityType   // Fully qualified entity type
-	Annotations Annotations        // Entity annotations
-	MemberOf    []types.EntityType // Fully qualified parent entity types
-	Shape       *RecordType        // Entity shape (with all type references resolved)
-	Tags        IsType             // Tags type (with all type references resolved)
+	Name        types.EntityType
+	Annotations Annotations
+	MemberOf    []types.EntityType
+	Shape       *RecordType
+	Tags        IsType
 }
 
-// Enum represents an enum type with all references fully resolved.
 type Enum struct {
-	Name        types.EntityType // Fully qualified enum type
-	Annotations Annotations      // Enum annotations
-	Values      []types.String   // Enum values
+	Name        types.EntityType
+	Annotations Annotations
+	Values      []types.String
 }
 
-// EntityUIDs returns an iterator over EntityUID values for each enum value.
-// The Name field should already be fully qualified.
+// EntityUIDs iterates over valid EntityUIDs for this enum.
 func (e Enum) EntityUIDs() iter.Seq[types.EntityUID] {
 	return func(yield func(types.EntityUID) bool) {
 		for _, v := range e.Values {
@@ -53,20 +48,17 @@ func (e Enum) EntityUIDs() iter.Seq[types.EntityUID] {
 	}
 }
 
-// AppliesTo represents the appliesTo clause with all type references fully resolved.
-// All EntityTypeRef references have been converted to types.EntityType.
 type AppliesTo struct {
-	Principals []types.EntityType // Fully qualified principal entity types
-	Resources  []types.EntityType // Fully qualified resource entity types
-	Context    RecordType         // Context type (with all type references resolved)
+	Principals []types.EntityType
+	Resources  []types.EntityType
+	Context    RecordType
 }
 
-// Action represents an action with all type references fully resolved.
-// All EntityTypeRef and EntityRef references have been converted to types.EntityType and types.EntityUID.
-// In the case where AppliesTo is nil, the action will never apply.
+// Action defines what principals can do to resources.
+// If AppliesTo is nil, the action never applies.
 type Action struct {
-	Name        types.String      // Action name (local, not qualified)
-	Annotations Annotations       // Action annotations
-	MemberOf    []types.EntityUID // Fully qualified parent action UIDs
-	AppliesTo   *AppliesTo        // AppliesTo clause with all type references resolved
+	Name        types.String
+	Annotations Annotations
+	MemberOf    []types.EntityUID
+	AppliesTo   *AppliesTo
 }
