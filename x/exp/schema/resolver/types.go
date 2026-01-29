@@ -43,6 +43,6 @@ type Attributes = RecordType
 
 func (RecordType) isType() { _ = 0 }
 
-type EntityTypeRef types.EntityType
+type EntityType types.EntityType
 
-func (EntityTypeRef) isType() { _ = 0 }
+func (EntityType) isType() { _ = 0 }

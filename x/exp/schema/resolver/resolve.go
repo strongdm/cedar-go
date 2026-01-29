@@ -340,25 +340,25 @@ func resolveRecord(rd *resolveData, r ast.RecordType) RecordType {
 // If the name is unqualified and namespace is provided, it checks if the entity exists
 // in the empty namespace first before qualifying it with the current namespace.
 // This method never returns an error.
-func resolveEntityTypeRef(rd *resolveData, e ast.EntityTypeRef) EntityTypeRef {
+func resolveEntityTypeRef(rd *resolveData, e ast.EntityTypeRef) EntityType {
 	if rd.namespacePath == "" {
-		return EntityTypeRef(e)
+		return EntityType(e)
 	}
 
 	name := string(e)
 	// If already qualified (contains "::"), return as-is
 	if strings.Contains(name, "::") || (len(name) > 0 && name[0] == ':') {
-		return EntityTypeRef(e)
+		return EntityType(e)
 	}
 
 	// Check if this entity exists in the empty namespace (global)
 	if rd.entityExistsInEmptyNamespace(types.EntityType(e)) {
 		// Keep it unqualified to reference the global entity
-		return EntityTypeRef(e)
+		return EntityType(e)
 	}
 
 	// Otherwise, qualify it with the current namespace
-	return EntityTypeRef(types.EntityType(string(rd.namespacePath) + "::" + name))
+	return EntityType(types.EntityType(string(rd.namespacePath) + "::" + name))
 }
 
 // resolve resolves the type reference relative to the given namespace and schema.
@@ -430,7 +430,7 @@ func resolveTypeRef(rd *resolveData, t ast.TypeRef) IsType {
 	}
 
 	// Not found, treat as EntityTypeRef
-	return EntityTypeRef(types.EntityType(name))
+	return EntityType(types.EntityType(name))
 }
 
 var knownExtensions = map[string]struct{}{

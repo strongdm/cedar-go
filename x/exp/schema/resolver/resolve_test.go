@@ -574,7 +574,7 @@ func TestResolve(t *testing.T) {
 					"User": {
 						Name: "User",
 						Shape: &resolver.RecordType{
-							"field": resolver.Attribute{Type: resolver.EntityTypeRef("NonExistent")},
+							"field": resolver.Attribute{Type: resolver.EntityType("NonExistent")},
 						},
 					},
 				},
@@ -591,7 +591,7 @@ func TestResolve(t *testing.T) {
 				Entities: map[types.EntityType]resolver.Entity{
 					"User": {
 						Name: "User",
-						Tags: resolver.EntityTypeRef("NonExistent"),
+						Tags: resolver.EntityType("NonExistent"),
 					},
 				},
 				Enums:   map[types.EntityType]resolver.Enum{},
@@ -657,7 +657,7 @@ func TestResolve(t *testing.T) {
 					"App::User": {
 						Name: "App::User",
 						Shape: &resolver.RecordType{
-							"field": resolver.Attribute{Type: resolver.EntityTypeRef("NonExistent")},
+							"field": resolver.Attribute{Type: resolver.EntityType("NonExistent")},
 						},
 					},
 				},
@@ -710,8 +710,8 @@ func TestResolve(t *testing.T) {
 					"App::User": {
 						Name: "App::User",
 						Shape: &resolver.RecordType{
-							"f1": resolver.Attribute{Type: resolver.EntityTypeRef("NonExistent")},
-							"f2": resolver.Attribute{Type: resolver.EntityTypeRef("NonExistent")},
+							"f1": resolver.Attribute{Type: resolver.EntityType("NonExistent")},
+							"f2": resolver.Attribute{Type: resolver.EntityType("NonExistent")},
 						},
 					},
 				},
@@ -738,7 +738,7 @@ func TestResolve(t *testing.T) {
 					"Other::User": {
 						Name: "Other::User",
 						Shape: &resolver.RecordType{
-							"field": resolver.Attribute{Type: resolver.EntityTypeRef("Type2")},
+							"field": resolver.Attribute{Type: resolver.EntityType("Type2")},
 						},
 					},
 				},
@@ -759,7 +759,7 @@ func TestResolve(t *testing.T) {
 					"Group": {
 						Name: "Group",
 						Shape: &resolver.RecordType{
-							"owner": resolver.Attribute{Type: resolver.EntityTypeRef("User")},
+							"owner": resolver.Attribute{Type: resolver.EntityType("User")},
 						},
 					},
 				},
@@ -802,7 +802,7 @@ func TestResolve(t *testing.T) {
 					"User": {
 						Name: "User",
 						Shape: &resolver.RecordType{
-							"field": resolver.Attribute{Type: resolver.EntityTypeRef("NonExistent")},
+							"field": resolver.Attribute{Type: resolver.EntityType("NonExistent")},
 						},
 					},
 				},
@@ -924,9 +924,9 @@ func TestEntityTypeRefInSet(t *testing.T) {
 	// The Set element should still be EntityTypeRef, just with name resolved
 	setType, ok := membersAttr.Type.(resolver.SetType)
 	testutil.Equals(t, ok, true)
-	entityRef, ok := setType.Element.(resolver.EntityTypeRef)
+	entityRef, ok := setType.Element.(resolver.EntityType)
 	testutil.Equals(t, ok, true)
-	testutil.Equals(t, entityRef, resolver.EntityTypeRef("User"))
+	testutil.Equals(t, entityRef, resolver.EntityType("User"))
 }
 
 // TestEnumEntityUIDs tests the EntityUIDs iterator method.

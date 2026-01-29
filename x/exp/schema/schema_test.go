@@ -575,7 +575,7 @@ var wantResolved = &resolver.Schema{
 								"also": "town",
 							},
 						},
-						"country": resolver.Attribute{Type: resolver.EntityTypeRef("Country")},
+						"country": resolver.Attribute{Type: resolver.EntityType("Country")},
 						"street":  resolver.Attribute{Type: resolver.StringType{}},
 						"zipcode": resolver.Attribute{Type: resolver.StringType{}, Optional: true},
 					},
