@@ -117,10 +117,10 @@ func TestSchemaRoundtrip(t *testing.T) {
 			ast: &ast.Schema{
 				CommonTypes: ast.CommonTypes{
 					types.Ident("Address"): ast.CommonType{
-						Type: ast.Record(ast.Attributes{
+						Type: ast.RecordType{
 							"city":   ast.Attribute{Type: ast.String()},
 							"street": ast.Attribute{Type: ast.String()},
-						}),
+						},
 					},
 				},
 			},
@@ -150,9 +150,9 @@ func TestSchemaRoundtrip(t *testing.T) {
 						AppliesTo: &ast.AppliesTo{
 							Principals: []ast.EntityTypeRef{ast.EntityType(types.EntityType("User"))},
 							Resources:  []ast.EntityTypeRef{ast.EntityType(types.EntityType("Document"))},
-							Context: ast.Record(ast.Attributes{
+							Context: ast.RecordType{
 								"timestamp": ast.Attribute{Type: ast.Long()},
-							}),
+							},
 						},
 					},
 				},
@@ -276,9 +276,9 @@ func TestSchemaRoundtrip(t *testing.T) {
 			ast: &ast.Schema{
 				CommonTypes: ast.CommonTypes{
 					types.Ident("Data"): ast.CommonType{
-						Type: ast.Record(ast.Attributes{
+						Type: ast.RecordType{
 							"special-key": ast.Attribute{Type: ast.String()},
-						}),
+						},
 					},
 				},
 			},
@@ -289,7 +289,7 @@ func TestSchemaRoundtrip(t *testing.T) {
 			ast: &ast.Schema{
 				CommonTypes: ast.CommonTypes{
 					types.Ident("Empty"): ast.CommonType{
-						Type: ast.Record(ast.Attributes{}),
+						Type: ast.RecordType{},
 					},
 				},
 			},
@@ -303,9 +303,9 @@ func TestSchemaRoundtrip(t *testing.T) {
 			ast: &ast.Schema{
 				CommonTypes: ast.CommonTypes{
 					types.Ident("Outer"): ast.CommonType{
-						Type: ast.Record(ast.Attributes{
-							"inner": ast.Attribute{Type: ast.Record(ast.Attributes{})},
-						}),
+						Type: ast.RecordType{
+							"inner": ast.Attribute{Type: ast.RecordType{}},
+						},
 					},
 				},
 			},
@@ -321,13 +321,13 @@ func TestSchemaRoundtrip(t *testing.T) {
 			ast: &ast.Schema{
 				CommonTypes: ast.CommonTypes{
 					types.Ident("Outer"): ast.CommonType{
-						Type: ast.Record(ast.Attributes{
+						Type: ast.RecordType{
 							"inner": ast.Attribute{
-								Type: ast.Record(ast.Attributes{
+								Type: ast.RecordType{
 									"optField": ast.Attribute{Type: ast.String(), Optional: true},
-								}),
+								},
 							},
-						}),
+						},
 					},
 				},
 			},
@@ -430,9 +430,9 @@ action view;
 			ast: &ast.Schema{
 				CommonTypes: ast.CommonTypes{
 					types.Ident("Data"): ast.CommonType{
-						Type: ast.Record(ast.Attributes{
+						Type: ast.RecordType{
 							"123key": ast.Attribute{Type: ast.String()},
-						}),
+						},
 					},
 				},
 			},
@@ -446,9 +446,9 @@ action view;
 			ast: &ast.Schema{
 				CommonTypes: ast.CommonTypes{
 					types.Ident("Data"): ast.CommonType{
-						Type: ast.Record(ast.Attributes{
+						Type: ast.RecordType{
 							"": ast.Attribute{Type: ast.String()},
-						}),
+						},
 					},
 				},
 			},
@@ -633,14 +633,14 @@ namespace MyApp {
 			ast: &ast.Schema{
 				CommonTypes: ast.CommonTypes{
 					types.Ident("User"): ast.CommonType{
-						Type: ast.Record(ast.Attributes{
+						Type: ast.RecordType{
 							"name": ast.Attribute{
 								Type: ast.String(),
 								Annotations: ast.Annotations{
 									types.Ident("doc"): types.String("User's name"),
 								},
 							},
-						}),
+						},
 					},
 				},
 			},
@@ -668,9 +668,9 @@ namespace MyApp {
 				Actions: ast.Actions{
 					types.String("view"): ast.Action{
 						AppliesTo: &ast.AppliesTo{
-							Context: ast.Record(ast.Attributes{
+							Context: ast.RecordType{
 								"timestamp": ast.Attribute{Type: ast.Long()},
-							}),
+							},
 						},
 					},
 				},

@@ -530,7 +530,7 @@ func jsonToType(jt *Type) (ast.IsType, error) {
 		}
 		return ast.SetType{Element: elem}, nil
 	case "Record":
-		var attrs ast.Attributes
+		var attrs ast.RecordType
 
 		// Sort attribute names for determinism
 		attrNames := slices.Sorted(maps.Keys(jt.Attributes))
@@ -542,7 +542,7 @@ func jsonToType(jt *Type) (ast.IsType, error) {
 			}
 			optional := attr.Required != nil && !*attr.Required
 			if attrs == nil {
-				attrs = make(ast.Attributes)
+				attrs = make(ast.RecordType)
 			}
 			attrs[types.String(name)] = ast.Attribute{
 				Type:        t,
@@ -603,7 +603,7 @@ func jsonAttrToType(ja *Attr) (ast.IsType, error) {
 		}
 		return ast.SetType{Element: elem}, nil
 	case "Record":
-		var attrs ast.Attributes
+		var attrs ast.RecordType
 
 		// Sort attribute names for determinism
 		attrNames := slices.Sorted(maps.Keys(ja.Attributes))
@@ -615,7 +615,7 @@ func jsonAttrToType(ja *Attr) (ast.IsType, error) {
 			}
 			optional := attr.Required != nil && !*attr.Required
 			if attrs == nil {
-				attrs = make(ast.Attributes)
+				attrs = make(ast.RecordType)
 			}
 			attrs[types.String(name)] = ast.Attribute{
 				Type:        t,

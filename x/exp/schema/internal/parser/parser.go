@@ -760,7 +760,7 @@ func (p *Parser) parseType() (ast.IsType, error) {
 		if err != nil {
 			return nil, err
 		}
-		return ast.Record(attrs), nil
+		return attrs, nil
 	case "String":
 		p.advance()
 		return ast.String(), nil
@@ -811,12 +811,12 @@ func (p *Parser) parseType() (ast.IsType, error) {
 	}
 }
 
-func (p *Parser) parseAttributes() (ast.Attributes, error) {
+func (p *Parser) parseAttributes() (ast.RecordType, error) {
 	if _, err := p.expect("{"); err != nil {
 		return nil, err
 	}
 
-	attrs := make(ast.Attributes)
+	attrs := make(ast.RecordType)
 	for p.peek().Text != "}" && !p.peek().isEOF() {
 		key, attr, err := p.parseAttribute()
 		if err != nil {

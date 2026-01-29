@@ -57,13 +57,7 @@ type Attribute struct {
 
 type RecordType map[types.String]Attribute
 
-type Attributes = RecordType
-
 func (RecordType) isType() { _ = 0 }
-
-func Record(attrs Attributes) RecordType {
-	return RecordType(attrs)
-}
 
 type EntityTypeRef types.EntityType
 

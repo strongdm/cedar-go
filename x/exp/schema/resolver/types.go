@@ -39,8 +39,6 @@ type Attribute struct {
 
 type RecordType map[types.String]Attribute
 
-type Attributes = RecordType
-
 func (RecordType) isType() { _ = 0 }
 
 type EntityType types.EntityType

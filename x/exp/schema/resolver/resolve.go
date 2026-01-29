@@ -324,7 +324,7 @@ func resolveSet(rd *resolveData, s ast.SetType) SetType {
 
 // resolve returns a new RecordType with all attribute types resolved.
 func resolveRecord(rd *resolveData, r ast.RecordType) RecordType {
-	resolvedAttrs := make(Attributes)
+	resolvedAttrs := make(RecordType)
 	for key, attr := range r {
 		resolvedType := resolveType(rd, attr.Type)
 		resolvedAttrs[key] = Attribute{

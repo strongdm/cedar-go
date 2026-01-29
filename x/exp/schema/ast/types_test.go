@@ -76,7 +76,7 @@ func TestRecord(t *testing.T) {
 		},
 		"age": ast.Attribute{Type: ast.LongType{}, Optional: true},
 	}
-	got := ast.Record(ast.Attributes{
+	got := ast.RecordType{
 		"name": ast.Attribute{
 			Type:     ast.String(),
 			Optional: false,
@@ -86,7 +86,7 @@ func TestRecord(t *testing.T) {
 			},
 		},
 		"age": ast.Attribute{Type: ast.Long(), Optional: true},
-	})
+	}
 	testutil.Equals(t, got, want)
 }
 
