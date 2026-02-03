@@ -174,7 +174,7 @@ func TestMarshalJSON(t *testing.T) {
 	}
 }
 
-func TestParseJSON(t *testing.T) {
+func TestUnmarshalJSON(t *testing.T) {
 	jsonData := `{
 		"App": {
 			"entityTypes": {
@@ -200,9 +200,9 @@ func TestParseJSON(t *testing.T) {
 		}
 	}`
 
-	s, err := ParseJSON([]byte(jsonData))
-	if err != nil {
-		t.Fatalf("ParseJSON failed: %v", err)
+	var s Schema
+	if err := s.UnmarshalJSON([]byte(jsonData)); err != nil {
+		t.Fatalf("UnmarshalJSON failed: %v", err)
 	}
 
 	resolved, err := s.Resolve()
@@ -242,10 +242,10 @@ func TestRoundTrip(t *testing.T) {
 		t.Fatalf("MarshalJSON failed: %v", err)
 	}
 
-	// Parse back
-	parsed, err := ParseJSON(jsonData)
-	if err != nil {
-		t.Fatalf("ParseJSON failed: %v", err)
+	// Parse back using UnmarshalJSON
+	var parsed Schema
+	if err := parsed.UnmarshalJSON(jsonData); err != nil {
+		t.Fatalf("UnmarshalJSON failed: %v", err)
 	}
 
 	// Resolve both and compare

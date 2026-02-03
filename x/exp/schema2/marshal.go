@@ -31,16 +31,6 @@ func (s *Schema) MarshalCedar() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// UnmarshalJSON deserializes a schema from JSON format.
-func (s *Schema) UnmarshalJSON(data []byte) error {
-	parsed, err := ParseJSON(data)
-	if err != nil {
-		return err
-	}
-	*s = *parsed
-	return nil
-}
-
 // UnmarshalCedar deserializes a schema from human-readable Cedar format.
 func (s *Schema) UnmarshalCedar(data []byte) error {
 	parsed, err := ParseCedar(data)

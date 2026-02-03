@@ -71,7 +71,7 @@ func Example_enumEntity() {
 	// Status values: 3
 }
 
-func Example_parseJSON() {
+func Example_unmarshalJSON() {
 	jsonSchema := `{
 		"App": {
 			"entityTypes": {
@@ -97,8 +97,8 @@ func Example_parseJSON() {
 		}
 	}`
 
-	s, err := schema2.ParseJSON([]byte(jsonSchema))
-	if err != nil {
+	var s schema2.Schema
+	if err := s.UnmarshalJSON([]byte(jsonSchema)); err != nil {
 		fmt.Printf("Parse error: %v\n", err)
 		return
 	}

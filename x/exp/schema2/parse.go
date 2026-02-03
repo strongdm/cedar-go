@@ -8,16 +8,29 @@ import (
 	"github.com/cedar-policy/cedar-go/x/exp/schema2/internal/ast"
 )
 
-// ParseJSON parses a Cedar schema from JSON format.
-func ParseJSON(data []byte) (*Schema, error) {
+// UnmarshalJSON implements json.Unmarshaler for Schema.
+// This parses a Cedar schema from JSON format into the receiver.
+func (s *Schema) UnmarshalJSON(data []byte) error {
 	var js existingast.JSONSchema
 	if err := json.Unmarshal(data, &js); err != nil {
+		return err
+	}
+	s.ast = ast.FromJSON(js)
+	return nil
+}
+
+// ParseJSON parses a Cedar schema from JSON format.
+//
+// Deprecated: Use UnmarshalJSON instead:
+//
+//	var s schema2.Schema
+//	err := s.UnmarshalJSON(data)
+func ParseJSON(data []byte) (*Schema, error) {
+	s := &Schema{}
+	if err := s.UnmarshalJSON(data); err != nil {
 		return nil, err
 	}
-
-	return &Schema{
-		ast: ast.FromJSON(js),
-	}, nil
+	return s, nil
 }
 
 // parseConfig holds configuration options for parsing Cedar schemas.

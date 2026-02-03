@@ -99,7 +99,8 @@
 //
 // Parse schemas from JSON:
 //
-//	schema, err := schema2.ParseJSON(jsonData)
+//	var schema schema2.Schema
+//	err := schema.UnmarshalJSON(jsonData)
 //
 // Parse schemas from Cedar human-readable format:
 //
