@@ -19,20 +19,6 @@ func (s *Schema) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// ParseJSON parses a Cedar schema from JSON format.
-//
-// Deprecated: Use UnmarshalJSON instead:
-//
-//	var s schema2.Schema
-//	err := s.UnmarshalJSON(data)
-func ParseJSON(data []byte) (*Schema, error) {
-	s := &Schema{}
-	if err := s.UnmarshalJSON(data); err != nil {
-		return nil, err
-	}
-	return s, nil
-}
-
 // parseConfig holds configuration options for parsing Cedar schemas.
 type parseConfig struct {
 	filename string
