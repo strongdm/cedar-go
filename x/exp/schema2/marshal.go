@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 
 	existingast "github.com/cedar-policy/cedar-go/internal/schema/ast"
+	"github.com/cedar-policy/cedar-go/internal/schema/parser"
+	"github.com/cedar-policy/cedar-go/x/exp/schema2/internal/ast"
 )
 
 // MarshalJSON serializes the schema to JSON format.
@@ -33,10 +35,11 @@ func (s *Schema) MarshalCedar() ([]byte, error) {
 
 // UnmarshalCedar deserializes a schema from human-readable Cedar format.
 func (s *Schema) UnmarshalCedar(data []byte) error {
-	parsed, err := ParseCedar(data)
+	humanAST, err := parser.ParseFile("", data)
 	if err != nil {
 		return err
 	}
-	*s = *parsed
+	js := existingast.ConvertHuman2JSON(humanAST)
+	s.ast = ast.FromJSON(js)
 	return nil
 }

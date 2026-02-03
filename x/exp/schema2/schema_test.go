@@ -390,28 +390,25 @@ func TestIsEnumAndAsEnum(t *testing.T) {
 	}
 }
 
-func TestParseCedarWithOptions(t *testing.T) {
+func TestUnmarshalCedar(t *testing.T) {
 	cedarSchema := `namespace App {
 		entity User;
 		action read appliesTo { principal: User, resource: User };
 	}`
 
-	// Test without options
-	s, err := ParseCedar([]byte(cedarSchema))
-	if err != nil {
-		t.Fatalf("ParseCedar failed: %v", err)
-	}
-	if s == nil {
-		t.Fatal("ParseCedar returned nil schema")
+	var s Schema
+	if err := s.UnmarshalCedar([]byte(cedarSchema)); err != nil {
+		t.Fatalf("UnmarshalCedar failed: %v", err)
 	}
 
-	// Test with WithFilename option
-	s, err = ParseCedar([]byte(cedarSchema), WithFilename("test.cedarschema"))
+	resolved, err := s.Resolve()
 	if err != nil {
-		t.Fatalf("ParseCedar with WithFilename failed: %v", err)
+		t.Fatalf("Resolve failed: %v", err)
 	}
-	if s == nil {
-		t.Fatal("ParseCedar with WithFilename returned nil schema")
+
+	userType := resolved.EntityType(types.EntityType("App::User"))
+	if userType == nil {
+		t.Fatal("User entity type not found")
 	}
 }
 

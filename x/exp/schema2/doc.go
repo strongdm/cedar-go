@@ -104,8 +104,8 @@
 //
 // Parse schemas from Cedar human-readable format:
 //
-//	schema, err := schema2.ParseCedar(cedarData)
-//	schema, err := schema2.ParseCedar(cedarData, schema2.WithFilename("schema.cedarschema"))
+//	var schema schema2.Schema
+//	err := schema.UnmarshalCedar(cedarData)
 //
 // Serialize schemas:
 //

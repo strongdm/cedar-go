@@ -227,15 +227,14 @@ func Example_isEnumAsEnum() {
 	// User is enum: false
 }
 
-func Example_parseCedarWithFilename() {
+func Example_unmarshalCedar() {
 	cedarSchema := `namespace App {
 		entity User;
 		action read appliesTo { principal: User, resource: User };
 	}`
 
-	// Use WithFilename for better error messages
-	s, err := schema2.ParseCedar([]byte(cedarSchema), schema2.WithFilename("myschema.cedarschema"))
-	if err != nil {
+	var s schema2.Schema
+	if err := s.UnmarshalCedar([]byte(cedarSchema)); err != nil {
 		fmt.Printf("Parse error: %v\n", err)
 		return
 	}
