@@ -59,9 +59,18 @@ func EntityRef(name string) Type {
 	return entityRefType{name: name}
 }
 
+// RecordType is a Type that specifically represents a record.
+// This is used where only record types are valid, such as action context.
+type RecordType interface {
+	Type
+	isRecordType()
+}
+
 type recordType struct {
 	attrs []*Attribute
 }
+
+func (recordType) isRecordType() {}
 
 func (r recordType) toAST() ast.Type {
 	rt := &ast.RecordType{
@@ -78,7 +87,7 @@ func (r recordType) toAST() ast.Type {
 }
 
 // Record returns a record type with the given attributes.
-func Record(attrs ...*Attribute) Type {
+func Record(attrs ...*Attribute) RecordType {
 	return recordType{attrs: attrs}
 }
 

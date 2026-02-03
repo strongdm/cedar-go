@@ -516,3 +516,158 @@ func TestActionBuilderCommonType(t *testing.T) {
 		t.Fatal("write action not found")
 	}
 }
+
+func TestSortedEntityTypes(t *testing.T) {
+	s := NewSchema().
+		Namespace("App").
+		Entity("Zebra").
+		Entity("Apple").
+		Entity("Mango")
+
+	resolved := s.MustResolve()
+
+	sorted := resolved.SortedEntityTypes()
+	if len(sorted) != 3 {
+		t.Fatalf("expected 3 entity types, got %d", len(sorted))
+	}
+
+	// Should be sorted alphabetically
+	expected := []types.EntityType{"App::Apple", "App::Mango", "App::Zebra"}
+	for i, name := range sorted {
+		if name != expected[i] {
+			t.Errorf("sorted[%d] = %s, expected %s", i, name, expected[i])
+		}
+	}
+}
+
+func TestSortedActions(t *testing.T) {
+	s := NewSchema().
+		Namespace("App").
+		Entity("User").
+		Action("write").Principals("User").Resources("User").
+		Action("delete").Principals("User").Resources("User").
+		Action("read").Principals("User").Resources("User")
+
+	resolved := s.MustResolve()
+
+	sorted := resolved.SortedActions()
+	if len(sorted) != 3 {
+		t.Fatalf("expected 3 actions, got %d", len(sorted))
+	}
+
+	// Should be sorted by ID (all have same type App::Action)
+	expectedIDs := []string{"delete", "read", "write"}
+	for i, uid := range sorted {
+		if string(uid.ID) != expectedIDs[i] {
+			t.Errorf("sorted[%d].ID = %s, expected %s", i, uid.ID, expectedIDs[i])
+		}
+	}
+}
+
+func TestSortedAttributeNames(t *testing.T) {
+	s := NewSchema().
+		Namespace("App").
+		Entity("User").Attributes(
+			Attr("zebra", String()),
+			Attr("apple", String()),
+			Attr("mango", Long()),
+		)
+
+	resolved := s.MustResolve()
+	userType := resolved.EntityType(types.EntityType("App::User"))
+	attrs := userType.Attributes()
+
+	sorted := attrs.SortedAttributeNames()
+	if len(sorted) != 3 {
+		t.Fatalf("expected 3 attributes, got %d", len(sorted))
+	}
+
+	expected := []string{"apple", "mango", "zebra"}
+	for i, name := range sorted {
+		if name != expected[i] {
+			t.Errorf("sorted[%d] = %s, expected %s", i, name, expected[i])
+		}
+	}
+}
+
+func TestAsTypeHelpers(t *testing.T) {
+	s := NewSchema().
+		Namespace("App").
+		Entity("User").Attributes(
+			Attr("name", String()),
+			Attr("tags", Set(String())),
+			Attr("owner", EntityRef("User")),
+			Attr("metadata", Record(
+				Attr("created", Long()),
+			)),
+			Attr("ip", IPAddr()),
+		)
+
+	resolved := s.MustResolve()
+	userType := resolved.EntityType(types.EntityType("App::User"))
+	attrs := userType.Attributes()
+
+	// Test AsPrimitive
+	nameAttr := attrs.Attribute("name")
+	if p, ok := AsPrimitive(nameAttr.Type()); !ok {
+		t.Error("name should be a primitive type")
+	} else if p.Name() != "String" {
+		t.Errorf("name type = %s, expected String", p.Name())
+	}
+
+	// Test AsSet
+	tagsAttr := attrs.Attribute("tags")
+	if s, ok := AsSet(tagsAttr.Type()); !ok {
+		t.Error("tags should be a set type")
+	} else {
+		if elem, ok := AsPrimitive(s.Element()); !ok || elem.Name() != "String" {
+			t.Error("tags element should be String")
+		}
+	}
+
+	// Test AsEntityRef
+	ownerAttr := attrs.Attribute("owner")
+	if e, ok := AsEntityRef(ownerAttr.Type()); !ok {
+		t.Error("owner should be an entity ref type")
+	} else if e.Name() != "App::User" {
+		t.Errorf("owner ref = %s, expected App::User", e.Name())
+	}
+
+	// Test AsRecord
+	metaAttr := attrs.Attribute("metadata")
+	if r, ok := AsRecord(metaAttr.Type()); !ok {
+		t.Error("metadata should be a record type")
+	} else {
+		if r.Attribute("created") == nil {
+			t.Error("metadata should have created attribute")
+		}
+	}
+
+	// Test AsExtension
+	ipAttr := attrs.Attribute("ip")
+	if e, ok := AsExtension(ipAttr.Type()); !ok {
+		t.Error("ip should be an extension type")
+	} else if e.Name() != "ipaddr" {
+		t.Errorf("ip extension = %s, expected ipaddr", e.Name())
+	}
+}
+
+func TestContextRequiresRecord(t *testing.T) {
+	// This test verifies that Context() only accepts RecordType at compile time.
+	// The fact that this compiles proves the type constraint works.
+	s := NewSchema().
+		Namespace("App").
+		Entity("User").
+		Action("read").
+			Principals("User").
+			Resources("User").
+			Context(Record(
+				Attr("reason", String()),
+			))
+
+	resolved := s.MustResolve()
+	action := resolved.Action(types.NewEntityUID("App::Action", "read"))
+	if action.Context() == nil {
+		t.Error("action should have context")
+	}
+}

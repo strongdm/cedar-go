@@ -1,6 +1,8 @@
 package schema2
 
 import (
+	"fmt"
+
 	"github.com/cedar-policy/cedar-go/types"
 	"github.com/cedar-policy/cedar-go/x/exp/schema2/internal/resolve"
 )
@@ -104,7 +106,7 @@ func convertType(t resolve.Type) ResolvedType {
 	case resolve.ExtensionType:
 		return ResolvedExtensionType{name: t.Name}
 	default:
-		return ResolvedPrimitiveType{name: "String"}
+		panic("schema2: convertType: unexpected type " + fmt.Sprintf("%T", t))
 	}
 }
 

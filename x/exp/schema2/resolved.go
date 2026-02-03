@@ -1,6 +1,8 @@
 package schema2
 
 import (
+	"slices"
+
 	"github.com/cedar-policy/cedar-go/types"
 )
 
@@ -36,6 +38,17 @@ func (rs *ResolvedSchema) LookupEntityType(name types.EntityType) (*ResolvedEnti
 	return et, ok
 }
 
+// SortedEntityTypes returns all entity type names in sorted order.
+// This is useful for deterministic iteration when generating documentation or output.
+func (rs *ResolvedSchema) SortedEntityTypes() []types.EntityType {
+	names := make([]types.EntityType, 0, len(rs.entityTypes))
+	for name := range rs.entityTypes {
+		names = append(names, name)
+	}
+	slices.Sort(names)
+	return names
+}
+
 // Actions returns an iterator over all actions in the schema.
 func (rs *ResolvedSchema) Actions() func(yield func(types.EntityUID, *ResolvedAction) bool) {
 	return func(yield func(types.EntityUID, *ResolvedAction) bool) {
@@ -59,6 +72,31 @@ func (rs *ResolvedSchema) Action(uid types.EntityUID) *ResolvedAction {
 func (rs *ResolvedSchema) LookupAction(uid types.EntityUID) (*ResolvedAction, bool) {
 	a, ok := rs.actions[uid]
 	return a, ok
+}
+
+// SortedActions returns all action UIDs in sorted order (by type, then ID).
+// This is useful for deterministic iteration when generating documentation or output.
+func (rs *ResolvedSchema) SortedActions() []types.EntityUID {
+	uids := make([]types.EntityUID, 0, len(rs.actions))
+	for uid := range rs.actions {
+		uids = append(uids, uid)
+	}
+	slices.SortFunc(uids, func(a, b types.EntityUID) int {
+		if a.Type < b.Type {
+			return -1
+		}
+		if a.Type > b.Type {
+			return 1
+		}
+		if a.ID < b.ID {
+			return -1
+		}
+		if a.ID > b.ID {
+			return 1
+		}
+		return 0
+	})
+	return uids
 }
 
 // ResolvedEntityType represents a fully-resolved entity type.
@@ -273,6 +311,17 @@ func (rrt *ResolvedRecordType) Attribute(name string) *ResolvedAttribute {
 	return rrt.attributes[name]
 }
 
+// SortedAttributeNames returns all attribute names in sorted order.
+// This is useful for deterministic iteration when generating documentation or output.
+func (rrt *ResolvedRecordType) SortedAttributeNames() []string {
+	names := make([]string, 0, len(rrt.attributes))
+	for name := range rrt.attributes {
+		names = append(names, name)
+	}
+	slices.Sort(names)
+	return names
+}
+
 // ResolvedExtensionType represents an extension type.
 type ResolvedExtensionType struct {
 	name string // e.g., "ipaddr", "decimal"
@@ -305,4 +354,42 @@ func (ra *ResolvedAttribute) Type() ResolvedType {
 // Required returns whether this attribute is required.
 func (ra *ResolvedAttribute) Required() bool {
 	return ra.required
+}
+
+// Type assertion helpers for ResolvedType.
+// These provide a convenient alternative to type switches.
+
+// AsPrimitive returns the ResolvedPrimitiveType and true if t is a primitive type,
+// or a zero value and false otherwise.
+func AsPrimitive(t ResolvedType) (ResolvedPrimitiveType, bool) {
+	p, ok := t.(ResolvedPrimitiveType)
+	return p, ok
+}
+
+// AsEntityRef returns the ResolvedEntityRefType and true if t is an entity reference,
+// or a zero value and false otherwise.
+func AsEntityRef(t ResolvedType) (ResolvedEntityRefType, bool) {
+	e, ok := t.(ResolvedEntityRefType)
+	return e, ok
+}
+
+// AsSet returns the ResolvedSetType and true if t is a set type,
+// or a zero value and false otherwise.
+func AsSet(t ResolvedType) (ResolvedSetType, bool) {
+	s, ok := t.(ResolvedSetType)
+	return s, ok
+}
+
+// AsRecord returns the ResolvedRecordType and true if t is a record type,
+// or nil and false otherwise.
+func AsRecord(t ResolvedType) (*ResolvedRecordType, bool) {
+	r, ok := t.(*ResolvedRecordType)
+	return r, ok
+}
+
+// AsExtension returns the ResolvedExtensionType and true if t is an extension type,
+// or a zero value and false otherwise.
+func AsExtension(t ResolvedType) (ResolvedExtensionType, bool) {
+	e, ok := t.(ResolvedExtensionType)
+	return e, ok
 }

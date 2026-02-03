@@ -167,7 +167,8 @@ func (ab *ActionBuilder) Resources(types ...string) *ActionBuilder {
 }
 
 // Context sets the context type for this action's appliesTo.
-func (ab *ActionBuilder) Context(t Type) *ActionBuilder {
+// Context only accepts record types, enforced at compile time.
+func (ab *ActionBuilder) Context(t RecordType) *ActionBuilder {
 	ns := ab.schema.ast.GetOrCreateNamespace(ab.namespace)
 	a := ns.GetOrCreateAction(ab.name)
 	if a.AppliesTo == nil {
