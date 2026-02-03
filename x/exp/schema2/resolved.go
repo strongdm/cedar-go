@@ -1,8 +1,6 @@
 package schema2
 
 import (
-	"slices"
-
 	"github.com/cedar-policy/cedar-go/types"
 )
 
@@ -38,17 +36,6 @@ func (rs *ResolvedSchema) LookupEntityType(name types.EntityType) (*ResolvedEnti
 	return et, ok
 }
 
-// SortedEntityTypes returns all entity type names in sorted order.
-// This is useful for deterministic iteration when generating documentation or output.
-func (rs *ResolvedSchema) SortedEntityTypes() []types.EntityType {
-	names := make([]types.EntityType, 0, len(rs.entityTypes))
-	for name := range rs.entityTypes {
-		names = append(names, name)
-	}
-	slices.Sort(names)
-	return names
-}
-
 // Actions returns an iterator over all actions in the schema.
 func (rs *ResolvedSchema) Actions() func(yield func(types.EntityUID, *ResolvedAction) bool) {
 	return func(yield func(types.EntityUID, *ResolvedAction) bool) {
@@ -72,31 +59,6 @@ func (rs *ResolvedSchema) Action(uid types.EntityUID) *ResolvedAction {
 func (rs *ResolvedSchema) LookupAction(uid types.EntityUID) (*ResolvedAction, bool) {
 	a, ok := rs.actions[uid]
 	return a, ok
-}
-
-// SortedActions returns all action UIDs in sorted order (by type, then ID).
-// This is useful for deterministic iteration when generating documentation or output.
-func (rs *ResolvedSchema) SortedActions() []types.EntityUID {
-	uids := make([]types.EntityUID, 0, len(rs.actions))
-	for uid := range rs.actions {
-		uids = append(uids, uid)
-	}
-	slices.SortFunc(uids, func(a, b types.EntityUID) int {
-		if a.Type < b.Type {
-			return -1
-		}
-		if a.Type > b.Type {
-			return 1
-		}
-		if a.ID < b.ID {
-			return -1
-		}
-		if a.ID > b.ID {
-			return 1
-		}
-		return 0
-	})
-	return uids
 }
 
 // ResolvedEntityType represents a fully-resolved entity type.
@@ -309,17 +271,6 @@ func (rrt *ResolvedRecordType) Attributes() func(yield func(string, *ResolvedAtt
 // Attribute returns the attribute with the given name, or nil.
 func (rrt *ResolvedRecordType) Attribute(name string) *ResolvedAttribute {
 	return rrt.attributes[name]
-}
-
-// SortedAttributeNames returns all attribute names in sorted order.
-// This is useful for deterministic iteration when generating documentation or output.
-func (rrt *ResolvedRecordType) SortedAttributeNames() []string {
-	names := make([]string, 0, len(rrt.attributes))
-	for name := range rrt.attributes {
-		names = append(names, name)
-	}
-	slices.Sort(names)
-	return names
 }
 
 // ResolvedExtensionType represents an extension type.
