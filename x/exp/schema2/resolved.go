@@ -1,21 +1,3 @@
-// Package schema2 provides a programmatic interface for Cedar schemas.
-//
-// This package provides two distinct schema representations:
-//   - Schema: A mutable builder type for constructing schemas programmatically
-//   - ResolvedSchema: An immutable type with fully-qualified names and computed hierarchies
-//
-// Example usage:
-//
-//	schema := schema2.NewSchema().
-//	    Namespace("MyApp").
-//	        Entity("User").In("Group").
-//	        Entity("Group").
-//	        Action("read").Principals("User").Resources("Document")
-//
-//	resolved, err := schema.Resolve()
-//	if err != nil {
-//	    // Handle validation errors
-//	}
 package schema2
 
 import (
@@ -46,6 +28,14 @@ func (rs *ResolvedSchema) EntityType(name types.EntityType) *ResolvedEntityType 
 	return rs.entityTypes[name]
 }
 
+// LookupEntityType returns the resolved entity type for the given name and
+// a boolean indicating whether it was found. This is useful when you need
+// to distinguish between "not found" and "found with nil value".
+func (rs *ResolvedSchema) LookupEntityType(name types.EntityType) (*ResolvedEntityType, bool) {
+	et, ok := rs.entityTypes[name]
+	return et, ok
+}
+
 // Actions returns an iterator over all actions in the schema.
 func (rs *ResolvedSchema) Actions() func(yield func(types.EntityUID, *ResolvedAction) bool) {
 	return func(yield func(types.EntityUID, *ResolvedAction) bool) {
@@ -61,6 +51,14 @@ func (rs *ResolvedSchema) Actions() func(yield func(types.EntityUID, *ResolvedAc
 // Returns nil if the action is not found.
 func (rs *ResolvedSchema) Action(uid types.EntityUID) *ResolvedAction {
 	return rs.actions[uid]
+}
+
+// LookupAction returns the resolved action for the given EntityUID and
+// a boolean indicating whether it was found. This is useful when you need
+// to distinguish between "not found" and "found with nil value".
+func (rs *ResolvedSchema) LookupAction(uid types.EntityUID) (*ResolvedAction, bool) {
+	a, ok := rs.actions[uid]
+	return a, ok
 }
 
 // ResolvedEntityType represents a fully-resolved entity type.
@@ -111,6 +109,19 @@ func (ret *ResolvedEntityType) Tags() ResolvedType {
 // Kind returns whether this is a standard or enum entity type.
 func (ret *ResolvedEntityType) Kind() ResolvedEntityTypeKind {
 	return ret.kind
+}
+
+// IsEnum returns true if this entity type is an enumerated type.
+func (ret *ResolvedEntityType) IsEnum() bool {
+	_, ok := ret.kind.(EnumEntityType)
+	return ok
+}
+
+// AsEnum returns the EnumEntityType and true if this is an enum type,
+// or a zero value and false if it's not an enum type.
+func (ret *ResolvedEntityType) AsEnum() (EnumEntityType, bool) {
+	e, ok := ret.kind.(EnumEntityType)
+	return e, ok
 }
 
 // ResolvedEntityTypeKind indicates whether an entity is standard or enumerated.

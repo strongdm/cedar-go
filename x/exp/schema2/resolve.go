@@ -36,6 +36,17 @@ func (s *Schema) Resolve() (*ResolvedSchema, error) {
 	return rs, nil
 }
 
+// MustResolve converts the schema to a ResolvedSchema, panicking on error.
+// This is useful in tests and initialization code where schema errors should
+// cause a panic rather than require error handling.
+func (s *Schema) MustResolve() *ResolvedSchema {
+	rs, err := s.Resolve()
+	if err != nil {
+		panic("schema2: MustResolve: " + err.Error())
+	}
+	return rs
+}
+
 func convertEntityType(et *resolve.EntityType) *ResolvedEntityType {
 	ret := &ResolvedEntityType{
 		name:        et.Name,

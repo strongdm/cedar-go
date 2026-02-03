@@ -284,3 +284,235 @@ func TestValidationErrors(t *testing.T) {
 		t.Error("expected error for undefined type reference")
 	}
 }
+
+func TestMustResolve(t *testing.T) {
+	// Test successful resolve
+	s := NewSchema().
+		Namespace("App").
+		Entity("User").
+		Action("read").Principals("User").Resources("User")
+
+	resolved := s.MustResolve()
+	if resolved == nil {
+		t.Fatal("MustResolve returned nil")
+	}
+
+	// Test panic on error
+	badSchema := NewSchema().
+		Namespace("App").
+		Entity("User").
+		Action("read").Principals("NonExistent").Resources("User")
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("MustResolve should panic on error")
+		}
+	}()
+	_ = badSchema.MustResolve()
+}
+
+func TestLookupEntityType(t *testing.T) {
+	s := NewSchema().
+		Namespace("App").
+		Entity("User")
+
+	resolved := s.MustResolve()
+
+	// Test found case
+	userType, found := resolved.LookupEntityType(types.EntityType("App::User"))
+	if !found {
+		t.Error("LookupEntityType should find App::User")
+	}
+	if userType == nil {
+		t.Error("LookupEntityType should return non-nil entity type")
+	}
+
+	// Test not found case
+	_, found = resolved.LookupEntityType(types.EntityType("App::NonExistent"))
+	if found {
+		t.Error("LookupEntityType should not find App::NonExistent")
+	}
+}
+
+func TestLookupAction(t *testing.T) {
+	s := NewSchema().
+		Namespace("App").
+		Entity("User").
+		Action("read").Principals("User").Resources("User")
+
+	resolved := s.MustResolve()
+
+	// Test found case
+	readAction, found := resolved.LookupAction(types.NewEntityUID("App::Action", "read"))
+	if !found {
+		t.Error("LookupAction should find read action")
+	}
+	if readAction == nil {
+		t.Error("LookupAction should return non-nil action")
+	}
+
+	// Test not found case
+	_, found = resolved.LookupAction(types.NewEntityUID("App::Action", "nonexistent"))
+	if found {
+		t.Error("LookupAction should not find nonexistent action")
+	}
+}
+
+func TestIsEnumAndAsEnum(t *testing.T) {
+	s := NewSchema().
+		Namespace("App").
+		Entity("User").
+		Entity("Status").Enum("Active", "Inactive", "Pending")
+
+	resolved := s.MustResolve()
+
+	// Test standard entity type
+	userType := resolved.EntityType(types.EntityType("App::User"))
+	if userType.IsEnum() {
+		t.Error("User should not be an enum type")
+	}
+	_, ok := userType.AsEnum()
+	if ok {
+		t.Error("AsEnum should return false for non-enum type")
+	}
+
+	// Test enum entity type
+	statusType := resolved.EntityType(types.EntityType("App::Status"))
+	if !statusType.IsEnum() {
+		t.Error("Status should be an enum type")
+	}
+	enumKind, ok := statusType.AsEnum()
+	if !ok {
+		t.Error("AsEnum should return true for enum type")
+	}
+	if len(enumKind.Values()) != 3 {
+		t.Errorf("expected 3 enum values, got %d", len(enumKind.Values()))
+	}
+}
+
+func TestParseCedarWithOptions(t *testing.T) {
+	cedarSchema := `namespace App {
+		entity User;
+		action read appliesTo { principal: User, resource: User };
+	}`
+
+	// Test without options
+	s, err := ParseCedar([]byte(cedarSchema))
+	if err != nil {
+		t.Fatalf("ParseCedar failed: %v", err)
+	}
+	if s == nil {
+		t.Fatal("ParseCedar returned nil schema")
+	}
+
+	// Test with WithFilename option
+	s, err = ParseCedar([]byte(cedarSchema), WithFilename("test.cedarschema"))
+	if err != nil {
+		t.Fatalf("ParseCedar with WithFilename failed: %v", err)
+	}
+	if s == nil {
+		t.Fatal("ParseCedar with WithFilename returned nil schema")
+	}
+
+	// Verify backward compatibility with deprecated function
+	s, err = ParseCedarWithFilename("test.cedarschema", []byte(cedarSchema))
+	if err != nil {
+		t.Fatalf("ParseCedarWithFilename failed: %v", err)
+	}
+	if s == nil {
+		t.Fatal("ParseCedarWithFilename returned nil schema")
+	}
+}
+
+func TestBuilderTypeSafety(t *testing.T) {
+	// This test verifies the builder pattern provides compile-time safety
+	// by ensuring EntityBuilder and ActionBuilder have the correct methods
+
+	s := NewSchema()
+
+	// Entity returns EntityBuilder
+	eb := s.Namespace("App").Entity("User")
+
+	// EntityBuilder methods
+	eb = eb.In("Group")
+	eb = eb.Attributes(Attr("name", String()))
+	eb = eb.Tags(String())
+
+	// EntityBuilder can chain to new Entity
+	eb2 := eb.Entity("Group")
+	_ = eb2
+
+	// EntityBuilder can chain to Action
+	ab := eb.Entity("Document").Action("read")
+
+	// ActionBuilder methods
+	ab = ab.In("allActions")
+	ab = ab.Principals("User")
+	ab = ab.Resources("Document")
+	ab = ab.Context(Record(Attr("reason", String())))
+
+	// ActionBuilder can chain to new Action
+	ab2 := ab.Action("write")
+	_ = ab2
+
+	// ActionBuilder can chain to Entity
+	eb3 := ab.Entity("Folder")
+	_ = eb3
+
+	// Both can get back to Schema
+	schema := ab.Schema()
+	if schema == nil {
+		t.Error("Schema() should return non-nil schema")
+	}
+
+	// Both builders have Resolve convenience method
+	_, err := ab.Resolve()
+	if err != nil {
+		t.Fatalf("Resolve via ActionBuilder failed: %v", err)
+	}
+}
+
+func TestEntityBuilderCommonType(t *testing.T) {
+	// Test that EntityBuilder.CommonType works
+	s := NewSchema().
+		Namespace("App").
+		Entity("User").
+		CommonType("Address", Record(
+			Attr("street", String()),
+		)).
+		Entity("Company").Attributes(
+			Attr("address", EntityRef("Address")),
+		)
+
+	resolved, err := s.Resolve()
+	if err != nil {
+		t.Fatalf("Resolve failed: %v", err)
+	}
+
+	companyType := resolved.EntityType(types.EntityType("App::Company"))
+	if companyType == nil {
+		t.Fatal("Company entity type not found")
+	}
+}
+
+func TestActionBuilderCommonType(t *testing.T) {
+	// Test that ActionBuilder.CommonType works
+	s := NewSchema().
+		Namespace("App").
+		Entity("User").
+		Action("read").Principals("User").Resources("User").
+		CommonType("Metadata", Record(
+			Attr("timestamp", Long()),
+		)).
+		Action("write").Principals("User").Resources("User")
+
+	resolved, err := s.Resolve()
+	if err != nil {
+		t.Fatalf("Resolve failed: %v", err)
+	}
+
+	writeAction := resolved.Action(types.NewEntityUID("App::Action", "write"))
+	if writeAction == nil {
+		t.Fatal("write action not found")
+	}
+}

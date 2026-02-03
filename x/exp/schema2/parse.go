@@ -20,9 +20,37 @@ func ParseJSON(data []byte) (*Schema, error) {
 	}, nil
 }
 
+// parseConfig holds configuration options for parsing Cedar schemas.
+type parseConfig struct {
+	filename string
+}
+
+// ParseOption is a functional option for configuring Cedar schema parsing.
+type ParseOption func(*parseConfig)
+
+// WithFilename sets the filename for error messages during parsing.
+func WithFilename(name string) ParseOption {
+	return func(cfg *parseConfig) {
+		cfg.filename = name
+	}
+}
+
 // ParseCedar parses a Cedar schema from human-readable Cedar format.
-func ParseCedar(data []byte) (*Schema, error) {
-	humanAST, err := parser.ParseFile("", data)
+// Optional ParseOption arguments can be used to configure parsing behavior.
+//
+// Example:
+//
+//	schema, err := ParseCedar(data)
+//	schema, err := ParseCedar(data, WithFilename("schema.cedarschema"))
+func ParseCedar(data []byte, opts ...ParseOption) (*Schema, error) {
+	cfg := &parseConfig{
+		filename: "",
+	}
+	for _, opt := range opts {
+		opt(cfg)
+	}
+
+	humanAST, err := parser.ParseFile(cfg.filename, data)
 	if err != nil {
 		return nil, err
 	}
@@ -37,16 +65,10 @@ func ParseCedar(data []byte) (*Schema, error) {
 
 // ParseCedarWithFilename parses a Cedar schema from human-readable format
 // with a filename for error messages.
+//
+// Deprecated: Use ParseCedar with WithFilename option instead:
+//
+//	ParseCedar(data, WithFilename(filename))
 func ParseCedarWithFilename(filename string, data []byte) (*Schema, error) {
-	humanAST, err := parser.ParseFile(filename, data)
-	if err != nil {
-		return nil, err
-	}
-
-	// Convert human AST to JSON, then to our internal AST
-	js := existingast.ConvertHuman2JSON(humanAST)
-
-	return &Schema{
-		ast: ast.FromJSON(js),
-	}, nil
+	return ParseCedar(data, WithFilename(filename))
 }

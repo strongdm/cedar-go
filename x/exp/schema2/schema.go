@@ -10,10 +10,20 @@ import (
 //
 // Call Resolve() to produce an immutable ResolvedSchema with
 // fully-qualified names and computed entity hierarchies.
+//
+// Example:
+//
+//	schema := NewSchema().
+//	    Namespace("MyApp").
+//	    Entity("User").In("Group").
+//	    Entity("Group").
+//	    Action("read").Principals("User").Resources("Document")
+//
+//	resolved, err := schema.Resolve()
 type Schema struct {
 	ast *ast.Schema
 
-	// Current builder state for method chaining
+	// Current builder state for method chaining (used for backward compatibility)
 	currentNamespace string
 	currentEntity    string
 	currentAction    string
@@ -37,131 +47,35 @@ func (s *Schema) Namespace(name string) *Schema {
 }
 
 // Entity defines or switches to an entity type in the current namespace.
-// Subsequent calls to In(), Attributes(), Tags(), Enum() apply to this entity.
-func (s *Schema) Entity(name string) *Schema {
+// Returns an EntityBuilder for compile-time safe method chaining.
+// The EntityBuilder provides In(), Attributes(), Tags(), Enum() methods,
+// and terminal methods to continue building (Entity(), Action(), Namespace(), Schema()).
+func (s *Schema) Entity(name string) *EntityBuilder {
 	ns := s.ast.GetOrCreateNamespace(s.currentNamespace)
 	ns.GetOrCreateEntity(name)
 	s.currentEntity = name
 	s.currentAction = ""
-	return s
-}
-
-// In specifies parent entity types for the current entity (memberOf).
-func (s *Schema) In(parents ...string) *Schema {
-	if s.currentEntity == "" {
-		return s
+	return &EntityBuilder{
+		schema:    s,
+		namespace: s.currentNamespace,
+		name:      name,
 	}
-	ns := s.ast.GetOrCreateNamespace(s.currentNamespace)
-	et := ns.GetOrCreateEntity(s.currentEntity)
-	et.MemberOf = append(et.MemberOf, parents...)
-	return s
-}
-
-// Attributes sets the shape (record type) for the current entity.
-func (s *Schema) Attributes(attrs ...*Attribute) *Schema {
-	if s.currentEntity == "" {
-		return s
-	}
-	ns := s.ast.GetOrCreateNamespace(s.currentNamespace)
-	et := ns.GetOrCreateEntity(s.currentEntity)
-	if et.Shape == nil {
-		et.Shape = &ast.RecordType{Attributes: make(map[string]*ast.Attribute)}
-	}
-	for _, attr := range attrs {
-		et.Shape.Attributes[attr.name] = &ast.Attribute{
-			Name:     attr.name,
-			Type:     attr.typ.toAST(),
-			Required: attr.required,
-		}
-	}
-	return s
-}
-
-// Tags sets the tag type for the current entity.
-func (s *Schema) Tags(t Type) *Schema {
-	if s.currentEntity == "" {
-		return s
-	}
-	ns := s.ast.GetOrCreateNamespace(s.currentNamespace)
-	et := ns.GetOrCreateEntity(s.currentEntity)
-	et.Tags = t.toAST()
-	return s
-}
-
-// Enum defines enumerated values for the current entity, making it an enum type.
-func (s *Schema) Enum(values ...string) *Schema {
-	if s.currentEntity == "" {
-		return s
-	}
-	ns := s.ast.GetOrCreateNamespace(s.currentNamespace)
-	et := ns.GetOrCreateEntity(s.currentEntity)
-	et.Enum = values
-	return s
 }
 
 // Action defines or switches to an action in the current namespace.
-// Subsequent calls to ActionIn(), Principals(), Resources(), Context() apply to this action.
-func (s *Schema) Action(name string) *Schema {
+// Returns an ActionBuilder for compile-time safe method chaining.
+// The ActionBuilder provides In(), Principals(), Resources(), Context() methods,
+// and terminal methods to continue building (Entity(), Action(), Namespace(), Schema()).
+func (s *Schema) Action(name string) *ActionBuilder {
 	ns := s.ast.GetOrCreateNamespace(s.currentNamespace)
 	ns.GetOrCreateAction(name)
 	s.currentAction = name
 	s.currentEntity = ""
-	return s
-}
-
-// ActionIn specifies parent action groups for the current action (memberOf).
-func (s *Schema) ActionIn(parents ...string) *Schema {
-	if s.currentAction == "" {
-		return s
+	return &ActionBuilder{
+		schema:    s,
+		namespace: s.currentNamespace,
+		name:      name,
 	}
-	ns := s.ast.GetOrCreateNamespace(s.currentNamespace)
-	a := ns.GetOrCreateAction(s.currentAction)
-	for _, p := range parents {
-		a.MemberOf = append(a.MemberOf, ast.ActionRef{Name: p})
-	}
-	return s
-}
-
-// Principals specifies principal entity types for the current action's appliesTo.
-func (s *Schema) Principals(types ...string) *Schema {
-	if s.currentAction == "" {
-		return s
-	}
-	ns := s.ast.GetOrCreateNamespace(s.currentNamespace)
-	a := ns.GetOrCreateAction(s.currentAction)
-	if a.AppliesTo == nil {
-		a.AppliesTo = &ast.AppliesTo{}
-	}
-	a.AppliesTo.Principals = append(a.AppliesTo.Principals, types...)
-	return s
-}
-
-// Resources specifies resource entity types for the current action's appliesTo.
-func (s *Schema) Resources(types ...string) *Schema {
-	if s.currentAction == "" {
-		return s
-	}
-	ns := s.ast.GetOrCreateNamespace(s.currentNamespace)
-	a := ns.GetOrCreateAction(s.currentAction)
-	if a.AppliesTo == nil {
-		a.AppliesTo = &ast.AppliesTo{}
-	}
-	a.AppliesTo.Resources = append(a.AppliesTo.Resources, types...)
-	return s
-}
-
-// Context sets the context type for the current action's appliesTo.
-func (s *Schema) Context(t Type) *Schema {
-	if s.currentAction == "" {
-		return s
-	}
-	ns := s.ast.GetOrCreateNamespace(s.currentNamespace)
-	a := ns.GetOrCreateAction(s.currentAction)
-	if a.AppliesTo == nil {
-		a.AppliesTo = &ast.AppliesTo{}
-	}
-	a.AppliesTo.Context = t.toAST()
-	return s
 }
 
 // CommonType defines a common (reusable) type in the current namespace.

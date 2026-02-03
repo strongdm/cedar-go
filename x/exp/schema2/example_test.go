@@ -162,3 +162,92 @@ func Example_complexTypes() {
 	// Output:
 	// User has attributes: true
 }
+
+func Example_mustResolve() {
+	// MustResolve is useful in tests and initialization
+	// where schema errors should panic rather than require error handling
+	resolved := schema2.NewSchema().
+		Namespace("App").
+		Entity("User").
+		Action("read").Principals("User").Resources("User").
+		MustResolve()
+
+	userType := resolved.EntityType(types.EntityType("App::User"))
+	fmt.Printf("User type: %s\n", userType.Name())
+
+	// Output:
+	// User type: App::User
+}
+
+func Example_lookupEntityType() {
+	resolved := schema2.NewSchema().
+		Namespace("App").
+		Entity("User").
+		Entity("Group").
+		MustResolve()
+
+	// LookupEntityType returns (value, found) like map access
+	if userType, found := resolved.LookupEntityType(types.EntityType("App::User")); found {
+		fmt.Printf("Found: %s\n", userType.Name())
+	}
+
+	if _, found := resolved.LookupEntityType(types.EntityType("App::NonExistent")); !found {
+		fmt.Println("Not found: App::NonExistent")
+	}
+
+	// Output:
+	// Found: App::User
+	// Not found: App::NonExistent
+}
+
+func Example_isEnumAsEnum() {
+	// Use IsEnum() and AsEnum() for type-safe enum handling
+	resolved := schema2.NewSchema().
+		Namespace("App").
+		Entity("User").
+		Entity("Status").Enum("Active", "Inactive").
+		MustResolve()
+
+	statusType := resolved.EntityType(types.EntityType("App::Status"))
+
+	// Check if it's an enum
+	if statusType.IsEnum() {
+		// Get the enum details with AsEnum
+		if enumKind, ok := statusType.AsEnum(); ok {
+			fmt.Printf("Status has %d values\n", len(enumKind.Values()))
+		}
+	}
+
+	// Regular entity types return false
+	userType := resolved.EntityType(types.EntityType("App::User"))
+	fmt.Printf("User is enum: %v\n", userType.IsEnum())
+
+	// Output:
+	// Status has 2 values
+	// User is enum: false
+}
+
+func Example_parseCedarWithFilename() {
+	cedarSchema := `namespace App {
+		entity User;
+		action read appliesTo { principal: User, resource: User };
+	}`
+
+	// Use WithFilename for better error messages
+	s, err := schema2.ParseCedar([]byte(cedarSchema), schema2.WithFilename("myschema.cedarschema"))
+	if err != nil {
+		fmt.Printf("Parse error: %v\n", err)
+		return
+	}
+
+	resolved, err := s.Resolve()
+	if err != nil {
+		fmt.Printf("Resolution error: %v\n", err)
+		return
+	}
+
+	fmt.Printf("User type found: %v\n", resolved.EntityType(types.EntityType("App::User")) != nil)
+
+	// Output:
+	// User type found: true
+}
