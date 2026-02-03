@@ -413,15 +413,6 @@ func TestParseCedarWithOptions(t *testing.T) {
 	if s == nil {
 		t.Fatal("ParseCedar with WithFilename returned nil schema")
 	}
-
-	// Verify backward compatibility with deprecated function
-	s, err = ParseCedarWithFilename("test.cedarschema", []byte(cedarSchema))
-	if err != nil {
-		t.Fatalf("ParseCedarWithFilename failed: %v", err)
-	}
-	if s == nil {
-		t.Fatal("ParseCedarWithFilename returned nil schema")
-	}
 }
 
 func TestBuilderTypeSafety(t *testing.T) {

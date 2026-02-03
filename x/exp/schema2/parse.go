@@ -61,13 +61,3 @@ func ParseCedar(data []byte, opts ...ParseOption) (*Schema, error) {
 		ast: ast.FromJSON(js),
 	}, nil
 }
-
-// ParseCedarWithFilename parses a Cedar schema from human-readable format
-// with a filename for error messages.
-//
-// Deprecated: Use ParseCedar with WithFilename option instead:
-//
-//	ParseCedar(data, WithFilename(filename))
-func ParseCedarWithFilename(filename string, data []byte) (*Schema, error) {
-	return ParseCedar(data, WithFilename(filename))
-}
