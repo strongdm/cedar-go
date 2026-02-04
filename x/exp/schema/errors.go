@@ -111,8 +111,8 @@ func (e *ParseError) Unwrap() error {
 	return ErrParse
 }
 
-// IsPrimitiveTypeName checks if name is a built-in type name (Bool, Long, String, Entity, etc.)
+// isPrimitiveTypeName checks if name is a built-in type name (Bool, Long, String, Entity, etc.)
 // that cannot be used as a custom type name.
-func IsPrimitiveTypeName(name string) bool {
+func isPrimitiveTypeName(name string) bool {
 	return parse.IsPrimitiveTypeName(name)
 }

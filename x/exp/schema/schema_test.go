@@ -733,22 +733,6 @@ action view appliesTo { principal: [Long], resource: [Long] };
 	}
 }
 
-func TestIsPrimitiveTypeName(t *testing.T) {
-	primitives := []string{"Bool", "Boolean", "Entity", "Extension", "Long", "Record", "Set", "String"}
-	for _, name := range primitives {
-		if !schema.IsPrimitiveTypeName(name) {
-			t.Errorf("expected %q to be a primitive type name", name)
-		}
-	}
-
-	notPrimitives := []string{"User", "MyType", "Custom"}
-	for _, name := range notPrimitives {
-		if schema.IsPrimitiveTypeName(name) {
-			t.Errorf("expected %q to not be a primitive type name", name)
-		}
-	}
-}
-
 func TestJSONMarshalAllTypes(t *testing.T) {
 	// Test JSON marshaling of various types
 	s := schema.NewBuilder().

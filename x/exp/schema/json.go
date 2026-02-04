@@ -47,7 +47,7 @@ func unmarshalNamespace(data json.RawMessage, nsName string) (*Namespace, error)
 	}
 
 	for name, etData := range raw.EntityTypes {
-		if IsPrimitiveTypeName(name) {
+		if isPrimitiveTypeName(name) {
 			return nil, &ReservedNameError{Name: name, Kind: "entity type"}
 		}
 		et, enum, err := unmarshalEntityOrEnumType(etData)
@@ -70,7 +70,7 @@ func unmarshalNamespace(data json.RawMessage, nsName string) (*Namespace, error)
 	}
 
 	for name, ctData := range raw.CommonTypes {
-		if IsPrimitiveTypeName(name) {
+		if isPrimitiveTypeName(name) {
 			return nil, &ReservedNameError{Name: name, Kind: "common type"}
 		}
 		ct, err := unmarshalCommonType(ctData)
