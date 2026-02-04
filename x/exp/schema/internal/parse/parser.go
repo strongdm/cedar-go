@@ -345,7 +345,6 @@ func (p *Parser) parseEntity(ns *Namespace, annotations Annotations) error {
 		return err
 	}
 
-	// Parse entity name(s) - can be multiple: entity A, B, C
 	names, err := p.parseIdentList()
 	if err != nil {
 		return err
@@ -384,7 +383,6 @@ func (p *Parser) parseEntity(ns *Namespace, annotations Annotations) error {
 		return nil
 	}
 
-	// Parse membership: in [Type1, Type2]
 	var memberOf []string
 	if p.peekToken() == "in" {
 		p.consumeToken()
@@ -394,7 +392,6 @@ func (p *Parser) parseEntity(ns *Namespace, annotations Annotations) error {
 		}
 	}
 
-	// Parse shape: { ... } or = { ... }
 	var shape *RecordType
 	p.skipWhitespaceAndComments()
 	if p.peek() == '=' {
@@ -408,7 +405,6 @@ func (p *Parser) parseEntity(ns *Namespace, annotations Annotations) error {
 		}
 	}
 
-	// Parse tags: tags Type
 	var tags Type
 	p.skipWhitespaceAndComments()
 	if p.peekToken() == "tags" {
@@ -440,7 +436,6 @@ func (p *Parser) parseAction(ns *Namespace, annotations Annotations) error {
 		return err
 	}
 
-	// Parse action name(s) - can be multiple: action read, write
 	names, err := p.parseNameList()
 	if err != nil {
 		return err
@@ -452,7 +447,6 @@ func (p *Parser) parseAction(ns *Namespace, annotations Annotations) error {
 		}
 	}
 
-	// Parse membership: in [Action1, Action2]
 	var memberOf []*ActionRef
 	p.skipWhitespaceAndComments()
 	if p.peekToken() == "in" {
@@ -463,7 +457,6 @@ func (p *Parser) parseAction(ns *Namespace, annotations Annotations) error {
 		}
 	}
 
-	// Parse appliesTo
 	var appliesTo *AppliesTo
 	p.skipWhitespaceAndComments()
 	if p.peekToken() == "appliesTo" {
@@ -889,7 +882,6 @@ func (p *Parser) parseActionRefList() ([]*ActionRef, error) {
 }
 
 func (p *Parser) parseActionRef() (*ActionRef, error) {
-	// Can be: ident, "string", or Path::"string"
 	p.skipWhitespaceAndComments()
 
 	if p.peek() == '"' {
@@ -907,7 +899,6 @@ func (p *Parser) parseActionRef() (*ActionRef, error) {
 		return nil, err
 	}
 
-	// Check if followed by ::"string"
 	p.skipWhitespaceAndComments()
 	if p.hasPrefix("::\"") {
 		p.advance() // skip first :
@@ -1040,7 +1031,6 @@ func (p *Parser) parseString() (string, error) {
 		return "", err
 	}
 
-	// Unescape the string
 	unescaped, _, err := rust.Unquote(content, false)
 	if err != nil {
 		return "", p.error("invalid string: %v", err)

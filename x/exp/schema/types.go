@@ -36,7 +36,6 @@ type Namespace struct {
 	Annotations Annotations
 }
 
-// newNamespace returns a properly initialized Namespace with all maps created.
 func newNamespace() *Namespace {
 	return &Namespace{
 		EntityTypes: make(map[string]*EntityTypeDef),
@@ -92,13 +91,12 @@ type CommonTypeDef struct {
 // Annotations are key-value metadata attached to schema elements.
 type Annotations map[string]string
 
-// newAnnotations returns an initialized Annotations map.
 func newAnnotations() Annotations {
 	return make(Annotations)
 }
 
 // Type represents a Cedar type in the schema.
-// Use the constructor functions (Long, String, Bool, Set, Record, Entity, Extension,
+// Use the constructor functions (Long, String, Bool, Set, NewRecordType, Entity, Extension,
 // IPAddr, Decimal, Datetime, Duration, CommonType) to create Type values.
 //
 // Implementations: PrimitiveType, SetType, RecordType, EntityRef, ExtensionType, CommonTypeRef, EntityOrCommonRef

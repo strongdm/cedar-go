@@ -182,11 +182,9 @@ func convertType(internal parse.Type) Type {
 func (s *Schema) MarshalCedar() ([]byte, error) {
 	var buf bytes.Buffer
 
-	// Sort namespaces for deterministic output (empty namespace first, then alphabetical)
 	nsNames := slices.Collect(maps.Keys(s.Namespaces))
 	slices.Sort(nsNames)
 
-	// Write empty namespace declarations first (without namespace block)
 	if ns, ok := s.Namespaces[""]; ok {
 		if err := writeNamespaceContents(&buf, ns, ""); err != nil {
 			return nil, err
@@ -292,7 +290,6 @@ func writeEnumType(buf *bytes.Buffer, name string, enum *EnumTypeDef, indent str
 func writeAction(buf *bytes.Buffer, name string, act *ActionDef, indent string) {
 	writeAnnotations(buf, indent, act.Annotations)
 
-	// Quote name if it's not a valid identifier
 	actionName := name
 	if !isValidIdent(name) {
 		actionName = quoteString(name)
@@ -355,7 +352,6 @@ func writeCommonType(buf *bytes.Buffer, name string, ct *CommonTypeDef, indent s
 }
 
 func writeRecordAttributes(buf *bytes.Buffer, rt *RecordType, indent string) {
-	// Sort attribute names for deterministic output
 	attrNames := slices.Collect(maps.Keys(rt.Attributes))
 	slices.Sort(attrNames)
 
