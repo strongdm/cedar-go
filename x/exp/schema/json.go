@@ -41,19 +41,11 @@ func unmarshalNamespace(data json.RawMessage, nsName string) (*Namespace, error)
 		return nil, &ParseError{Message: fmt.Sprintf("invalid namespace %q: %v", nsName, err)}
 	}
 
-	ns := &Namespace{
-		EntityTypes: make(map[string]*EntityTypeDef),
-		EnumTypes:   make(map[string]*EnumTypeDef),
-		Actions:     make(map[string]*ActionDef),
-		CommonTypes: make(map[string]*CommonTypeDef),
-		Annotations: raw.Annotations,
+	ns := newNamespace()
+	if raw.Annotations != nil {
+		ns.Annotations = raw.Annotations
 	}
 
-	if ns.Annotations == nil {
-		ns.Annotations = newAnnotations()
-	}
-
-	// Parse entity types (including enum types, which are separated)
 	for name, etData := range raw.EntityTypes {
 		if IsPrimitiveTypeName(name) {
 			return nil, &ReservedNameError{Name: name, Kind: "entity type"}
@@ -69,7 +61,6 @@ func unmarshalNamespace(data json.RawMessage, nsName string) (*Namespace, error)
 		}
 	}
 
-	// Parse actions
 	for name, actData := range raw.Actions {
 		act, err := unmarshalAction(actData)
 		if err != nil {
@@ -78,7 +69,6 @@ func unmarshalNamespace(data json.RawMessage, nsName string) (*Namespace, error)
 		ns.Actions[name] = act
 	}
 
-	// Parse common types
 	for name, ctData := range raw.CommonTypes {
 		if IsPrimitiveTypeName(name) {
 			return nil, &ReservedNameError{Name: name, Kind: "common type"}

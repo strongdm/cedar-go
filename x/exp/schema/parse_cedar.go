@@ -49,13 +49,8 @@ func convertNamespaces(internal map[string]*parse.Namespace) map[string]*Namespa
 }
 
 func convertNamespace(internal *parse.Namespace) *Namespace {
-	ns := &Namespace{
-		EntityTypes: make(map[string]*EntityTypeDef),
-		EnumTypes:   make(map[string]*EnumTypeDef),
-		Actions:     make(map[string]*ActionDef),
-		CommonTypes: make(map[string]*CommonTypeDef),
-		Annotations: Annotations(internal.Annotations),
-	}
+	ns := newNamespace()
+	ns.Annotations = Annotations(internal.Annotations)
 
 	for name, et := range internal.EntityTypes {
 		ns.EntityTypes[name] = convertEntityTypeDef(et)
@@ -184,8 +179,6 @@ func convertType(internal parse.Type) Type {
 }
 
 // MarshalCedar serializes the schema to Cedar text format.
-// The output is deterministic: namespaces, types, actions, and attributes
-// are sorted alphabetically, with the empty namespace written first.
 func (s *Schema) MarshalCedar() ([]byte, error) {
 	var buf bytes.Buffer
 
@@ -220,7 +213,6 @@ func (s *Schema) MarshalCedar() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// writeAnnotations writes annotation declarations to the buffer in sorted order.
 func writeAnnotations(buf *bytes.Buffer, indent string, ann Annotations) {
 	keys := slices.Collect(maps.Keys(ann))
 	slices.Sort(keys)

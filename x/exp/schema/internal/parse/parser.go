@@ -729,10 +729,8 @@ func (p *Parser) parseAnnotation() (string, string, error) {
 		return "", "", err
 	}
 
-	// Value is optional - check for (
 	p.skipWhitespaceAndComments()
 	if p.peek() != '(' {
-		// Annotation without value
 		return key, "", nil
 	}
 
@@ -952,8 +950,6 @@ func (p *Parser) parseStringList() ([]string, error) {
 
 	return strs, nil
 }
-
-// Low-level parsing helpers
 
 func (p *Parser) parseIdent() (string, error) {
 	p.skipWhitespaceAndComments()

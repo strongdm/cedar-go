@@ -243,7 +243,6 @@ func (r *resolver) resolveNamespace(nsName string, ns *Namespace) (*resolved.Nam
 		Annotations: resolved.Annotations(ns.Annotations),
 	}
 
-	// Resolve entity types
 	for etName, et := range ns.EntityTypes {
 		fqn := types.EntityType(qualifyName(nsName, etName))
 		ret, err := r.resolveEntityType(nsName, et)
@@ -253,7 +252,6 @@ func (r *resolver) resolveNamespace(nsName string, ns *Namespace) (*resolved.Nam
 		rns.EntityTypes[fqn] = ret
 	}
 
-	// Resolve enum types
 	for enumName, enum := range ns.EnumTypes {
 		fqn := types.EntityType(qualifyName(nsName, enumName))
 		rns.EnumTypes[fqn] = &resolved.EnumType{
@@ -262,7 +260,6 @@ func (r *resolver) resolveNamespace(nsName string, ns *Namespace) (*resolved.Nam
 		}
 	}
 
-	// Resolve actions
 	for actName, act := range ns.Actions {
 		// Actions are EntityUIDs with type "Action" (qualified by namespace)
 		actionType := types.EntityType(qualifyName(nsName, "Action"))
@@ -274,7 +271,6 @@ func (r *resolver) resolveNamespace(nsName string, ns *Namespace) (*resolved.Nam
 		rns.Actions[uid] = ract
 	}
 
-	// Resolve common types (inline them)
 	for ctName, ct := range ns.CommonTypes {
 		fqn := types.Path(qualifyName(nsName, ctName))
 		rct, err := r.resolveType(nsName, ct.Type)
@@ -329,10 +325,7 @@ func (r *resolver) resolveAction(nsName string, act *ActionDef) (*resolved.Actio
 
 	// Resolve memberOf action refs
 	for _, ref := range act.MemberOf {
-		resolved, err := r.resolveActionRef(nsName, ref)
-		if err != nil {
-			return nil, fmt.Errorf("memberOf: %w", err)
-		}
+		resolved := r.resolveActionRef(nsName, ref)
 		ract.MemberOf = append(ract.MemberOf, resolved)
 	}
 
@@ -380,7 +373,9 @@ func (r *resolver) resolveAction(nsName string, act *ActionDef) (*resolved.Actio
 	return ract, nil
 }
 
-func (r *resolver) resolveActionRef(nsName string, ref *ActionRef) (types.EntityUID, error) {
+// resolveActionRef resolves an action reference to a fully-qualified EntityUID.
+// TODO: Consider adding validation to verify the referenced action exists in the schema.
+func (r *resolver) resolveActionRef(nsName string, ref *ActionRef) types.EntityUID {
 	var actionTypeName string
 
 	if ref.Type != "" {
@@ -391,7 +386,7 @@ func (r *resolver) resolveActionRef(nsName string, ref *ActionRef) (types.Entity
 		actionTypeName = qualifyName(nsName, "Action")
 	}
 
-	return types.NewEntityUID(types.EntityType(actionTypeName), types.String(ref.ID)), nil
+	return types.NewEntityUID(types.EntityType(actionTypeName), types.String(ref.ID))
 }
 
 func (r *resolver) resolveType(nsName string, t Type) (resolved.Type, error) {

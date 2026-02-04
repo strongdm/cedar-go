@@ -36,6 +36,17 @@ type Namespace struct {
 	Annotations Annotations
 }
 
+// newNamespace returns a properly initialized Namespace with all maps created.
+func newNamespace() *Namespace {
+	return &Namespace{
+		EntityTypes: make(map[string]*EntityTypeDef),
+		EnumTypes:   make(map[string]*EnumTypeDef),
+		Actions:     make(map[string]*ActionDef),
+		CommonTypes: make(map[string]*CommonTypeDef),
+		Annotations: newAnnotations(),
+	}
+}
+
 // EntityTypeDef describes an entity type in the schema.
 type EntityTypeDef struct {
 	MemberOfTypes []string    // parent entity type names (unresolved)

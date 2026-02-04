@@ -31,13 +31,7 @@ func NewBuilder() *SchemaBuilder {
 
 // Use "" for the empty namespace.
 func (b *SchemaBuilder) Namespace(name string) *NamespaceBuilder {
-	ns := &Namespace{
-		EntityTypes: make(map[string]*EntityTypeDef),
-		EnumTypes:   make(map[string]*EnumTypeDef),
-		Actions:     make(map[string]*ActionDef),
-		CommonTypes: make(map[string]*CommonTypeDef),
-		Annotations: newAnnotations(),
-	}
+	ns := newNamespace()
 	b.schema.Namespaces[name] = ns
 	return &NamespaceBuilder{
 		parent:    b,
@@ -181,6 +175,11 @@ func (b *ActionBuilder) Resource(types ...string) *ActionBuilder {
 
 func (b *ActionBuilder) Context(ctx *RecordType) *ActionBuilder {
 	b.ensureAppliesTo().Context = ctx
+	return b
+}
+
+func (b *ActionBuilder) ContextRef(typ Type) *ActionBuilder {
+	b.ensureAppliesTo().ContextRef = typ
 	return b
 }
 
