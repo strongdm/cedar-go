@@ -12,7 +12,7 @@ type SchemaBuilder struct {
 	schema *Schema
 }
 
-// Example:
+// Example (explicit Done() calls):
 //
 //	s := schema.NewBuilder().
 //		Namespace("MyApp").
@@ -20,6 +20,25 @@ type SchemaBuilder struct {
 //			Entity("Group").Done().
 //			Action("view").Principal("User").Resource("Document").Done().
 //		Done().
+//		Build()
+//
+// Example (chained without explicit Done() calls):
+//
+//	s := schema.NewBuilder().
+//		Namespace("MyApp").
+//			Entity("User").MemberOf("Group").
+//			Entity("Group").
+//			Action("view").Principal("User").Resource("Document").
+//		Build()
+//
+// Example (multiple namespaces without Done() calls):
+//
+//	s := schema.NewBuilder().
+//		Namespace("MyApp").
+//			Entity("User").
+//			Entity("Group").
+//		Namespace("OtherApp").
+//			Entity("Foo").
 //		Build()
 func NewBuilder() *SchemaBuilder {
 	return &SchemaBuilder{
@@ -95,6 +114,16 @@ func (b *NamespaceBuilder) Done() *SchemaBuilder {
 	return b.parent
 }
 
+// Namespace completes the current namespace and starts a new namespace.
+func (b *NamespaceBuilder) Namespace(name string) *NamespaceBuilder {
+	return b.Done().Namespace(name)
+}
+
+// Build completes the current namespace and builds the schema.
+func (b *NamespaceBuilder) Build() *Schema {
+	return b.Done().Build()
+}
+
 type EntityBuilder struct {
 	parent *NamespaceBuilder
 	entity *EntityTypeDef
@@ -136,6 +165,36 @@ func (b *EntityBuilder) Annotate(key, value string) *EntityBuilder {
 
 func (b *EntityBuilder) Done() *NamespaceBuilder {
 	return b.parent
+}
+
+// Entity completes the current entity and starts a new entity in the same namespace.
+func (b *EntityBuilder) Entity(name string) *EntityBuilder {
+	return b.Done().Entity(name)
+}
+
+// EnumType completes the current entity and adds an enum type to the namespace.
+func (b *EntityBuilder) EnumType(name string, values ...string) *NamespaceBuilder {
+	return b.Done().EnumType(name, values...)
+}
+
+// Action completes the current entity and starts a new action in the same namespace.
+func (b *EntityBuilder) Action(name string) *ActionBuilder {
+	return b.Done().Action(name)
+}
+
+// CommonType completes the current entity and adds a common type to the namespace.
+func (b *EntityBuilder) CommonType(name string, typ Type) *NamespaceBuilder {
+	return b.Done().CommonType(name, typ)
+}
+
+// Namespace completes the current entity and namespace, then starts a new namespace.
+func (b *EntityBuilder) Namespace(name string) *NamespaceBuilder {
+	return b.Done().Done().Namespace(name)
+}
+
+// Build completes the current entity and namespace, then builds the schema.
+func (b *EntityBuilder) Build() *Schema {
+	return b.Done().Done().Build()
 }
 
 type ActionBuilder struct {
@@ -190,6 +249,36 @@ func (b *ActionBuilder) Annotate(key, value string) *ActionBuilder {
 
 func (b *ActionBuilder) Done() *NamespaceBuilder {
 	return b.parent
+}
+
+// Entity completes the current action and starts a new entity in the same namespace.
+func (b *ActionBuilder) Entity(name string) *EntityBuilder {
+	return b.Done().Entity(name)
+}
+
+// EnumType completes the current action and adds an enum type to the namespace.
+func (b *ActionBuilder) EnumType(name string, values ...string) *NamespaceBuilder {
+	return b.Done().EnumType(name, values...)
+}
+
+// Action completes the current action and starts a new action in the same namespace.
+func (b *ActionBuilder) Action(name string) *ActionBuilder {
+	return b.Done().Action(name)
+}
+
+// CommonType completes the current action and adds a common type to the namespace.
+func (b *ActionBuilder) CommonType(name string, typ Type) *NamespaceBuilder {
+	return b.Done().CommonType(name, typ)
+}
+
+// Namespace completes the current action and namespace, then starts a new namespace.
+func (b *ActionBuilder) Namespace(name string) *NamespaceBuilder {
+	return b.Done().Done().Namespace(name)
+}
+
+// Build completes the current action and namespace, then builds the schema.
+func (b *ActionBuilder) Build() *Schema {
+	return b.Done().Done().Build()
 }
 
 func Long() Type {

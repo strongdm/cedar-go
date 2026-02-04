@@ -2590,3 +2590,186 @@ func TestJSONRoundTripCommonTypeWithAnnotations(t *testing.T) {
 		t.Errorf("expected MyRecord doc annotation after round-trip, got %v", myRecord2.Annotations)
 	}
 }
+
+func TestBuilderChainedWithoutDone(t *testing.T) {
+	// Test the new chaining pattern without explicit Done() calls
+	s := schema.NewBuilder().
+		Namespace("MyApp").
+		Entity("User").MemberOf("Group").
+		Entity("Group").
+		Action("view").Principal("User").Resource("Group").
+		Build()
+
+	// Check structure
+	ns := s.Namespaces["MyApp"]
+	if ns == nil {
+		t.Fatal("expected MyApp namespace")
+	}
+
+	if len(ns.EntityTypes) != 2 {
+		t.Errorf("expected 2 entity types, got %d", len(ns.EntityTypes))
+	}
+
+	user := ns.EntityTypes["User"]
+	if user == nil {
+		t.Fatal("expected User entity type")
+	}
+
+	if len(user.MemberOfTypes) != 1 || user.MemberOfTypes[0] != "Group" {
+		t.Errorf("expected User memberOf Group, got %v", user.MemberOfTypes)
+	}
+
+	group := ns.EntityTypes["Group"]
+	if group == nil {
+		t.Fatal("expected Group entity type")
+	}
+
+	view := ns.Actions["view"]
+	if view == nil {
+		t.Fatal("expected view action")
+	}
+
+	if view.AppliesTo == nil {
+		t.Fatal("expected appliesTo on view action")
+	}
+
+	if len(view.AppliesTo.PrincipalTypes) != 1 || view.AppliesTo.PrincipalTypes[0] != "User" {
+		t.Errorf("expected principal User, got %v", view.AppliesTo.PrincipalTypes)
+	}
+}
+
+func TestBuilderChainedMultipleNamespaces(t *testing.T) {
+	// Test chaining across multiple namespaces without explicit Done() calls
+	s := schema.NewBuilder().
+		Namespace("MyApp").
+		Entity("User").
+		Entity("Group").
+		Namespace("OtherApp").
+		Entity("Foo").
+		Build()
+
+	// Check MyApp namespace
+	myApp := s.Namespaces["MyApp"]
+	if myApp == nil {
+		t.Fatal("expected MyApp namespace")
+	}
+	if len(myApp.EntityTypes) != 2 {
+		t.Errorf("expected 2 entity types in MyApp, got %d", len(myApp.EntityTypes))
+	}
+	if myApp.EntityTypes["User"] == nil {
+		t.Error("expected User in MyApp")
+	}
+	if myApp.EntityTypes["Group"] == nil {
+		t.Error("expected Group in MyApp")
+	}
+
+	// Check OtherApp namespace
+	otherApp := s.Namespaces["OtherApp"]
+	if otherApp == nil {
+		t.Fatal("expected OtherApp namespace")
+	}
+	if len(otherApp.EntityTypes) != 1 {
+		t.Errorf("expected 1 entity type in OtherApp, got %d", len(otherApp.EntityTypes))
+	}
+	if otherApp.EntityTypes["Foo"] == nil {
+		t.Error("expected Foo in OtherApp")
+	}
+}
+
+func TestBuilderChainedFromAction(t *testing.T) {
+	// Test chaining from ActionBuilder to other builders
+	s := schema.NewBuilder().
+		Namespace("MyApp").
+		Entity("User").
+		Action("read").Principal("User").Resource("User").
+		Action("write").Principal("User").Resource("User").
+		Entity("Group").
+		Namespace("OtherApp").
+		Entity("Admin").
+		Build()
+
+	// Check MyApp
+	myApp := s.Namespaces["MyApp"]
+	if myApp == nil {
+		t.Fatal("expected MyApp namespace")
+	}
+	if len(myApp.Actions) != 2 {
+		t.Errorf("expected 2 actions in MyApp, got %d", len(myApp.Actions))
+	}
+	if myApp.Actions["read"] == nil {
+		t.Error("expected read action")
+	}
+	if myApp.Actions["write"] == nil {
+		t.Error("expected write action")
+	}
+	if len(myApp.EntityTypes) != 2 {
+		t.Errorf("expected 2 entity types in MyApp, got %d", len(myApp.EntityTypes))
+	}
+	if myApp.EntityTypes["User"] == nil {
+		t.Error("expected User in MyApp")
+	}
+	if myApp.EntityTypes["Group"] == nil {
+		t.Error("expected Group in MyApp")
+	}
+
+	// Check OtherApp
+	otherApp := s.Namespaces["OtherApp"]
+	if otherApp == nil {
+		t.Fatal("expected OtherApp namespace")
+	}
+	if otherApp.EntityTypes["Admin"] == nil {
+		t.Error("expected Admin in OtherApp")
+	}
+}
+
+func TestBuilderChainedEnumAndCommonType(t *testing.T) {
+	// Test chaining EnumType and CommonType from EntityBuilder and ActionBuilder
+	s := schema.NewBuilder().
+		Namespace("MyApp").
+		Entity("User").
+		EnumType("Status", "Active", "Inactive").
+		Entity("Document").
+		CommonType("MyString", schema.String()).
+		Action("view").Principal("User").Resource("Document").
+		EnumType("Priority", "High", "Low").
+		Action("edit").Principal("User").Resource("Document").
+		CommonType("MyLong", schema.Long()).
+		Build()
+
+	ns := s.Namespaces["MyApp"]
+	if ns == nil {
+		t.Fatal("expected MyApp namespace")
+	}
+
+	// Check entities
+	if ns.EntityTypes["User"] == nil {
+		t.Error("expected User entity")
+	}
+	if ns.EntityTypes["Document"] == nil {
+		t.Error("expected Document entity")
+	}
+
+	// Check enum types
+	if ns.EnumTypes["Status"] == nil {
+		t.Error("expected Status enum")
+	}
+	if ns.EnumTypes["Priority"] == nil {
+		t.Error("expected Priority enum")
+	}
+
+	// Check common types
+	if ns.CommonTypes["MyString"] == nil {
+		t.Error("expected MyString common type")
+	}
+	if ns.CommonTypes["MyLong"] == nil {
+		t.Error("expected MyLong common type")
+	}
+
+	// Check actions
+	if ns.Actions["view"] == nil {
+		t.Error("expected view action")
+	}
+	if ns.Actions["edit"] == nil {
+		t.Error("expected edit action")
+	}
+}
