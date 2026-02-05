@@ -4,35 +4,32 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-
-	"github.com/cedar-policy/cedar-go/x/exp/schema/internal/parse"
 )
 
 var (
 	ErrCycle         = errors.New("cycle detected in common type definitions")
 	ErrUndefinedType = errors.New("undefined type")
 	ErrShadow        = errors.New("cannot shadow definition in empty namespace")
-	ErrDuplicate     = errors.New("duplicate definition")
 	ErrReservedName  = errors.New("reserved name")
 	ErrParse         = errors.New("parse error")
 )
 
+// CycleError indicates a cycle in common type definitions.
 type CycleError struct {
-	Path []string // the types forming the cycle
+	Path []string
 }
 
 func (e *CycleError) Error() string {
 	return fmt.Sprintf("%v: %s", ErrCycle, strings.Join(e.Path, " -> "))
 }
 
-func (e *CycleError) Unwrap() error {
-	return ErrCycle
-}
+func (e *CycleError) Unwrap() error { return ErrCycle }
 
+// UndefinedTypeError indicates an undefined type reference.
 type UndefinedTypeError struct {
-	Name      string // the undefined type name
-	Namespace string // the namespace where the reference occurred
-	Context   string // additional context (e.g., "in entity User attribute owner")
+	Name      string
+	Namespace string
+	Context   string
 }
 
 func (e *UndefinedTypeError) Error() string {
@@ -42,13 +39,13 @@ func (e *UndefinedTypeError) Error() string {
 	return fmt.Sprintf("%v: %q", ErrUndefinedType, e.Name)
 }
 
-func (e *UndefinedTypeError) Unwrap() error {
-	return ErrUndefinedType
-}
+func (e *UndefinedTypeError) Unwrap() error { return ErrUndefinedType }
 
+// ShadowError indicates a definition in a named namespace shadows
+// a definition in the empty namespace (RFC 70).
 type ShadowError struct {
-	Name      string // the shadowed name
-	Namespace string // the namespace attempting to shadow
+	Name      string
+	Namespace string
 }
 
 func (e *ShadowError) Error() string {
@@ -56,40 +53,21 @@ func (e *ShadowError) Error() string {
 		ErrShadow, e.Name, e.Namespace)
 }
 
-func (e *ShadowError) Unwrap() error {
-	return ErrShadow
-}
+func (e *ShadowError) Unwrap() error { return ErrShadow }
 
-type DuplicateError struct {
-	Kind      string // "entity type", "action", "common type", "attribute"
-	Name      string // the duplicated name
-	Namespace string // the namespace where the duplicate occurred
-}
-
-func (e *DuplicateError) Error() string {
-	if e.Namespace == "" {
-		return fmt.Sprintf("%v: %s %q in empty namespace", ErrDuplicate, e.Kind, e.Name)
-	}
-	return fmt.Sprintf("%v: %s %q in namespace %q", ErrDuplicate, e.Kind, e.Name, e.Namespace)
-}
-
-func (e *DuplicateError) Unwrap() error {
-	return ErrDuplicate
-}
-
+// ReservedNameError indicates a reserved name was used for a custom type.
 type ReservedNameError struct {
-	Name string // the reserved name that was used
-	Kind string // what it was used as (e.g., "entity type", "common type")
+	Name string
+	Kind string
 }
 
 func (e *ReservedNameError) Error() string {
 	return fmt.Sprintf("%v: %q cannot be used as %s", ErrReservedName, e.Name, e.Kind)
 }
 
-func (e *ReservedNameError) Unwrap() error {
-	return ErrReservedName
-}
+func (e *ReservedNameError) Unwrap() error { return ErrReservedName }
 
+// ParseError indicates a syntax error during schema parsing.
 type ParseError struct {
 	Filename string
 	Line     int
@@ -107,12 +85,13 @@ func (e *ParseError) Error() string {
 	return fmt.Sprintf("%v: %s", ErrParse, e.Message)
 }
 
-func (e *ParseError) Unwrap() error {
-	return ErrParse
+func (e *ParseError) Unwrap() error { return ErrParse }
+
+var reservedTypeNames = map[string]bool{
+	"Bool": true, "Boolean": true, "Long": true, "String": true,
+	"Record": true, "Set": true, "Entity": true, "Extension": true,
 }
 
-// isPrimitiveTypeName checks if name is a built-in type name (Bool, Long, String, Entity, etc.)
-// that cannot be used as a custom type name.
 func isPrimitiveTypeName(name string) bool {
-	return parse.IsPrimitiveTypeName(name)
+	return reservedTypeNames[name]
 }

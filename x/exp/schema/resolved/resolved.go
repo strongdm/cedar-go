@@ -1,25 +1,9 @@
-// Package resolved contains the resolved schema types produced by schema.Resolve().
-//
-// A resolved schema has all type references validated and converted to fully-qualified
-// types.EntityType and types.EntityUID values. Common types are inlined.
-//
-// Example:
-//
-//	resolved, err := schema.Resolve()
-//	if err != nil {
-//		log.Fatal(err)
-//	}
-//	for nsPath, ns := range resolved.Namespaces {
-//		for entityType := range ns.EntityTypes {
-//			fmt.Printf("%s::%s\n", nsPath, entityType)
-//		}
-//	}
 package resolved
 
 import "github.com/cedar-policy/cedar-go/types"
 
-// Schema is the result of calling schema.Resolve(). All type references
-// have been validated and converted to fully-qualified types.EntityType values.
+// Schema is the result of calling schema.Schema.Resolve().
+// All type references are fully-qualified.
 type Schema struct {
 	Namespaces map[types.Path]*Namespace
 }
@@ -29,7 +13,6 @@ type Namespace struct {
 	EntityTypes map[types.EntityType]*EntityType
 	EnumTypes   map[types.EntityType]*EnumType
 	Actions     map[types.EntityUID]*Action
-	CommonTypes map[types.Path]*Type // inlined during resolution
 	Annotations Annotations
 }
 
@@ -43,7 +26,7 @@ type EntityType struct {
 
 // EnumType represents a resolved enumerated entity type.
 type EnumType struct {
-	Values      []string // the allowed entity IDs
+	Values      []string
 	Annotations Annotations
 }
 
@@ -57,9 +40,8 @@ type Action struct {
 }
 
 // Type represents a fully-resolved Cedar type.
-// Implementations: Primitive, Set, *RecordType, EntityRef, Extension
 type Type interface {
-	isResolvedType()
+	resolvedType()
 }
 
 // PrimitiveKind represents Cedar primitive types.
@@ -89,21 +71,21 @@ type Primitive struct {
 	Kind PrimitiveKind
 }
 
-func (Primitive) isResolvedType() {}
+func (Primitive) resolvedType() {}
 
 // Set is a resolved Set<T> type.
 type Set struct {
 	Element Type
 }
 
-func (Set) isResolvedType() {}
+func (Set) resolvedType() {}
 
 // RecordType is a resolved record type.
 type RecordType struct {
 	Attributes map[string]*Attribute
 }
 
-func (*RecordType) isResolvedType() {}
+func (*RecordType) resolvedType() {}
 
 // Attribute is a resolved attribute in a record.
 type Attribute struct {
@@ -117,14 +99,14 @@ type EntityRef struct {
 	EntityType types.EntityType
 }
 
-func (EntityRef) isResolvedType() {}
+func (EntityRef) resolvedType() {}
 
 // Extension is a resolved extension type.
 type Extension struct {
-	Name string // e.g., "ipaddr"
+	Name string
 }
 
-func (Extension) isResolvedType() {}
+func (Extension) resolvedType() {}
 
 // Annotations are key-value metadata attached to schema elements.
 type Annotations map[string]string
