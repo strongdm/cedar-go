@@ -17,20 +17,14 @@ func TestBuilderBasic(t *testing.T) {
 		MemberOf("UserGroup").
 		Attr("name", schema.String()).
 		Attr("age", schema.Long()).
-		Done().
 		Entity("UserGroup").
-		Done().
 		Entity("Photo").
 		MemberOf("Album").
 		Attr("private", schema.Bool()).
-		Done().
 		Entity("Album").
-		Done().
 		Action("viewPhoto").
 		Principal("User").
 		Resource("Photo").
-		Done().
-		Done().
 		Build()
 
 	// Check structure
@@ -60,8 +54,8 @@ func TestBuilderBasic(t *testing.T) {
 func TestBuilderWithContextAndExtensions(t *testing.T) {
 	s := schema.NewBuilder().
 		Namespace("MyApp").
-		Entity("User").Done().
-		Entity("Document").Done().
+		Entity("User").
+		Entity("Document").
 		Action("view").
 		Principal("User").
 		Resource("Document").
@@ -69,8 +63,6 @@ func TestBuilderWithContextAndExtensions(t *testing.T) {
 			"ip":        {Type: schema.IPAddr(), Required: true, Annotations: make(schema.Annotations)},
 			"timestamp": {Type: schema.Long(), Required: true, Annotations: make(schema.Annotations)},
 		}}).
-		Done().
-		Done().
 		Build()
 
 	ns := s.Namespaces["MyApp"]
@@ -220,11 +212,10 @@ namespace PhotoFlash {
 func TestResolve(t *testing.T) {
 	s := schema.NewBuilder().
 		Namespace("MyApp").
-		Entity("User").MemberOf("Group").Done().
-		Entity("Group").Done().
-		Entity("Document").Done().
-		Action("view").Principal("User").Resource("Document").Done().
-		Done().
+		Entity("User").MemberOf("Group").
+		Entity("Group").
+		Entity("Document").
+		Action("view").Principal("User").Resource("Document").
 		Build()
 
 	rs, err := s.Resolve()
@@ -450,21 +441,17 @@ func TestBuilderAllMethods(t *testing.T) {
 		OptionalAttr("nickname", schema.String()).
 		Tags(schema.String()).
 		Annotate("doc", "User entity").
-		Done().
-		Entity("Group").Done().
-		Entity("Document").Done().
+		Entity("Group").
+		Entity("Document").
 		Action("read").
 		Principal("User").
 		Resource("Document").
 		InGroupByName("write").
 		Annotate("doc", "Read action").
-		Done().
 		Action("write").
 		Principal("User").
 		Resource("Document").
 		InGroup(&schema.ActionRef{ID: "admin"}, &schema.ActionRef{Type: "OtherNS::Action", ID: "superAction"}).
-		Done().
-		Done().
 		Build()
 
 	ns := s.Namespaces["TestNS"]
@@ -567,17 +554,14 @@ func TestMarshalCedar(t *testing.T) {
 		MemberOf("Group").
 		Attr("name", schema.String()).
 		Annotate("doc", "User entity").
-		Done().
-		Entity("Group").Done().
+		Entity("Group").
 		EnumType("Status", "Active", "Inactive").
 		Action("view").
 		Principal("User").
 		Resource("Group").
-		Done().
 		CommonType("MyRecord", &schema.RecordType{Attributes: map[string]*schema.Attribute{
 			"field": {Type: schema.Long(), Required: true, Annotations: make(schema.Annotations)},
 		}}).
-		Done().
 		Build()
 
 	// Marshal to Cedar format
@@ -602,9 +586,8 @@ func TestMarshalCedarEmptyNamespace(t *testing.T) {
 	// Test marshaling with empty namespace (no namespace block)
 	s := schema.NewBuilder().
 		Namespace("").
-		Entity("User").Done().
-		Action("view").Principal("User").Resource("User").Done().
-		Done().
+		Entity("User").
+		Action("view").Principal("User").Resource("User").
 		Build()
 
 	data, err := s.MarshalCedar()
@@ -741,8 +724,7 @@ func TestJSONMarshalAllTypes(t *testing.T) {
 		Attr("setField", schema.Set(schema.Long())).
 		Attr("entityRef", schema.Entity("OtherEntity")).
 		Attr("commonRef", schema.CommonType("MyType")).
-		Done().
-		Entity("OtherEntity").Done().
+		Entity("OtherEntity").
 		CommonType("MyType", schema.String()).
 		EnumType("Status", "A", "B").
 		Action("view").
@@ -752,12 +734,9 @@ func TestJSONMarshalAllTypes(t *testing.T) {
 		Context(&schema.RecordType{Attributes: map[string]*schema.Attribute{
 			"flag": {Type: schema.Bool(), Required: true, Annotations: make(schema.Annotations)},
 		}}).
-		Done().
 		Action("write").
 		Principal("User").
 		Resource("OtherEntity").
-		Done().
-		Done().
 		Build()
 
 	data, err := json.Marshal(s)
@@ -1357,14 +1336,12 @@ namespace Test {
 func TestMarshalCedarWithActionMemberOf(t *testing.T) {
 	s := schema.NewBuilder().
 		Namespace("Test").
-		Entity("User").Done().
-		Action("admin").Done().
+		Entity("User").
+		Action("admin").
 		Action("view").
 		Principal("User").
 		Resource("User").
 		InGroupByName("admin").
-		Done().
-		Done().
 		Build()
 
 	data, err := s.MarshalCedar()
@@ -1386,15 +1363,13 @@ func TestMarshalCedarWithActionMemberOf(t *testing.T) {
 func TestMarshalCedarWithRecordContext(t *testing.T) {
 	s := schema.NewBuilder().
 		Namespace("Test").
-		Entity("User").Done().
+		Entity("User").
 		Action("view").
 		Principal("User").
 		Resource("User").
 		Context(&schema.RecordType{Attributes: map[string]*schema.Attribute{
 			"flag": {Type: schema.Bool(), Required: true, Annotations: make(schema.Annotations)},
 		}}).
-		Done().
-		Done().
 		Build()
 
 	data, err := s.MarshalCedar()
@@ -1413,9 +1388,7 @@ func TestMarshalCedarWithSetType(t *testing.T) {
 		Namespace("Test").
 		Entity("User").
 		Attr("friends", schema.Set(schema.Entity("User"))).
-		Done().
-		Action("view").Principal("User").Resource("User").Done().
-		Done().
+		Action("view").Principal("User").Resource("User").
 		Build()
 
 	data, err := s.MarshalCedar()
@@ -1438,9 +1411,7 @@ func TestMarshalCedarWithNestedRecord(t *testing.T) {
 		Namespace("Test").
 		Entity("User").
 		Attr("data", nested).
-		Done().
-		Action("view").Principal("User").Resource("User").Done().
-		Done().
+		Action("view").Principal("User").Resource("User").
 		Build()
 
 	data, err := s.MarshalCedar()
@@ -1460,12 +1431,10 @@ func TestMarshalCedarWithContextRef(t *testing.T) {
 		CommonType("MyContext", &schema.RecordType{Attributes: map[string]*schema.Attribute{
 			"flag": {Type: schema.Bool(), Required: true, Annotations: make(schema.Annotations)},
 		}}).
-		Entity("User").Done().
+		Entity("User").
 		Action("view").
 		Principal("User").
 		Resource("User").
-		Done().
-		Done().
 		Build()
 
 	// Manually set ContextRef since builder doesn't support it directly
@@ -1489,12 +1458,10 @@ func TestJSONMarshalContextRef(t *testing.T) {
 		CommonType("MyContext", &schema.RecordType{Attributes: map[string]*schema.Attribute{
 			"flag": {Type: schema.Bool(), Required: true, Annotations: make(schema.Annotations)},
 		}}).
-		Entity("User").Done().
+		Entity("User").
 		Action("view").
 		Principal("User").
 		Resource("User").
-		Done().
-		Done().
 		Build()
 
 	// Manually set ContextRef since builder doesn't support it directly
@@ -1518,17 +1485,14 @@ func TestJSONMarshalContextRef(t *testing.T) {
 func TestMarshalCedarWithActionInCrossNamespace(t *testing.T) {
 	s := schema.NewBuilder().
 		Namespace("NS1").
-		Entity("User").Done().
-		Action("admin").Done().
-		Done().
+		Entity("User").
+		Action("admin").
 		Namespace("NS2").
-		Entity("User").Done().
+		Entity("User").
 		Action("view").
 		Principal("User").
 		Resource("User").
 		InGroup(&schema.ActionRef{Type: "NS1::Action", ID: "admin"}).
-		Done().
-		Done().
 		Build()
 
 	data, err := s.MarshalCedar()
@@ -1770,9 +1734,8 @@ func TestMarshalEnumInJSON(t *testing.T) {
 	s := schema.NewBuilder().
 		Namespace("Test").
 		EnumType("Status", "Active", "Inactive").
-		Entity("User").Done().
-		Action("view").Principal("User").Resource("User").Done().
-		Done().
+		Entity("User").
+		Action("view").Principal("User").Resource("User").
 		Build()
 
 	data, err := json.Marshal(s)
@@ -1993,10 +1956,8 @@ func TestMarshalCedarWithEntityTagsAndAnnotations(t *testing.T) {
 		Entity("User").
 		Tags(schema.String()).
 		Annotate("doc", "User entity").
-		Done().
 		EnumType("Status", "Active", "Inactive").
-		Action("view").Principal("User").Resource("User").Done().
-		Done().
+		Action("view").Principal("User").Resource("User").
 		Build()
 
 	// Add annotation to enum
@@ -2016,9 +1977,8 @@ func TestMarshalCedarWithEntityTagsAndAnnotations(t *testing.T) {
 func TestMarshalCedarWithEmptyAppliesTo(t *testing.T) {
 	s := schema.NewBuilder().
 		Namespace("Test").
-		Entity("User").Done().
-		Action("view").Done(). // No appliesTo
-		Done().
+		Entity("User").
+		Action("view"). // No appliesTo
 		Build()
 
 	data, err := s.MarshalCedar()
@@ -2034,9 +1994,7 @@ func TestMarshalCedarWithQuotedIdentifiers(t *testing.T) {
 	s := schema.NewBuilder().
 		Namespace("Test").
 		Entity("User").
-		Done().
-		Action("view").Principal("User").Resource("User").Done().
-		Done().
+		Action("view").Principal("User").Resource("User").
 		Build()
 
 	// Add attribute with spaces
@@ -2070,9 +2028,7 @@ func TestJSONMarshalSetType(t *testing.T) {
 		Namespace("Test").
 		Entity("User").
 		Attr("items", schema.Set(schema.Long())).
-		Done().
-		Action("view").Principal("User").Resource("User").Done().
-		Done().
+		Action("view").Principal("User").Resource("User").
 		Build()
 
 	data, err := json.Marshal(s)
@@ -2183,9 +2139,8 @@ func TestResolveDuplicateCommonType(t *testing.T) {
 func TestMarshalCedarWithCommonTypeAnnotations(t *testing.T) {
 	s := schema.NewBuilder().
 		Namespace("Test").
-		Entity("User").Done().
-		Action("view").Principal("User").Resource("User").Done().
-		Done().
+		Entity("User").
+		Action("view").Principal("User").Resource("User").
 		Build()
 
 	// Add common type with annotation
@@ -2207,9 +2162,7 @@ func TestMarshalCedarOptionalAttributes(t *testing.T) {
 		Namespace("Test").
 		Entity("User").
 		OptionalAttr("nickname", schema.String()).
-		Done().
-		Action("view").Principal("User").Resource("User").Done().
-		Done().
+		Action("view").Principal("User").Resource("User").
 		Build()
 
 	data, err := s.MarshalCedar()
@@ -2233,9 +2186,7 @@ func TestMarshalCedarAttributeAnnotations(t *testing.T) {
 		Namespace("Test").
 		Entity("User").
 		Attr("name", schema.String()).
-		Done().
-		Action("view").Principal("User").Resource("User").Done().
-		Done().
+		Action("view").Principal("User").Resource("User").
 		Build()
 
 	// Add annotation to attribute
@@ -2252,13 +2203,11 @@ func TestMarshalCedarAttributeAnnotations(t *testing.T) {
 func TestMarshalCedarActionAnnotations(t *testing.T) {
 	s := schema.NewBuilder().
 		Namespace("Test").
-		Entity("User").Done().
+		Entity("User").
 		Action("view").
 		Principal("User").
 		Resource("User").
 		Annotate("doc", "View action").
-		Done().
-		Done().
 		Build()
 
 	data, err := s.MarshalCedar()
@@ -2368,9 +2317,8 @@ func TestMarshalCedarEntityOrCommonRef(t *testing.T) {
 	// Test marshaling EntityOrCommonRef type
 	s := schema.NewBuilder().
 		Namespace("Test").
-		Entity("User").Done().
-		Action("view").Principal("User").Resource("User").Done().
-		Done().
+		Entity("User").
+		Action("view").Principal("User").Resource("User").
 		Build()
 
 	// Add a common type that uses EntityOrCommonRef internally
@@ -2391,9 +2339,8 @@ func TestMarshalCedarEntityOrCommonRef(t *testing.T) {
 func TestJSONMarshalEntityOrCommonRef(t *testing.T) {
 	s := schema.NewBuilder().
 		Namespace("Test").
-		Entity("User").Done().
-		Action("view").Principal("User").Resource("User").Done().
-		Done().
+		Entity("User").
+		Action("view").Principal("User").Resource("User").
 		Build()
 
 	// Add a common type that uses EntityOrCommonRef

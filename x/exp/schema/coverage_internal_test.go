@@ -140,13 +140,11 @@ func TestParseErrorFormatting(t *testing.T) {
 func TestBuilderResourceBeforePrincipal(t *testing.T) {
 	s := NewBuilder().
 		Namespace("Test").
-		Entity("User").Done().
-		Entity("Document").Done().
+		Entity("User").
+		Entity("Document").
 		Action("view").
 		Resource("Document"). // Call Resource before Principal
 		Principal("User").
-		Done().
-		Done().
 		Build()
 
 	action := s.Namespaces["Test"].Actions["view"]
@@ -168,15 +166,13 @@ func TestBuilderResourceBeforePrincipal(t *testing.T) {
 func TestBuilderContextBeforePrincipal(t *testing.T) {
 	s := NewBuilder().
 		Namespace("Test").
-		Entity("User").Done().
+		Entity("User").
 		Action("view").
 		Context(&RecordType{Attributes: map[string]*Attribute{
 			"flag": {Type: Bool(), Required: true, Annotations: make(Annotations)},
 		}}). // Call Context before Principal
 		Principal("User").
 		Resource("User").
-		Done().
-		Done().
 		Build()
 
 	action := s.Namespaces["Test"].Actions["view"]
@@ -723,11 +719,9 @@ func TestMarshalCedarWriteTypeForAllTypes(t *testing.T) {
 		Attr("entityVal", Entity("Other")).
 		Attr("extVal", IPAddr()).
 		Attr("commonVal", CommonType("MyType")).
-		Done().
-		Entity("Other").Done().
+		Entity("Other").
 		CommonType("MyType", String()).
-		Action("view").Principal("User").Resource("User").Done().
-		Done().
+		Action("view").Principal("User").Resource("User").
 		Build()
 
 	// Also test EntityOrCommonRef
@@ -751,8 +745,7 @@ func TestMarshalCedarWriteTypeForAllTypes(t *testing.T) {
 func TestMarshalCedarActionWithQuotedName(t *testing.T) {
 	s := NewBuilder().
 		Namespace("Test").
-		Entity("User").Done().
-		Done().
+		Entity("User").
 		Build()
 
 	// Add action with name that needs quoting
@@ -778,8 +771,7 @@ func TestMarshalCedarActionWithQuotedName(t *testing.T) {
 func TestMarshalCedarActionMemberOfWithQuotedID(t *testing.T) {
 	s := NewBuilder().
 		Namespace("Test").
-		Entity("User").Done().
-		Done().
+		Entity("User").
 		Build()
 
 	// Add action with memberOf that has a name needing quoting
@@ -1386,18 +1378,15 @@ action view appliesTo { principal: [User], resource: [User] };
 func TestMarshalCedarMultipleNamespaces(t *testing.T) {
 	s := NewBuilder().
 		Namespace("NS1").
-		Entity("User").Done().
-		Action("view").Principal("User").Resource("User").Done().
+		Entity("User").
+		Action("view").Principal("User").Resource("User").
 		Annotate("doc", "Namespace 1").
-		Done().
 		Namespace("NS2").
-		Entity("Admin").Done().
-		Action("manage").Principal("Admin").Resource("Admin").Done().
-		Done().
+		Entity("Admin").
+		Action("manage").Principal("Admin").Resource("Admin").
 		Namespace("").
-		Entity("Global").Done().
-		Action("global").Principal("Global").Resource("Global").Done().
-		Done().
+		Entity("Global").
+		Action("global").Principal("Global").Resource("Global").
 		Build()
 
 	data, err := s.MarshalCedar()
@@ -1431,9 +1420,8 @@ func TestMarshalCedarNestedRecord(t *testing.T) {
 
 	s := NewBuilder().
 		Namespace("Test").
-		Entity("User").Done().
-		Action("view").Principal("User").Resource("User").Done().
-		Done().
+		Entity("User").
+		Action("view").Principal("User").Resource("User").
 		Build()
 
 	s.Namespaces["Test"].EntityTypes["User"].Shape = &RecordType{
@@ -1945,9 +1933,9 @@ func TestResolveShadowingEnumTypes(t *testing.T) {
 // TestMarshalCedarSortedNamespaces tests that namespaces are sorted correctly
 func TestMarshalCedarSortedNamespaces(t *testing.T) {
 	s := NewBuilder().
-		Namespace("Zebra").Entity("A").Done().Action("a").Principal("A").Resource("A").Done().Done().
-		Namespace("Alpha").Entity("B").Done().Action("b").Principal("B").Resource("B").Done().Done().
-		Namespace("").Entity("C").Done().Action("c").Principal("C").Resource("C").Done().Done().
+		Namespace("Zebra").Entity("A").Action("a").Principal("A").Resource("A").
+		Namespace("Alpha").Entity("B").Action("b").Principal("B").Resource("B").
+		Namespace("").Entity("C").Action("c").Principal("C").Resource("C").
 		Build()
 
 	data, err := s.MarshalCedar()
@@ -2278,9 +2266,8 @@ func TestMarshalCedarWithOnlyCommonTypes(t *testing.T) {
 	s := NewBuilder().
 		Namespace("Test").
 		CommonType("MyString", String()).
-		Entity("User").Done().
-		Action("view").Principal("User").Resource("User").Done().
-		Done().
+		Entity("User").
+		Action("view").Principal("User").Resource("User").
 		Build()
 
 	data, err := s.MarshalCedar()
@@ -2397,9 +2384,8 @@ func TestParseStringListMissingCloseBracket(t *testing.T) {
 func TestMarshalCedarWithNamespaceOnly(t *testing.T) {
 	s := NewBuilder().
 		Namespace("Test").
-		Entity("User").Done().
-		Action("view").Principal("User").Resource("User").Done().
-		Done().
+		Entity("User").
+		Action("view").Principal("User").Resource("User").
 		Build()
 
 	data, err := s.MarshalCedar()
