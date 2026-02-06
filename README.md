@@ -36,11 +36,10 @@ The Go implementation includes:
 - JSON marshalling and unmarshalling
 - all core and extended types (including [RFC 80](https://github.com/cedar-policy/rfcs/blob/main/text/0080-datetime-extension.md)'s datetime and duration)
 - integration test suite
-- human-readable schema parsing
-
 The Go implementation does not yet include:
 
 - CLI applications
+- schemas
 - the schema [validator](https://docs.cedarpolicy.com/policies/validation.html)
 - the formatter
 - partial evaluation
@@ -121,7 +120,7 @@ If you'd like to see more details on what can be expressed as Cedar policies, se
 
 ## Packages
 The cedar-go module houses the following public packages:
- * [cedar](.) - The main package for interacting with the module, including parsing policies and entities, schemas, and authorizing requests.
+ * [cedar](.) - The main package for interacting with the module, including parsing policies and entities, and authorizing requests.
  * [ast](ast/) - Programmatic construction of Cedar ASTs
  * [types](types/) - Basic types common to multiple packages. For convenience, most of these are also projected through the cedar package.
  * [x/exp/batch](x/exp/batch/) - An experimental batch authorization API supporting high-performance variable substitution via partial evaluation.
@@ -147,10 +146,6 @@ If you're looking to integrate Cedar into a production system, please be sure th
 #### New Features
 - Add an `UnmarshalCedar` method on `types.EntityUID`s
 - Implement the `encoding.BinaryMarshaler` and `encoding.BinaryUnmarshaler` interfaces for `types.EntityUID`s
-
-### 1.2.5
-#### New Features
-- Adds experimental support for parsing Cedar schema in both Cedar and JSON formats
 
 ### 1.2.4
 #### New Features
