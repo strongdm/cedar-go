@@ -3,6 +3,7 @@ package validate
 import (
 	"testing"
 
+	"github.com/cedar-policy/cedar-go/internal/testutil"
 	"github.com/cedar-policy/cedar-go/types"
 	"github.com/cedar-policy/cedar-go/x/exp/ast"
 	"github.com/cedar-policy/cedar-go/x/exp/schema/resolved"
@@ -80,200 +81,179 @@ func testSchema() *resolved.Schema {
 	}
 }
 
-// --- Entity validation tests ---
-
-func TestEntityValid(t *testing.T) {
-	t.Parallel()
+// testSchemaWithPhoto extends testSchema with a Photo entity type unrelated to User/Group.
+func testSchemaWithPhoto() *resolved.Schema {
 	s := testSchema()
-	entity := types.Entity{
-		UID:     types.NewEntityUID("User", "alice"),
-		Parents: types.NewEntityUIDSet(types.NewEntityUID("Group", "admins")),
-		Attributes: types.NewRecord(types.RecordMap{
-			"name":  types.String("Alice"),
-			"email": types.String("alice@example.com"),
-		}),
+	s.Entities["Photo"] = resolved.Entity{
+		Name:  "Photo",
+		Shape: resolved.RecordType{},
 	}
-	if err := Entity(s, entity); err != nil {
-		t.Fatalf("expected valid entity, got error: %v", err)
+	return s
+}
+
+func testEnv() *requestEnv {
+	return &requestEnv{
+		principalType: "User",
+		actionUID:     types.NewEntityUID("Action", "view"),
+		resourceType:  "Document",
+		contextType:   schemaRecordToCedarType(resolved.RecordType{}),
 	}
 }
 
-func TestEntityUnknownType(t *testing.T) {
-	t.Parallel()
-	s := testSchema()
-	entity := types.Entity{
-		UID: types.NewEntityUID("Unknown", "x"),
-	}
-	err := Entity(s, entity)
-	if err == nil {
-		t.Fatal("expected error for unknown entity type")
-	}
-}
-
-func TestEntityInvalidParentType(t *testing.T) {
-	t.Parallel()
-	s := testSchema()
-	entity := types.Entity{
-		UID:     types.NewEntityUID("User", "alice"),
-		Parents: types.NewEntityUIDSet(types.NewEntityUID("Document", "doc1")),
-		Attributes: types.NewRecord(types.RecordMap{
-			"name":  types.String("Alice"),
-			"email": types.String("alice@example.com"),
-		}),
-	}
-	err := Entity(s, entity)
-	if err == nil {
-		t.Fatal("expected error for invalid parent type")
-	}
-}
-
-func TestEntityMissingRequiredAttr(t *testing.T) {
-	t.Parallel()
-	s := testSchema()
-	entity := types.Entity{
-		UID: types.NewEntityUID("User", "alice"),
-		Attributes: types.NewRecord(types.RecordMap{
-			"name": types.String("Alice"),
-			// missing "email"
-		}),
-	}
-	err := Entity(s, entity)
-	if err == nil {
-		t.Fatal("expected error for missing required attribute")
-	}
-}
-
-func TestEntityUnexpectedAttr(t *testing.T) {
-	t.Parallel()
-	s := testSchema()
-	entity := types.Entity{
-		UID: types.NewEntityUID("User", "alice"),
-		Attributes: types.NewRecord(types.RecordMap{
-			"name":    types.String("Alice"),
-			"email":   types.String("alice@example.com"),
-			"unknown": types.String("extra"),
-		}),
-	}
-	err := Entity(s, entity)
-	if err == nil {
-		t.Fatal("expected error for unexpected attribute")
-	}
-}
-
-func TestEntityWrongAttrType(t *testing.T) {
-	t.Parallel()
-	s := testSchema()
-	entity := types.Entity{
-		UID: types.NewEntityUID("User", "alice"),
-		Attributes: types.NewRecord(types.RecordMap{
-			"name":  types.Long(42), // wrong type
-			"email": types.String("alice@example.com"),
-		}),
-	}
-	err := Entity(s, entity)
-	if err == nil {
-		t.Fatal("expected error for wrong attribute type")
-	}
-}
-
-func TestEntityTagsValid(t *testing.T) {
-	t.Parallel()
-	s := testSchema()
-	entity := types.Entity{
-		UID: types.NewEntityUID("Document", "doc1"),
-		Parents: types.NewEntityUIDSet(types.NewEntityUID("Folder", "folder1")),
-		Attributes: types.NewRecord(types.RecordMap{
-			"title":  types.String("My Doc"),
-			"public": types.Boolean(true),
-		}),
-		Tags: types.NewRecord(types.RecordMap{
-			"category": types.String("report"),
-		}),
-	}
-	if err := Entity(s, entity); err != nil {
-		t.Fatalf("expected valid entity with tags, got error: %v", err)
-	}
-}
-
-func TestEntityTagsNotAllowed(t *testing.T) {
-	t.Parallel()
-	s := testSchema()
-	entity := types.Entity{
-		UID: types.NewEntityUID("User", "alice"),
-		Attributes: types.NewRecord(types.RecordMap{
-			"name":  types.String("Alice"),
-			"email": types.String("alice@example.com"),
-		}),
-		Tags: types.NewRecord(types.RecordMap{
-			"tag1": types.String("val"),
-		}),
-	}
-	err := Entity(s, entity)
-	if err == nil {
-		t.Fatal("expected error for tags on entity that doesn't allow them")
-	}
-}
-
-func TestEntityTagsWrongType(t *testing.T) {
-	t.Parallel()
-	s := testSchema()
-	entity := types.Entity{
-		UID: types.NewEntityUID("Document", "doc1"),
-		Parents: types.NewEntityUIDSet(types.NewEntityUID("Folder", "folder1")),
-		Attributes: types.NewRecord(types.RecordMap{
-			"title":  types.String("My Doc"),
-			"public": types.Boolean(true),
-		}),
-		Tags: types.NewRecord(types.RecordMap{
-			"category": types.Long(42), // wrong type, should be String
-		}),
-	}
-	err := Entity(s, entity)
-	if err == nil {
-		t.Fatal("expected error for wrong tag type")
-	}
-}
-
-func TestEntityEnum(t *testing.T) {
+func TestEntity(t *testing.T) {
 	t.Parallel()
 	s := testSchema()
 
-	// Valid enum
-	entity := types.Entity{
-		UID: types.NewEntityUID("Color", "red"),
-	}
-	if err := Entity(s, entity); err != nil {
-		t.Fatalf("expected valid enum entity, got error: %v", err)
+	tests := []struct {
+		name    string
+		entity  types.Entity
+		wantErr bool
+	}{
+		{
+			name: "valid",
+			entity: types.Entity{
+				UID:     types.NewEntityUID("User", "alice"),
+				Parents: types.NewEntityUIDSet(types.NewEntityUID("Group", "admins")),
+				Attributes: types.NewRecord(types.RecordMap{
+					"name":  types.String("Alice"),
+					"email": types.String("alice@example.com"),
+				}),
+			},
+		},
+		{
+			name: "unknownType",
+			entity: types.Entity{
+				UID: types.NewEntityUID("Unknown", "x"),
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalidParentType",
+			entity: types.Entity{
+				UID:     types.NewEntityUID("User", "alice"),
+				Parents: types.NewEntityUIDSet(types.NewEntityUID("Document", "doc1")),
+				Attributes: types.NewRecord(types.RecordMap{
+					"name":  types.String("Alice"),
+					"email": types.String("alice@example.com"),
+				}),
+			},
+			wantErr: true,
+		},
+		{
+			name: "missingRequiredAttr",
+			entity: types.Entity{
+				UID: types.NewEntityUID("User", "alice"),
+				Attributes: types.NewRecord(types.RecordMap{
+					"name": types.String("Alice"),
+				}),
+			},
+			wantErr: true,
+		},
+		{
+			name: "unexpectedAttr",
+			entity: types.Entity{
+				UID: types.NewEntityUID("User", "alice"),
+				Attributes: types.NewRecord(types.RecordMap{
+					"name":    types.String("Alice"),
+					"email":   types.String("alice@example.com"),
+					"unknown": types.String("extra"),
+				}),
+			},
+			wantErr: true,
+		},
+		{
+			name: "wrongAttrType",
+			entity: types.Entity{
+				UID: types.NewEntityUID("User", "alice"),
+				Attributes: types.NewRecord(types.RecordMap{
+					"name":  types.Long(42),
+					"email": types.String("alice@example.com"),
+				}),
+			},
+			wantErr: true,
+		},
+		{
+			name: "tagsValid",
+			entity: types.Entity{
+				UID:     types.NewEntityUID("Document", "doc1"),
+				Parents: types.NewEntityUIDSet(types.NewEntityUID("Folder", "folder1")),
+				Attributes: types.NewRecord(types.RecordMap{
+					"title":  types.String("My Doc"),
+					"public": types.Boolean(true),
+				}),
+				Tags: types.NewRecord(types.RecordMap{
+					"category": types.String("report"),
+				}),
+			},
+		},
+		{
+			name: "tagsNotAllowed",
+			entity: types.Entity{
+				UID: types.NewEntityUID("User", "alice"),
+				Attributes: types.NewRecord(types.RecordMap{
+					"name":  types.String("Alice"),
+					"email": types.String("alice@example.com"),
+				}),
+				Tags: types.NewRecord(types.RecordMap{
+					"tag1": types.String("val"),
+				}),
+			},
+			wantErr: true,
+		},
+		{
+			name: "tagsWrongType",
+			entity: types.Entity{
+				UID:     types.NewEntityUID("Document", "doc1"),
+				Parents: types.NewEntityUIDSet(types.NewEntityUID("Folder", "folder1")),
+				Attributes: types.NewRecord(types.RecordMap{
+					"title":  types.String("My Doc"),
+					"public": types.Boolean(true),
+				}),
+				Tags: types.NewRecord(types.RecordMap{
+					"category": types.Long(42),
+				}),
+			},
+			wantErr: true,
+		},
+		{
+			name: "validEnum",
+			entity: types.Entity{
+				UID: types.NewEntityUID("Color", "red"),
+			},
+		},
+		{
+			name: "invalidEnumValue",
+			entity: types.Entity{
+				UID: types.NewEntityUID("Color", "purple"),
+			},
+			wantErr: true,
+		},
+		{
+			name: "validActionEntity",
+			entity: types.Entity{
+				UID:     types.NewEntityUID("Action", "edit"),
+				Parents: types.NewEntityUIDSet(types.NewEntityUID("Action", "view")),
+			},
+		},
+		{
+			name: "unknownAction",
+			entity: types.Entity{
+				UID: types.NewEntityUID("Action", "delete"),
+			},
+			wantErr: true,
+		},
 	}
 
-	// Invalid enum ID
-	entity = types.Entity{
-		UID: types.NewEntityUID("Color", "purple"),
-	}
-	if err := Entity(s, entity); err == nil {
-		t.Fatal("expected error for invalid enum value")
-	}
-}
-
-func TestEntityAction(t *testing.T) {
-	t.Parallel()
-	s := testSchema()
-
-	// Valid action entity
-	entity := types.Entity{
-		UID:     types.NewEntityUID("Action", "edit"),
-		Parents: types.NewEntityUIDSet(types.NewEntityUID("Action", "view")),
-	}
-	if err := Entity(s, entity); err != nil {
-		t.Fatalf("expected valid action entity, got error: %v", err)
-	}
-
-	// Invalid action - unknown
-	entity = types.Entity{
-		UID: types.NewEntityUID("Action", "delete"),
-	}
-	if err := Entity(s, entity); err == nil {
-		t.Fatal("expected error for unknown action")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			err := Entity(s, tt.entity)
+			if tt.wantErr {
+				testutil.Error(t, err)
+			} else {
+				testutil.OK(t, err)
+			}
+		})
 	}
 }
 
@@ -296,141 +276,142 @@ func TestEntitiesMap(t *testing.T) {
 			}),
 		},
 	}
-	if err := Entities(s, entities); err != nil {
-		t.Fatalf("expected valid entities, got error: %v", err)
-	}
+	testutil.OK(t, Entities(s, entities))
 }
 
-// --- Request validation tests ---
-
-func TestRequestValid(t *testing.T) {
+func TestRequest(t *testing.T) {
 	t.Parallel()
 	s := testSchema()
-	req := types.Request{
-		Principal: types.NewEntityUID("User", "alice"),
-		Action:    types.NewEntityUID("Action", "view"),
-		Resource:  types.NewEntityUID("Document", "doc1"),
-		Context: types.NewRecord(types.RecordMap{
-			"ip": types.IPAddr{},
-		}),
+
+	tests := []struct {
+		name    string
+		req     types.Request
+		wantErr bool
+	}{
+		{
+			name: "valid",
+			req: types.Request{
+				Principal: types.NewEntityUID("User", "alice"),
+				Action:    types.NewEntityUID("Action", "view"),
+				Resource:  types.NewEntityUID("Document", "doc1"),
+				Context: types.NewRecord(types.RecordMap{
+					"ip": types.IPAddr{},
+				}),
+			},
+		},
+		{
+			name: "unknownAction",
+			req: types.Request{
+				Principal: types.NewEntityUID("User", "alice"),
+				Action:    types.NewEntityUID("Action", "delete"),
+				Resource:  types.NewEntityUID("Document", "doc1"),
+			},
+			wantErr: true,
+		},
+		{
+			name: "wrongPrincipalType",
+			req: types.Request{
+				Principal: types.NewEntityUID("Document", "doc1"),
+				Action:    types.NewEntityUID("Action", "view"),
+				Resource:  types.NewEntityUID("Document", "doc1"),
+				Context: types.NewRecord(types.RecordMap{
+					"ip": types.IPAddr{},
+				}),
+			},
+			wantErr: true,
+		},
+		{
+			name: "wrongResourceType",
+			req: types.Request{
+				Principal: types.NewEntityUID("User", "alice"),
+				Action:    types.NewEntityUID("Action", "view"),
+				Resource:  types.NewEntityUID("User", "bob"),
+				Context: types.NewRecord(types.RecordMap{
+					"ip": types.IPAddr{},
+				}),
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalidContext",
+			req: types.Request{
+				Principal: types.NewEntityUID("User", "alice"),
+				Action:    types.NewEntityUID("Action", "view"),
+				Resource:  types.NewEntityUID("Document", "doc1"),
+				Context:   types.NewRecord(types.RecordMap{}),
+			},
+			wantErr: true,
+		},
 	}
-	if err := Request(s, req); err != nil {
-		t.Fatalf("expected valid request, got error: %v", err)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			err := Request(s, tt.req)
+			if tt.wantErr {
+				testutil.Error(t, err)
+			} else {
+				testutil.OK(t, err)
+			}
+		})
 	}
 }
 
-func TestRequestUnknownAction(t *testing.T) {
+func TestPolicyRBAC(t *testing.T) {
 	t.Parallel()
 	s := testSchema()
-	req := types.Request{
-		Principal: types.NewEntityUID("User", "alice"),
-		Action:    types.NewEntityUID("Action", "delete"),
-		Resource:  types.NewEntityUID("Document", "doc1"),
+
+	tests := []struct {
+		name    string
+		setup   func(*ast.Policy)
+		wantErr bool
+	}{
+		{
+			name: "unknownEntityType",
+			setup: func(p *ast.Policy) {
+				p.PrincipalIs("Unknown")
+			},
+			wantErr: true,
+		},
+		{
+			name: "unknownAction",
+			setup: func(p *ast.Policy) {
+				p.ActionEq(types.NewEntityUID("Action", "delete"))
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalidActionApplication",
+			setup: func(p *ast.Policy) {
+				p.PrincipalIs("Group")
+				p.ActionEq(types.NewEntityUID("Action", "view"))
+			},
+			wantErr: true,
+		},
+		{
+			name: "validSimple",
+			setup: func(p *ast.Policy) {
+				p.PrincipalIs("User")
+				p.ActionEq(types.NewEntityUID("Action", "view"))
+				p.ResourceIs("Document")
+			},
+		},
 	}
-	err := Request(s, req)
-	if err == nil {
-		t.Fatal("expected error for unknown action")
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			p := ast.Permit()
+			tt.setup(p)
+			err := Policy(s, p)
+			if tt.wantErr {
+				testutil.Error(t, err)
+			} else {
+				testutil.OK(t, err)
+			}
+		})
 	}
 }
-
-func TestRequestWrongPrincipalType(t *testing.T) {
-	t.Parallel()
-	s := testSchema()
-	req := types.Request{
-		Principal: types.NewEntityUID("Document", "doc1"), // wrong type
-		Action:    types.NewEntityUID("Action", "view"),
-		Resource:  types.NewEntityUID("Document", "doc1"),
-		Context: types.NewRecord(types.RecordMap{
-			"ip": types.IPAddr{},
-		}),
-	}
-	err := Request(s, req)
-	if err == nil {
-		t.Fatal("expected error for wrong principal type")
-	}
-}
-
-func TestRequestWrongResourceType(t *testing.T) {
-	t.Parallel()
-	s := testSchema()
-	req := types.Request{
-		Principal: types.NewEntityUID("User", "alice"),
-		Action:    types.NewEntityUID("Action", "view"),
-		Resource:  types.NewEntityUID("User", "bob"), // wrong type
-		Context: types.NewRecord(types.RecordMap{
-			"ip": types.IPAddr{},
-		}),
-	}
-	err := Request(s, req)
-	if err == nil {
-		t.Fatal("expected error for wrong resource type")
-	}
-}
-
-func TestRequestInvalidContext(t *testing.T) {
-	t.Parallel()
-	s := testSchema()
-	req := types.Request{
-		Principal: types.NewEntityUID("User", "alice"),
-		Action:    types.NewEntityUID("Action", "view"),
-		Resource:  types.NewEntityUID("Document", "doc1"),
-		Context:   types.NewRecord(types.RecordMap{}), // missing required "ip"
-	}
-	err := Request(s, req)
-	if err == nil {
-		t.Fatal("expected error for invalid context")
-	}
-}
-
-// --- Policy validation tests ---
-
-func TestPolicyRBACUnknownEntityType(t *testing.T) {
-	t.Parallel()
-	s := testSchema()
-	p := ast.Permit()
-	p.PrincipalIs("Unknown")
-	err := Policy(s, p)
-	if err == nil {
-		t.Fatal("expected error for unknown entity type in scope")
-	}
-}
-
-func TestPolicyRBACUnknownAction(t *testing.T) {
-	t.Parallel()
-	s := testSchema()
-	p := ast.Permit()
-	p.ActionEq(types.NewEntityUID("Action", "delete"))
-	err := Policy(s, p)
-	if err == nil {
-		t.Fatal("expected error for unknown action in scope")
-	}
-}
-
-func TestPolicyRBACInvalidActionApplication(t *testing.T) {
-	t.Parallel()
-	s := testSchema()
-	p := ast.Permit()
-	p.PrincipalIs("Group")
-	p.ActionEq(types.NewEntityUID("Action", "view"))
-	err := Policy(s, p)
-	if err == nil {
-		t.Fatal("expected error for invalid action application")
-	}
-}
-
-func TestPolicyValidSimple(t *testing.T) {
-	t.Parallel()
-	s := testSchema()
-	p := ast.Permit()
-	p.PrincipalIs("User")
-	p.ActionEq(types.NewEntityUID("Action", "view"))
-	p.ResourceIs("Document")
-	if err := Policy(s, p); err != nil {
-		t.Fatalf("expected valid policy, got error: %v", err)
-	}
-}
-
-// --- Expression type checking tests ---
 
 func TestTypeCheckVariables(t *testing.T) {
 	t.Parallel()
@@ -447,32 +428,19 @@ func TestTypeCheckVariables(t *testing.T) {
 
 	// principal → typeEntity{User}
 	ty, _, err := typeOfExpr(env, s, ast.NodeTypeVariable{Name: "principal"}, caps)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if et, ok := ty.(typeEntity); !ok || len(et.lub.elements) != 1 || et.lub.elements[0] != "User" {
-		t.Fatalf("expected typeEntity{User}, got %T", ty)
-	}
+	testutil.OK(t, err)
+	testutil.Equals[cedarType](t, ty, typeEntity{lub: singleEntityLUB("User")})
 
 	// context → typeRecord
 	ty, _, err = typeOfExpr(env, s, ast.NodeTypeVariable{Name: "context"}, caps)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if _, ok := ty.(typeRecord); !ok {
-		t.Fatalf("expected typeRecord, got %T", ty)
-	}
+	testutil.OK(t, err)
+	testutil.Equals[cedarType](t, ty, env.contextType)
 }
 
 func TestTypeCheckArithmetic(t *testing.T) {
 	t.Parallel()
 	s := testSchema()
-	env := &requestEnv{
-		principalType: "User",
-		actionUID:     types.NewEntityUID("Action", "view"),
-		resourceType:  "Document",
-		contextType:   schemaRecordToCedarType(resolved.RecordType{}),
-	}
+	env := testEnv()
 	caps := newCapabilitySet()
 
 	// 1 + 2 → typeLong
@@ -481,12 +449,8 @@ func TestTypeCheckArithmetic(t *testing.T) {
 		Right: ast.NodeValue{Value: types.Long(2)},
 	}}
 	ty, _, err := typeOfExpr(env, s, expr, caps)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if _, ok := ty.(typeLong); !ok {
-		t.Fatalf("expected typeLong, got %T", ty)
-	}
+	testutil.OK(t, err)
+	testutil.Equals[cedarType](t, ty, typeLong{})
 
 	// 1 + "two" → error
 	badExpr := ast.NodeTypeAdd{BinaryNode: ast.BinaryNode{
@@ -494,20 +458,13 @@ func TestTypeCheckArithmetic(t *testing.T) {
 		Right: ast.NodeValue{Value: types.String("two")},
 	}}
 	_, _, err = typeOfExpr(env, s, badExpr, caps)
-	if err == nil {
-		t.Fatal("expected error for Long + String")
-	}
+	testutil.Error(t, err)
 }
 
 func TestTypeCheckLogical(t *testing.T) {
 	t.Parallel()
 	s := testSchema()
-	env := &requestEnv{
-		principalType: "User",
-		actionUID:     types.NewEntityUID("Action", "view"),
-		resourceType:  "Document",
-		contextType:   schemaRecordToCedarType(resolved.RecordType{}),
-	}
+	env := testEnv()
 	caps := newCapabilitySet()
 
 	// true && false → typeBool
@@ -516,12 +473,8 @@ func TestTypeCheckLogical(t *testing.T) {
 		Right: ast.NodeValue{Value: types.Boolean(false)},
 	}}
 	ty, _, err := typeOfExpr(env, s, expr, caps)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if !isBoolType(ty) {
-		t.Fatalf("expected bool type, got %T", ty)
-	}
+	testutil.OK(t, err)
+	testutil.Equals(t, isBoolType(ty), true)
 
 	// true && 42 → error
 	badExpr := ast.NodeTypeAnd{BinaryNode: ast.BinaryNode{
@@ -529,20 +482,13 @@ func TestTypeCheckLogical(t *testing.T) {
 		Right: ast.NodeValue{Value: types.Long(42)},
 	}}
 	_, _, err = typeOfExpr(env, s, badExpr, caps)
-	if err == nil {
-		t.Fatal("expected error for true && Long")
-	}
+	testutil.Error(t, err)
 }
 
 func TestTypeCheckAttributeAccess(t *testing.T) {
 	t.Parallel()
 	s := testSchema()
-	env := &requestEnv{
-		principalType: "User",
-		actionUID:     types.NewEntityUID("Action", "view"),
-		resourceType:  "Document",
-		contextType:   schemaRecordToCedarType(resolved.RecordType{}),
-	}
+	env := testEnv()
 	caps := newCapabilitySet()
 
 	// principal.name → typeString (required attr)
@@ -551,12 +497,8 @@ func TestTypeCheckAttributeAccess(t *testing.T) {
 		Value: "name",
 	}}
 	ty, _, err := typeOfExpr(env, s, expr, caps)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if _, ok := ty.(typeString); !ok {
-		t.Fatalf("expected typeString, got %T", ty)
-	}
+	testutil.OK(t, err)
+	testutil.Equals[cedarType](t, ty, typeString{})
 
 	// principal.age → error (optional attr without has guard)
 	optExpr := ast.NodeTypeAccess{StrOpNode: ast.StrOpNode{
@@ -564,20 +506,13 @@ func TestTypeCheckAttributeAccess(t *testing.T) {
 		Value: "age",
 	}}
 	_, _, err = typeOfExpr(env, s, optExpr, caps)
-	if err == nil {
-		t.Fatal("expected error for accessing optional attr without has guard")
-	}
+	testutil.Error(t, err)
 }
 
 func TestTypeCheckHasGuard(t *testing.T) {
 	t.Parallel()
 	s := testSchema()
-	env := &requestEnv{
-		principalType: "User",
-		actionUID:     types.NewEntityUID("Action", "view"),
-		resourceType:  "Document",
-		contextType:   schemaRecordToCedarType(resolved.RecordType{}),
-	}
+	env := testEnv()
 	caps := newCapabilitySet()
 
 	// principal has age && principal.age > 18
@@ -587,9 +522,7 @@ func TestTypeCheckHasGuard(t *testing.T) {
 	}}
 
 	_, hasCaps, err := typeOfExpr(env, s, hasExpr, caps)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	testutil.OK(t, err)
 
 	// Now with hasCaps, principal.age should work
 	accessExpr := ast.NodeTypeAccess{StrOpNode: ast.StrOpNode{
@@ -597,23 +530,14 @@ func TestTypeCheckHasGuard(t *testing.T) {
 		Value: "age",
 	}}
 	ty, _, err := typeOfExpr(env, s, accessExpr, hasCaps)
-	if err != nil {
-		t.Fatalf("expected access to succeed after has guard, got error: %v", err)
-	}
-	if _, ok := ty.(typeLong); !ok {
-		t.Fatalf("expected typeLong, got %T", ty)
-	}
+	testutil.OK(t, err)
+	testutil.Equals[cedarType](t, ty, typeLong{})
 }
 
 func TestTypeCheckExtensionFunction(t *testing.T) {
 	t.Parallel()
 	s := testSchema()
-	env := &requestEnv{
-		principalType: "User",
-		actionUID:     types.NewEntityUID("Action", "view"),
-		resourceType:  "Document",
-		contextType:   schemaRecordToCedarType(resolved.RecordType{}),
-	}
+	env := testEnv()
 	caps := newCapabilitySet()
 
 	// ip("127.0.0.1") → typeExtension{ipaddr}
@@ -622,12 +546,8 @@ func TestTypeCheckExtensionFunction(t *testing.T) {
 		Args: []ast.IsNode{ast.NodeValue{Value: types.String("127.0.0.1")}},
 	}
 	ty, _, err := typeOfExpr(env, s, expr, caps)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if ext, ok := ty.(typeExtension); !ok || ext.name != "ipaddr" {
-		t.Fatalf("expected typeExtension{ipaddr}, got %T", ty)
-	}
+	testutil.OK(t, err)
+	testutil.Equals[cedarType](t, ty, typeExtension{name: "ipaddr"})
 
 	// ip("127.0.0.1").isLoopback() → typeBool
 	expr2 := ast.NodeTypeExtensionCall{
@@ -640,23 +560,14 @@ func TestTypeCheckExtensionFunction(t *testing.T) {
 		},
 	}
 	ty, _, err = typeOfExpr(env, s, expr2, caps)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if !isBoolType(ty) {
-		t.Fatalf("expected bool type, got %T", ty)
-	}
+	testutil.OK(t, err)
+	testutil.Equals(t, isBoolType(ty), true)
 }
 
 func TestTypeCheckIfThenElse(t *testing.T) {
 	t.Parallel()
 	s := testSchema()
-	env := &requestEnv{
-		principalType: "User",
-		actionUID:     types.NewEntityUID("Action", "view"),
-		resourceType:  "Document",
-		contextType:   schemaRecordToCedarType(resolved.RecordType{}),
-	}
+	env := testEnv()
 	caps := newCapabilitySet()
 
 	// if true then 1 else 2 → typeLong
@@ -666,23 +577,14 @@ func TestTypeCheckIfThenElse(t *testing.T) {
 		Else: ast.NodeValue{Value: types.Long(2)},
 	}
 	ty, _, err := typeOfExpr(env, s, expr, caps)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if _, ok := ty.(typeLong); !ok {
-		t.Fatalf("expected typeLong, got %T", ty)
-	}
+	testutil.OK(t, err)
+	testutil.Equals[cedarType](t, ty, typeLong{})
 }
 
 func TestTypeCheckSetRecord(t *testing.T) {
 	t.Parallel()
 	s := testSchema()
-	env := &requestEnv{
-		principalType: "User",
-		actionUID:     types.NewEntityUID("Action", "view"),
-		resourceType:  "Document",
-		contextType:   schemaRecordToCedarType(resolved.RecordType{}),
-	}
+	env := testEnv()
 	caps := newCapabilitySet()
 
 	// [1, 2, 3] → typeSet{Long}
@@ -694,14 +596,8 @@ func TestTypeCheckSetRecord(t *testing.T) {
 		},
 	}
 	ty, _, err := typeOfExpr(env, s, setExpr, caps)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if st, ok := ty.(typeSet); !ok {
-		t.Fatalf("expected typeSet, got %T", ty)
-	} else if _, ok := st.element.(typeLong); !ok {
-		t.Fatalf("expected set element type Long, got %T", st.element)
-	}
+	testutil.OK(t, err)
+	testutil.Equals[cedarType](t, ty, typeSet{element: typeLong{}})
 
 	// {"a": 1, "b": "hello"} → typeRecord
 	recExpr := ast.NodeTypeRecord{
@@ -711,29 +607,19 @@ func TestTypeCheckSetRecord(t *testing.T) {
 		},
 	}
 	ty, _, err = typeOfExpr(env, s, recExpr, caps)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if rec, ok := ty.(typeRecord); !ok {
-		t.Fatalf("expected typeRecord, got %T", ty)
-	} else {
-		if a, ok := rec.attrs["a"]; !ok {
-			t.Fatal("expected attr 'a'")
-		} else if _, ok := a.typ.(typeLong); !ok {
-			t.Fatalf("expected attr 'a' to be Long, got %T", a.typ)
-		}
-	}
+	testutil.OK(t, err)
+	testutil.Equals[cedarType](t, ty, typeRecord{
+		attrs: map[types.String]attributeType{
+			"a": {typ: typeLong{}, required: true},
+			"b": {typ: typeString{}, required: true},
+		},
+	})
 }
 
 func TestTypeCheckUnsafeAccess(t *testing.T) {
 	t.Parallel()
 	s := testSchema()
-	env := &requestEnv{
-		principalType: "User",
-		actionUID:     types.NewEntityUID("Action", "view"),
-		resourceType:  "Document",
-		contextType:   schemaRecordToCedarType(resolved.RecordType{}),
-	}
+	env := testEnv()
 	caps := newCapabilitySet()
 
 	// principal.nonexistent → error
@@ -742,12 +628,8 @@ func TestTypeCheckUnsafeAccess(t *testing.T) {
 		Value: "nonexistent",
 	}}
 	_, _, err := typeOfExpr(env, s, expr, caps)
-	if err == nil {
-		t.Fatal("expected error for accessing nonexistent attribute")
-	}
+	testutil.Error(t, err)
 }
-
-// --- Subtype and LUB tests ---
 
 func TestIsSubtype(t *testing.T) {
 	t.Parallel()
@@ -773,10 +655,7 @@ func TestIsSubtype(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got := isSubtype(tt.a, tt.b)
-			if got != tt.want {
-				t.Fatalf("isSubtype(%T, %T) = %v, want %v", tt.a, tt.b, got, tt.want)
-			}
+			testutil.Equals(t, isSubtype(tt.a, tt.b), tt.want)
 		})
 	}
 }
@@ -784,27 +663,227 @@ func TestIsSubtype(t *testing.T) {
 func TestLeastUpperBound(t *testing.T) {
 	t.Parallel()
 
-	// True | False → Bool
-	ty, err := leastUpperBound(typeTrue{}, typeFalse{})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if _, ok := ty.(typeBool); !ok {
-		t.Fatalf("expected typeBool, got %T", ty)
-	}
-
-	// Long | Long → Long
-	ty, err = leastUpperBound(typeLong{}, typeLong{})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if _, ok := ty.(typeLong); !ok {
-		t.Fatalf("expected typeLong, got %T", ty)
+	tests := []struct {
+		name    string
+		a, b    cedarType
+		want    cedarType
+		wantErr bool
+	}{
+		{"True|False=Bool", typeTrue{}, typeFalse{}, typeBool{}, false},
+		{"Long|Long=Long", typeLong{}, typeLong{}, typeLong{}, false},
+		{"Long|String=error", typeLong{}, typeString{}, nil, true},
 	}
 
-	// Long | String → error
-	_, err = leastUpperBound(typeLong{}, typeString{})
-	if err == nil {
-		t.Fatal("expected error for incompatible types")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := leastUpperBound(tt.a, tt.b)
+			if tt.wantErr {
+				testutil.Error(t, err)
+			} else {
+				testutil.OK(t, err)
+				testutil.Equals(t, got, tt.want)
+			}
+		})
 	}
+}
+
+func TestTypeCheckStrict(t *testing.T) {
+	t.Parallel()
+	s := testSchemaWithPhoto()
+	env := testEnv()
+
+	tests := []struct {
+		name    string
+		expr    ast.IsNode
+		wantErr bool
+	}{
+		{
+			name: "equalityEntityVsString",
+			expr: ast.NodeTypeEquals{BinaryNode: ast.BinaryNode{
+				Left:  ast.NodeTypeVariable{Name: "principal"},
+				Right: ast.NodeValue{Value: types.String("foo")},
+			}},
+			wantErr: true,
+		},
+		{
+			name: "containsLongSetStringArg",
+			expr: ast.NodeTypeContains{BinaryNode: ast.BinaryNode{
+				Left:  ast.NodeTypeSet{Elements: []ast.IsNode{ast.NodeValue{Value: types.Long(1)}}},
+				Right: ast.NodeValue{Value: types.String("test")},
+			}},
+			wantErr: true,
+		},
+		{
+			name: "setDisjointEntityTypes",
+			expr: ast.NodeTypeSet{Elements: []ast.IsNode{
+				ast.NodeValue{Value: types.NewEntityUID("User", "a")},
+				ast.NodeValue{Value: types.NewEntityUID("Photo", "b")},
+			}},
+			wantErr: true,
+		},
+		{
+			name: "emptySetContains",
+			expr: ast.NodeTypeContains{BinaryNode: ast.BinaryNode{
+				Left:  ast.NodeTypeSet{Elements: []ast.IsNode{}},
+				Right: ast.NodeValue{Value: types.Long(1)},
+			}},
+			wantErr: true,
+		},
+		{
+			name: "ifIncompatibleEntities",
+			expr: ast.NodeTypeIfThenElse{
+				If: ast.NodeTypeEquals{BinaryNode: ast.BinaryNode{
+					Left:  ast.NodeValue{Value: types.Long(1)},
+					Right: ast.NodeValue{Value: types.Long(1)},
+				}},
+				Then: ast.NodeValue{Value: types.NewEntityUID("User", "a")},
+				Else: ast.NodeValue{Value: types.NewEntityUID("Photo", "b")},
+			},
+			wantErr: true,
+		},
+		{
+			name: "andFalseShortCircuit",
+			expr: ast.NodeTypeAnd{BinaryNode: ast.BinaryNode{
+				Left:  ast.NodeValue{Value: types.Boolean(false)},
+				Right: ast.NodeValue{Value: types.NewEntityUID("Action", "view")},
+			}},
+			wantErr: false,
+		},
+		{
+			name: "andNonBoolRhs",
+			expr: ast.NodeTypeAnd{BinaryNode: ast.BinaryNode{
+				Left:  ast.NodeValue{Value: types.Boolean(true)},
+				Right: ast.NodeValue{Value: types.NewEntityUID("User", "a")},
+			}},
+			wantErr: true,
+		},
+		{
+			name: "entityInUnrelated",
+			expr: ast.NodeTypeIn{BinaryNode: ast.BinaryNode{
+				Left:  ast.NodeValue{Value: types.NewEntityUID("User", "a")},
+				Right: ast.NodeValue{Value: types.NewEntityUID("Photo", "b")},
+			}},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			caps := newCapabilitySet()
+			_, _, err := typeOfExpr(env, s, tt.expr, caps)
+			if tt.wantErr {
+				testutil.Error(t, err)
+			} else {
+				testutil.OK(t, err)
+			}
+		})
+	}
+}
+
+func TestHasResultType(t *testing.T) {
+	t.Parallel()
+	s := testSchema()
+
+	tests := []struct {
+		name   string
+		target cedarType
+		attr   types.String
+		want   cedarType
+	}{
+		{
+			name: "recordRequired",
+			target: typeRecord{attrs: map[types.String]attributeType{
+				"name": {typ: typeString{}, required: true},
+			}},
+			attr: "name",
+			want: typeTrue{},
+		},
+		{
+			name: "recordOptional",
+			target: typeRecord{attrs: map[types.String]attributeType{
+				"age": {typ: typeLong{}, required: false},
+			}},
+			attr: "age",
+			want: typeBool{},
+		},
+		{
+			name: "recordMissing",
+			target: typeRecord{attrs: map[types.String]attributeType{
+				"name": {typ: typeString{}, required: true},
+			}},
+			attr: "x",
+			want: typeFalse{},
+		},
+		{
+			name:   "entityRequired",
+			target: typeEntity{lub: singleEntityLUB("User")},
+			attr:   "name",
+			want:   typeBool{},
+		},
+		{
+			name:   "entityMissing",
+			target: typeEntity{lub: singleEntityLUB("User")},
+			attr:   "x",
+			want:   typeFalse{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			testutil.Equals(t, hasResultType(s, tt.target, tt.attr), tt.want)
+		})
+	}
+}
+
+func TestTypeCheckIs(t *testing.T) {
+	t.Parallel()
+	s := testSchemaWithPhoto()
+	env := testEnv()
+	caps := newCapabilitySet()
+
+	tests := []struct {
+		name string
+		expr ast.IsNode
+		want cedarType
+	}{
+		{
+			name: "principalIsUser",
+			expr: ast.NodeTypeIs{
+				Left:       ast.NodeTypeVariable{Name: "principal"},
+				EntityType: "User",
+			},
+			want: typeBool{},
+		},
+		{
+			name: "principalIsPhoto",
+			expr: ast.NodeTypeIs{
+				Left:       ast.NodeTypeVariable{Name: "principal"},
+				EntityType: "Photo",
+			},
+			want: typeFalse{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			ty, _, err := typeOfExpr(env, s, tt.expr, caps)
+			testutil.OK(t, err)
+			testutil.Equals(t, ty, tt.want)
+		})
+	}
+}
+
+func TestPolicyScopeIsInInvalid(t *testing.T) {
+	t.Parallel()
+	s := testSchemaWithPhoto()
+
+	// principal is Photo in Group::"admins" — Photo can never be "in" Group
+	p := ast.Permit()
+	p.PrincipalIsIn("Photo", types.NewEntityUID("Group", "admins"))
+	p.ActionEq(types.NewEntityUID("Action", "view"))
+	testutil.Error(t, Policy(s, p))
 }

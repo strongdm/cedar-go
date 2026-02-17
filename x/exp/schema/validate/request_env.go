@@ -87,13 +87,15 @@ func matchesActionConstraint(s *resolved.Schema, actionUID types.EntityUID, cons
 
 // isActionInGroup checks if actionUID is a descendant of groupUID in the action hierarchy.
 func isActionInGroup(s *resolved.Schema, actionUID, groupUID types.EntityUID) bool {
-	action, ok := s.Actions[groupUID]
+	action, ok := s.Actions[actionUID]
 	if !ok {
 		return false
 	}
-	// Check direct membership
 	for parent := range action.Entity.Parents.All() {
-		if parent == actionUID {
+		if parent == groupUID {
+			return true
+		}
+		if isActionInGroup(s, parent, groupUID) {
 			return true
 		}
 	}
