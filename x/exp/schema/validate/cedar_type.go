@@ -269,7 +269,7 @@ func unionLUB(a, b entityLUB) entityLUB {
 	return entityLUB{elements: combined}
 }
 
-// schemaTypeTocedarType converts a resolved schema type to a cedarType.
+// schemaTypeToCedarType converts a resolved schema type to a cedarType.
 func schemaTypeToCedarType(t resolved.IsType) cedarType {
 	switch t := t.(type) {
 	case resolved.StringType:

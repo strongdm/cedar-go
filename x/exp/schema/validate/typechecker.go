@@ -322,6 +322,9 @@ func typeOfIfThenElse(env *requestEnv, s *resolved.Schema, n ast.NodeTypeIfThenE
 		return nil, caps, err
 	}
 
+	if err := checkStrictEntityLUB(s, thenType, elseType); err != nil {
+		return nil, caps, fmt.Errorf("if-then-else branches have incompatible entity types")
+	}
 	result, err := leastUpperBound(thenType, elseType)
 	if err != nil {
 		return nil, caps, fmt.Errorf("if-then-else branches have incompatible types")
@@ -776,8 +779,6 @@ func typeOfExtensionCall(env *requestEnv, s *resolved.Schema, n ast.NodeTypeExte
 	return sig.returnType, caps, nil
 }
 
-// Helper functions
-
 func isBoolType(t cedarType) bool {
 	switch t.(type) {
 	case typeBool, typeTrue, typeFalse:
@@ -828,9 +829,8 @@ func exprVarName(n ast.IsNode) types.String {
 }
 
 // validateEntityRefs walks an AST subtree and validates that all entity UID
-// references point to types that exist in the schema, AND checks for entity
-// values used as boolean conditions. This runs on dead code branches to catch
-// issues even when full type checking is skipped.
+// references point to types that exist in the schema. This runs on dead code
+// branches to catch issues even when full type checking is skipped.
 func validateEntityRefs(s *resolved.Schema, n ast.IsNode) error {
 	switch v := n.(type) {
 	case ast.NodeValue:
@@ -848,6 +848,8 @@ func validateEntityRefs(s *resolved.Schema, n ast.IsNode) error {
 				}
 			}
 		}
+	case ast.NodeTypeVariable:
+		// no entity refs to validate
 	case ast.NodeTypeIfThenElse:
 		if err := validateEntityRefs(s, v.If); err != nil {
 			return err
@@ -874,99 +876,40 @@ func validateEntityRefs(s *resolved.Schema, n ast.IsNode) error {
 				return err
 			}
 		}
-	default:
-		return validateEntityRefsBinary(s, n)
-	}
-	return nil
-}
-
-func validateEntityRefsBinary(s *resolved.Schema, n ast.IsNode) error {
-	switch v := n.(type) {
 	case ast.NodeTypeAnd:
-		if err := validateEntityRefs(s, v.Left); err != nil {
-			return err
-		}
-		return validateEntityRefs(s, v.Right)
+		return validateEntityRefsPair(s, v.Left, v.Right)
 	case ast.NodeTypeOr:
-		if err := validateEntityRefs(s, v.Left); err != nil {
-			return err
-		}
-		return validateEntityRefs(s, v.Right)
+		return validateEntityRefsPair(s, v.Left, v.Right)
 	case ast.NodeTypeEquals:
-		if err := validateEntityRefs(s, v.Left); err != nil {
-			return err
-		}
-		return validateEntityRefs(s, v.Right)
+		return validateEntityRefsPair(s, v.Left, v.Right)
 	case ast.NodeTypeNotEquals:
-		if err := validateEntityRefs(s, v.Left); err != nil {
-			return err
-		}
-		return validateEntityRefs(s, v.Right)
+		return validateEntityRefsPair(s, v.Left, v.Right)
 	case ast.NodeTypeLessThan:
-		if err := validateEntityRefs(s, v.Left); err != nil {
-			return err
-		}
-		return validateEntityRefs(s, v.Right)
+		return validateEntityRefsPair(s, v.Left, v.Right)
 	case ast.NodeTypeLessThanOrEqual:
-		if err := validateEntityRefs(s, v.Left); err != nil {
-			return err
-		}
-		return validateEntityRefs(s, v.Right)
+		return validateEntityRefsPair(s, v.Left, v.Right)
 	case ast.NodeTypeGreaterThan:
-		if err := validateEntityRefs(s, v.Left); err != nil {
-			return err
-		}
-		return validateEntityRefs(s, v.Right)
+		return validateEntityRefsPair(s, v.Left, v.Right)
 	case ast.NodeTypeGreaterThanOrEqual:
-		if err := validateEntityRefs(s, v.Left); err != nil {
-			return err
-		}
-		return validateEntityRefs(s, v.Right)
+		return validateEntityRefsPair(s, v.Left, v.Right)
 	case ast.NodeTypeAdd:
-		if err := validateEntityRefs(s, v.Left); err != nil {
-			return err
-		}
-		return validateEntityRefs(s, v.Right)
+		return validateEntityRefsPair(s, v.Left, v.Right)
 	case ast.NodeTypeSub:
-		if err := validateEntityRefs(s, v.Left); err != nil {
-			return err
-		}
-		return validateEntityRefs(s, v.Right)
+		return validateEntityRefsPair(s, v.Left, v.Right)
 	case ast.NodeTypeMult:
-		if err := validateEntityRefs(s, v.Left); err != nil {
-			return err
-		}
-		return validateEntityRefs(s, v.Right)
+		return validateEntityRefsPair(s, v.Left, v.Right)
 	case ast.NodeTypeIn:
-		if err := validateEntityRefs(s, v.Left); err != nil {
-			return err
-		}
-		return validateEntityRefs(s, v.Right)
+		return validateEntityRefsPair(s, v.Left, v.Right)
 	case ast.NodeTypeContains:
-		if err := validateEntityRefs(s, v.Left); err != nil {
-			return err
-		}
-		return validateEntityRefs(s, v.Right)
+		return validateEntityRefsPair(s, v.Left, v.Right)
 	case ast.NodeTypeContainsAll:
-		if err := validateEntityRefs(s, v.Left); err != nil {
-			return err
-		}
-		return validateEntityRefs(s, v.Right)
+		return validateEntityRefsPair(s, v.Left, v.Right)
 	case ast.NodeTypeContainsAny:
-		if err := validateEntityRefs(s, v.Left); err != nil {
-			return err
-		}
-		return validateEntityRefs(s, v.Right)
+		return validateEntityRefsPair(s, v.Left, v.Right)
 	case ast.NodeTypeHasTag:
-		if err := validateEntityRefs(s, v.Left); err != nil {
-			return err
-		}
-		return validateEntityRefs(s, v.Right)
+		return validateEntityRefsPair(s, v.Left, v.Right)
 	case ast.NodeTypeGetTag:
-		if err := validateEntityRefs(s, v.Left); err != nil {
-			return err
-		}
-		return validateEntityRefs(s, v.Right)
+		return validateEntityRefsPair(s, v.Left, v.Right)
 	case ast.NodeTypeNegate:
 		return validateEntityRefs(s, v.Arg)
 	case ast.NodeTypeNot:
@@ -982,12 +925,16 @@ func validateEntityRefsBinary(s *resolved.Schema, n ast.IsNode) error {
 	case ast.NodeTypeIs:
 		return validateEntityRefs(s, v.Left)
 	case ast.NodeTypeIsIn:
-		if err := validateEntityRefs(s, v.Left); err != nil {
-			return err
-		}
-		return validateEntityRefs(s, v.Entity)
+		return validateEntityRefsPair(s, v.Left, v.Entity)
 	}
 	return nil
+}
+
+func validateEntityRefsPair(s *resolved.Schema, a, b ast.IsNode) error {
+	if err := validateEntityRefs(s, a); err != nil {
+		return err
+	}
+	return validateEntityRefs(s, b)
 }
 
 // tagCapabilityKey extracts a string key from a tag expression for capability tracking.

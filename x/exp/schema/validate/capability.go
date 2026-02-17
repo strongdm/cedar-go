@@ -39,14 +39,3 @@ func (cs capabilitySet) merge(other capabilitySet) capabilitySet {
 	maps.Copy(out, other)
 	return out
 }
-
-// intersect returns capabilities present in both sets.
-func (cs capabilitySet) intersect(other capabilitySet) capabilitySet {
-	out := make(capabilitySet)
-	for k := range cs {
-		if other[k] {
-			out[k] = true
-		}
-	}
-	return out
-}
