@@ -15,8 +15,10 @@ import (
 	"github.com/cedar-policy/cedar-go"
 	"github.com/cedar-policy/cedar-go/internal/testutil"
 	"github.com/cedar-policy/cedar-go/types"
+	"github.com/cedar-policy/cedar-go/x/exp/ast"
 	"github.com/cedar-policy/cedar-go/x/exp/batch"
 	"github.com/cedar-policy/cedar-go/x/exp/schema"
+	"github.com/cedar-policy/cedar-go/x/exp/schema/validate"
 )
 
 // jsonEntity is not part of entityValue as I can find
@@ -241,6 +243,38 @@ func TestCorpus(t *testing.T) {
 			if err != nil {
 				t.Fatal("error parsing policy set", err)
 			}
+
+			t.Run("schema-validation", func(t *testing.T) {
+				t.Parallel()
+				rs, err := s.Resolve()
+				testutil.OK(t, err)
+
+				// Validate entities (for coverage, but not part of shouldValidate)
+				_ = validate.Entities(rs, entities)
+
+				// Validate each request (for coverage, but not part of shouldValidate)
+				for _, request := range tt.Requests {
+					req := cedar.Request{
+						Principal: cedar.EntityUID(request.Principal),
+						Action:    cedar.EntityUID(request.Action),
+						Resource:  cedar.EntityUID(request.Resource),
+						Context:   request.Context,
+					}
+					_ = validate.Request(rs, req)
+				}
+
+				// Validate each policy
+				var policyErrs []error
+				for _, p := range policySet.All() {
+					if err := validate.Policy(rs, (*ast.Policy)(p.AST())); err != nil {
+						policyErrs = append(policyErrs, err)
+					}
+				}
+
+				// Only policy validation errors determine shouldValidate (matching Rust behavior)
+				allValid := len(policyErrs) == 0
+				testutil.Equals(t, allValid, tt.ShouldValidate)
+			})
 
 			for _, request := range tt.Requests {
 				if len(request.Reasons) == 0 && request.Reasons != nil {
