@@ -10,6 +10,8 @@ import (
 )
 
 // cedarType is the sum type representing Cedar types for the type checker.
+//
+//sumtype:decl
 type cedarType interface {
 	isCedarType()
 }
@@ -29,17 +31,17 @@ type typeEntity struct{ lub entityLUB }                        // Entity with LU
 type typeAnyEntity struct{}                                    // Unknown entity type
 type typeExtension struct{ name types.Ident }                  // Extension type (ipaddr, decimal, etc.)
 
-func (typeNever) isCedarType()     {}
-func (typeTrue) isCedarType()      {}
-func (typeFalse) isCedarType()     {}
-func (typeBool) isCedarType()      {}
-func (typeLong) isCedarType()      {}
-func (typeString) isCedarType()    {}
-func (typeSet) isCedarType()       {}
-func (typeRecord) isCedarType()    {}
-func (typeEntity) isCedarType()    {}
-func (typeAnyEntity) isCedarType() {}
-func (typeExtension) isCedarType() {}
+func (typeNever) isCedarType()     { _ = 0 }
+func (typeTrue) isCedarType()      { _ = 0 }
+func (typeFalse) isCedarType()     { _ = 0 }
+func (typeBool) isCedarType()      { _ = 0 }
+func (typeLong) isCedarType()      { _ = 0 }
+func (typeString) isCedarType()    { _ = 0 }
+func (typeSet) isCedarType()       { _ = 0 }
+func (typeRecord) isCedarType()    { _ = 0 }
+func (typeEntity) isCedarType()    { _ = 0 }
+func (typeAnyEntity) isCedarType() { _ = 0 }
+func (typeExtension) isCedarType() { _ = 0 }
 
 type attributeType struct {
 	typ      cedarType

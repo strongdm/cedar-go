@@ -521,10 +521,13 @@ func typeOfIs(env *requestEnv, s *resolved.Schema, n ast.NodeTypeIs, caps capabi
 		return nil, caps, fmt.Errorf("operand of is must be entity, got %T", t)
 	}
 
-	// If the entity LUB is known and doesn't include the tested type, always false
+	// If the entity LUB is known, check if the `is` result is statically known
 	if et, ok := t.(typeEntity); ok {
 		if !slices.Contains(et.lub.elements, n.EntityType) {
 			return typeFalse{}, caps, nil
+		}
+		if len(et.lub.elements) == 1 && et.lub.elements[0] == n.EntityType {
+			return typeTrue{}, caps, nil
 		}
 	}
 
@@ -715,28 +718,25 @@ func typeOfGetTag(env *requestEnv, s *resolved.Schema, n ast.NodeTypeGetTag, cap
 	if err != nil {
 		return nil, caps, err
 	}
-	if !isEntityType(lt) {
+	et, ok := lt.(typeEntity)
+	if !ok {
 		return nil, caps, fmt.Errorf("operand of getTag must be entity, got %T", lt)
 	}
 
-	if et, ok := lt.(typeEntity); ok {
-		if !entityHasTags(s, et.lub) {
-			return nil, caps, fmt.Errorf("entity type does not support tags")
-		}
-
-		varName := exprVarName(n.Left)
-		tagKey := tagCapabilityKey(n.Right)
-		if varName != "" && tagKey != "" {
-			if !caps.has(capability{varName: varName, attr: types.String("__tag:" + tagKey)}) {
-				return nil, caps, fmt.Errorf("tag access requires prior hasTag check")
-			}
-		}
-
-		tagType := entityTagType(s, et.lub)
-		return tagType, caps, nil
+	if !entityHasTags(s, et.lub) {
+		return nil, caps, fmt.Errorf("entity type does not support tags")
 	}
 
-	return typeNever{}, caps, nil
+	varName := exprVarName(n.Left)
+	tagKey := tagCapabilityKey(n.Right)
+	if varName != "" && tagKey != "" {
+		if !caps.has(capability{varName: varName, attr: types.String("__tag:" + tagKey)}) {
+			return nil, caps, fmt.Errorf("tag access requires prior hasTag check")
+		}
+	}
+
+	tagType := entityTagType(s, et.lub)
+	return tagType, caps, nil
 }
 
 func typeOfRecord(env *requestEnv, s *resolved.Schema, n ast.NodeTypeRecord, caps capabilitySet) (cedarType, capabilitySet, error) {
