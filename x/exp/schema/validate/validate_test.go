@@ -877,6 +877,163 @@ func TestTypeCheckIs(t *testing.T) {
 	}
 }
 
+func TestOrCapabilityPropagation(t *testing.T) {
+	t.Parallel()
+	s := testSchema()
+	env := testEnv()
+	caps := newCapabilitySet()
+
+	// (principal has age || principal has age) && principal.age > 18
+	// Intersection of matching caps should preserve the capability.
+	orExpr := ast.NodeTypeOr{BinaryNode: ast.BinaryNode{
+		Left: ast.NodeTypeHas{StrOpNode: ast.StrOpNode{
+			Arg:   ast.NodeTypeVariable{Name: "principal"},
+			Value: "age",
+		}},
+		Right: ast.NodeTypeHas{StrOpNode: ast.StrOpNode{
+			Arg:   ast.NodeTypeVariable{Name: "principal"},
+			Value: "age",
+		}},
+	}}
+	expr := ast.NodeTypeAnd{BinaryNode: ast.BinaryNode{
+		Left: orExpr,
+		Right: ast.NodeTypeGreaterThan{BinaryNode: ast.BinaryNode{
+			Left: ast.NodeTypeAccess{StrOpNode: ast.StrOpNode{
+				Arg:   ast.NodeTypeVariable{Name: "principal"},
+				Value: "age",
+			}},
+			Right: ast.NodeValue{Value: types.Long(18)},
+		}},
+	}}
+	_, _, err := typeOfExpr(env, s, expr, caps)
+	testutil.OK(t, err)
+
+	// (principal has age || principal has name) && principal.age > 18
+	// Intersection of mismatched caps should be empty → access fails.
+	orMismatch := ast.NodeTypeOr{BinaryNode: ast.BinaryNode{
+		Left: ast.NodeTypeHas{StrOpNode: ast.StrOpNode{
+			Arg:   ast.NodeTypeVariable{Name: "principal"},
+			Value: "age",
+		}},
+		Right: ast.NodeTypeHas{StrOpNode: ast.StrOpNode{
+			Arg:   ast.NodeTypeVariable{Name: "principal"},
+			Value: "name",
+		}},
+	}}
+	exprMismatch := ast.NodeTypeAnd{BinaryNode: ast.BinaryNode{
+		Left: orMismatch,
+		Right: ast.NodeTypeGreaterThan{BinaryNode: ast.BinaryNode{
+			Left: ast.NodeTypeAccess{StrOpNode: ast.StrOpNode{
+				Arg:   ast.NodeTypeVariable{Name: "principal"},
+				Value: "age",
+			}},
+			Right: ast.NodeValue{Value: types.Long(18)},
+		}},
+	}}
+	_, _, err = typeOfExpr(env, s, exprMismatch, caps)
+	testutil.Error(t, err)
+}
+
+func TestIfElseNoTestCapsInElse(t *testing.T) {
+	t.Parallel()
+	s := testSchema()
+	env := testEnv()
+	caps := newCapabilitySet()
+
+	// if principal has name then false else principal.name == "foo"
+	// Else branch should NOT get test capabilities → access to name fails.
+	expr := ast.NodeTypeIfThenElse{
+		If: ast.NodeTypeHas{StrOpNode: ast.StrOpNode{
+			Arg:   ast.NodeTypeVariable{Name: "principal"},
+			Value: "age",
+		}},
+		Then: ast.NodeValue{Value: types.Boolean(false)},
+		Else: ast.NodeTypeGreaterThan{BinaryNode: ast.BinaryNode{
+			Left: ast.NodeTypeAccess{StrOpNode: ast.StrOpNode{
+				Arg:   ast.NodeTypeVariable{Name: "principal"},
+				Value: "age",
+			}},
+			Right: ast.NodeValue{Value: types.Long(0)},
+		}},
+	}
+	_, _, err := typeOfExpr(env, s, expr, caps)
+	testutil.Error(t, err)
+}
+
+func TestIfElseWithPriorCap(t *testing.T) {
+	t.Parallel()
+	s := testSchema()
+	env := testEnv()
+	caps := newCapabilitySet()
+
+	// principal has age && (if principal has name then false else principal.age > 0)
+	// Else branch gets prior capability (from outer &&) but not test capability.
+	expr := ast.NodeTypeAnd{BinaryNode: ast.BinaryNode{
+		Left: ast.NodeTypeHas{StrOpNode: ast.StrOpNode{
+			Arg:   ast.NodeTypeVariable{Name: "principal"},
+			Value: "age",
+		}},
+		Right: ast.NodeTypeIfThenElse{
+			If: ast.NodeTypeHas{StrOpNode: ast.StrOpNode{
+				Arg:   ast.NodeTypeVariable{Name: "principal"},
+				Value: "name",
+			}},
+			Then: ast.NodeValue{Value: types.Boolean(false)},
+			Else: ast.NodeTypeGreaterThan{BinaryNode: ast.BinaryNode{
+				Left: ast.NodeTypeAccess{StrOpNode: ast.StrOpNode{
+					Arg:   ast.NodeTypeVariable{Name: "principal"},
+					Value: "age",
+				}},
+				Right: ast.NodeValue{Value: types.Long(0)},
+			}},
+		},
+	}}
+	_, _, err := typeOfExpr(env, s, expr, caps)
+	testutil.OK(t, err)
+}
+
+func TestIfElseIntersectsCaps(t *testing.T) {
+	t.Parallel()
+	s := testSchema()
+	env := testEnv()
+	caps := newCapabilitySet()
+
+	// (if 1 == 1 then (principal has age && true) else (principal has age && true)) && principal.age > 0
+	// Both branches produce the same capability → intersection preserves it.
+	ifExpr := ast.NodeTypeIfThenElse{
+		If: ast.NodeTypeEquals{BinaryNode: ast.BinaryNode{
+			Left:  ast.NodeValue{Value: types.Long(1)},
+			Right: ast.NodeValue{Value: types.Long(1)},
+		}},
+		Then: ast.NodeTypeAnd{BinaryNode: ast.BinaryNode{
+			Left: ast.NodeTypeHas{StrOpNode: ast.StrOpNode{
+				Arg:   ast.NodeTypeVariable{Name: "principal"},
+				Value: "age",
+			}},
+			Right: ast.NodeValue{Value: types.Boolean(true)},
+		}},
+		Else: ast.NodeTypeAnd{BinaryNode: ast.BinaryNode{
+			Left: ast.NodeTypeHas{StrOpNode: ast.StrOpNode{
+				Arg:   ast.NodeTypeVariable{Name: "principal"},
+				Value: "age",
+			}},
+			Right: ast.NodeValue{Value: types.Boolean(true)},
+		}},
+	}
+	expr := ast.NodeTypeAnd{BinaryNode: ast.BinaryNode{
+		Left: ifExpr,
+		Right: ast.NodeTypeGreaterThan{BinaryNode: ast.BinaryNode{
+			Left: ast.NodeTypeAccess{StrOpNode: ast.StrOpNode{
+				Arg:   ast.NodeTypeVariable{Name: "principal"},
+				Value: "age",
+			}},
+			Right: ast.NodeValue{Value: types.Long(0)},
+		}},
+	}}
+	_, _, err := typeOfExpr(env, s, expr, caps)
+	testutil.OK(t, err)
+}
+
 func TestPolicyScopeIsInInvalid(t *testing.T) {
 	t.Parallel()
 	s := testSchemaWithPhoto()
