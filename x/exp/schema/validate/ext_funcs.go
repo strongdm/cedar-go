@@ -21,11 +21,11 @@ var extFuncTypes = map[types.Path]extFuncSig{
 	"greaterThanOrEqual": {argTypes: []cedarType{typeExtension{"decimal"}, typeExtension{"decimal"}}, returnType: typeBool{}},
 
 	// IPAddr methods
-	"isIpv4":     {argTypes: []cedarType{typeExtension{"ipaddr"}}, returnType: typeBool{}},
-	"isIpv6":     {argTypes: []cedarType{typeExtension{"ipaddr"}}, returnType: typeBool{}},
-	"isLoopback": {argTypes: []cedarType{typeExtension{"ipaddr"}}, returnType: typeBool{}},
+	"isIpv4":      {argTypes: []cedarType{typeExtension{"ipaddr"}}, returnType: typeBool{}},
+	"isIpv6":      {argTypes: []cedarType{typeExtension{"ipaddr"}}, returnType: typeBool{}},
+	"isLoopback":  {argTypes: []cedarType{typeExtension{"ipaddr"}}, returnType: typeBool{}},
 	"isMulticast": {argTypes: []cedarType{typeExtension{"ipaddr"}}, returnType: typeBool{}},
-	"isInRange":  {argTypes: []cedarType{typeExtension{"ipaddr"}, typeExtension{"ipaddr"}}, returnType: typeBool{}},
+	"isInRange":   {argTypes: []cedarType{typeExtension{"ipaddr"}, typeExtension{"ipaddr"}}, returnType: typeBool{}},
 
 	// Datetime methods
 	"toDate":        {argTypes: []cedarType{typeExtension{"datetime"}}, returnType: typeExtension{"datetime"}},

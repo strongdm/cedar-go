@@ -1,3 +1,6 @@
+lint:
+	golangci-lint run
+
 corpus-tests-json-schemas.tar.gz: corpus-tests.tar.gz
 	@echo "Generating JSON schemas from Cedar schemas..."
 	@rm -rf /tmp/corpus-tests /tmp/corpus-tests-json-schemas
