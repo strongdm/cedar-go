@@ -16,20 +16,20 @@ type cedarType interface {
 	isCedarType()
 }
 
-type typeNever struct{}                                        // bottom type, subtype of all
-type typeTrue struct{}                                         // singleton bool true
-type typeFalse struct{}                                        // singleton bool false
-type typeBool struct{}                                         // Bool primitive
-type typeLong struct{}                                         // Long primitive
-type typeString struct{}                                       // String primitive
-type typeSet struct{ element cedarType }                       // Set with element type
-type typeRecord struct {                                       // Record with attribute types
+type typeNever struct{}                  // bottom type, subtype of all
+type typeTrue struct{}                   // singleton bool true
+type typeFalse struct{}                  // singleton bool false
+type typeBool struct{}                   // Bool primitive
+type typeLong struct{}                   // Long primitive
+type typeString struct{}                 // String primitive
+type typeSet struct{ element cedarType } // Set with element type
+type typeRecord struct {                 // Record with attribute types
 	attrs          map[types.String]attributeType
 	openAttributes bool
 }
-type typeEntity struct{ lub entityLUB }                        // Entity with LUB of types
-type typeAnyEntity struct{}                                    // Unknown entity type
-type typeExtension struct{ name types.Ident }                  // Extension type (ipaddr, decimal, etc.)
+type typeEntity struct{ lub entityLUB }       // Entity with LUB of types
+type typeAnyEntity struct{}                   // Unknown entity type
+type typeExtension struct{ name types.Ident } // Extension type (ipaddr, decimal, etc.)
 
 func (typeNever) isCedarType()     { _ = 0 }
 func (typeTrue) isCedarType()      { _ = 0 }

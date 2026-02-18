@@ -1720,7 +1720,7 @@ func TestTypeCheckValues(t *testing.T) {
 	testutil.Equals[cedarType](t, ty, typeSet{element: typeNever{}})
 
 	// Record value
-	ty, _, err = typeOfExpr(env, s, ast.NodeValue{Value: types.NewRecord(types.RecordMap{
+	_, _, err = typeOfExpr(env, s, ast.NodeValue{Value: types.NewRecord(types.RecordMap{
 		"x": types.Long(1),
 	})}, caps)
 	testutil.OK(t, err)
@@ -3316,7 +3316,7 @@ func TestErrorPropagationPaths(t *testing.T) {
 	}}, caps)
 	testutil.Error(t, err)
 	_, _, err = typeOfExpr(env, s, ast.NodeTypeContains{BinaryNode: ast.BinaryNode{
-		Left: ast.NodeTypeSet{Elements: []ast.IsNode{ast.NodeValue{Value: types.Long(1)}}},
+		Left:  ast.NodeTypeSet{Elements: []ast.IsNode{ast.NodeValue{Value: types.Long(1)}}},
 		Right: badExpr,
 	}}, caps)
 	testutil.Error(t, err)
@@ -3327,7 +3327,7 @@ func TestErrorPropagationPaths(t *testing.T) {
 	}}, caps)
 	testutil.Error(t, err)
 	_, _, err = typeOfExpr(env, s, ast.NodeTypeContainsAll{BinaryNode: ast.BinaryNode{
-		Left: ast.NodeTypeSet{Elements: []ast.IsNode{ast.NodeValue{Value: types.Long(1)}}},
+		Left:  ast.NodeTypeSet{Elements: []ast.IsNode{ast.NodeValue{Value: types.Long(1)}}},
 		Right: badExpr,
 	}}, caps)
 	testutil.Error(t, err)
@@ -3917,4 +3917,3 @@ func TestTypeOfValueNilDefault(t *testing.T) {
 	testutil.OK(t, err)
 	testutil.Equals[cedarType](t, ty, typeNever{})
 }
-
