@@ -242,7 +242,7 @@ func typeOfAnd(env *requestEnv, s *resolved.Schema, n ast.NodeTypeAnd, caps capa
 }
 
 func typeOfOr(env *requestEnv, s *resolved.Schema, n ast.NodeTypeOr, caps capabilitySet) (cedarType, capabilitySet, error) {
-	lt, _, err := typeOfExpr(env, s, n.Left, caps)
+	lt, lCaps, err := typeOfExpr(env, s, n.Left, caps)
 	if err != nil {
 		return nil, caps, err
 	}
@@ -255,11 +255,11 @@ func typeOfOr(env *requestEnv, s *resolved.Schema, n ast.NodeTypeOr, caps capabi
 		if err := validateEntityRefs(s, n.Right); err != nil {
 			return nil, caps, err
 		}
-		return typeTrue{}, caps, nil
+		return typeTrue{}, lCaps, nil
 	}
 
 	// RHS does NOT get LHS capabilities
-	rt, _, err := typeOfExpr(env, s, n.Right, caps)
+	rt, rCaps, err := typeOfExpr(env, s, n.Right, caps)
 	if err != nil {
 		return nil, caps, err
 	}
@@ -267,7 +267,21 @@ func typeOfOr(env *requestEnv, s *resolved.Schema, n ast.NodeTypeOr, caps capabi
 		return nil, caps, fmt.Errorf("right operand of || must be boolean, got %T", rt)
 	}
 
-	return typeBool{}, caps, nil
+	// LHS is false → result depends entirely on RHS
+	if _, ok := lt.(typeFalse); ok {
+		return rt, rCaps, nil
+	}
+	// RHS is true → always true, propagate RHS caps
+	if _, ok := rt.(typeTrue); ok {
+		return typeTrue{}, rCaps, nil
+	}
+	// RHS is false → result depends entirely on LHS
+	if _, ok := rt.(typeFalse); ok {
+		return lt, lCaps, nil
+	}
+
+	// Both unknown → intersect capabilities (only caps guaranteed by both branches)
+	return typeBool{}, lCaps.intersect(rCaps), nil
 }
 
 func typeOfNot(env *requestEnv, s *resolved.Schema, n ast.NodeTypeNot, caps capabilitySet) (cedarType, capabilitySet, error) {
@@ -297,27 +311,28 @@ func typeOfIfThenElse(env *requestEnv, s *resolved.Schema, n ast.NodeTypeIfThenE
 		return nil, caps, fmt.Errorf("condition of if-then-else must be boolean, got %T", condType)
 	}
 
-	branchCaps := caps.merge(condCaps)
+	thenCaps := caps.merge(condCaps) // then branch gets test capabilities
+	// else branch gets only prior capabilities (test was false)
 
 	// Constant condition: skip dead branch type checking but validate entity refs
 	if _, ok := condType.(typeFalse); ok {
 		if err := validateEntityRefs(s, n.Then); err != nil {
 			return nil, caps, err
 		}
-		return typeOfExpr(env, s, n.Else, branchCaps)
+		return typeOfExpr(env, s, n.Else, caps)
 	}
 	if _, ok := condType.(typeTrue); ok {
 		if err := validateEntityRefs(s, n.Else); err != nil {
 			return nil, caps, err
 		}
-		return typeOfExpr(env, s, n.Then, branchCaps)
+		return typeOfExpr(env, s, n.Then, thenCaps)
 	}
 
-	thenType, _, err := typeOfExpr(env, s, n.Then, branchCaps)
+	thenType, thenResultCaps, err := typeOfExpr(env, s, n.Then, thenCaps)
 	if err != nil {
 		return nil, caps, err
 	}
-	elseType, _, err := typeOfExpr(env, s, n.Else, branchCaps)
+	elseType, elseResultCaps, err := typeOfExpr(env, s, n.Else, caps)
 	if err != nil {
 		return nil, caps, err
 	}
@@ -329,7 +344,7 @@ func typeOfIfThenElse(env *requestEnv, s *resolved.Schema, n ast.NodeTypeIfThenE
 	if err != nil {
 		return nil, caps, fmt.Errorf("if-then-else branches have incompatible types")
 	}
-	return result, caps, nil
+	return result, thenResultCaps.intersect(elseResultCaps), nil
 }
 
 func typeOfEquality(env *requestEnv, s *resolved.Schema, left, right ast.IsNode, caps capabilitySet) (cedarType, capabilitySet, error) {
