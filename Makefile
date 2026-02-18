@@ -1,4 +1,4 @@
-lint:
+linters:
 	golangci-lint run
 
 corpus-tests-json-schemas.tar.gz: corpus-tests.tar.gz
