@@ -57,7 +57,10 @@ func validatePrincipalScope(s *resolved.Schema, scope ast.IsPrincipalScopeNode) 
 	case ast.ScopeTypeEq:
 		return validateScopeEntity(s, sc.Entity)
 	case ast.ScopeTypeIn:
-		return validateScopeEntity(s, sc.Entity)
+		if _, err := validateScopeEntity(s, sc.Entity); err != nil {
+			return nil, err
+		}
+		return getEntityTypesIn(s, sc.Entity.Type), nil
 	case ast.ScopeTypeIs:
 		return validateScopeType(s, sc.Type)
 	case ast.ScopeTypeIsIn:
@@ -114,7 +117,10 @@ func validateResourceScope(s *resolved.Schema, scope ast.IsResourceScopeNode) ([
 	case ast.ScopeTypeEq:
 		return validateScopeEntity(s, sc.Entity)
 	case ast.ScopeTypeIn:
-		return validateScopeEntity(s, sc.Entity)
+		if _, err := validateScopeEntity(s, sc.Entity); err != nil {
+			return nil, err
+		}
+		return getEntityTypesIn(s, sc.Entity.Type), nil
 	case ast.ScopeTypeIs:
 		return validateScopeType(s, sc.Type)
 	case ast.ScopeTypeIsIn:
