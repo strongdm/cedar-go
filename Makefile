@@ -1,5 +1,6 @@
 linters:
 	golangci-lint run
+	go run github.com/alecthomas/go-check-sumtype/cmd/go-check-sumtype@latest -default-signifies-exhaustive=false ./...
 
 corpus-tests-json-schemas.tar.gz: corpus-tests.tar.gz
 	@echo "Generating JSON schemas from Cedar schemas..."
