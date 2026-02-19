@@ -10,8 +10,6 @@ import (
 )
 
 // cedarType is the sum type representing Cedar types for the type checker.
-//
-//sumtype:decl
 type cedarType interface {
 	isCedarType()
 }
