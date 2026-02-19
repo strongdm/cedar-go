@@ -6,106 +6,105 @@ import (
 
 	"github.com/cedar-policy/cedar-go/types"
 	"github.com/cedar-policy/cedar-go/x/exp/ast"
-	"github.com/cedar-policy/cedar-go/x/exp/schema/resolved"
 )
 
 // typeOfExpr infers the type of an expression given a request environment, schema, and capabilities.
 // Returns the inferred type, updated capabilities (from `has` guards), and any type error.
-func typeOfExpr(env *requestEnv, s *resolved.Schema, expr ast.IsNode, caps capabilitySet) (cedarType, capabilitySet, error) {
+func (v *Validator) typeOfExpr(env *requestEnv, expr ast.IsNode, caps capabilitySet) (cedarType, capabilitySet, error) {
 	switch n := expr.(type) {
 	case ast.NodeValue:
-		ty, err := typeOfValue(s, n.Value)
+		ty, err := v.typeOfValue(n.Value)
 		return ty, caps, err
 
 	case ast.NodeTypeVariable:
 		return typeOfVariable(env, n.Name), caps, nil
 
 	case ast.NodeTypeAnd:
-		return typeOfAnd(env, s, n, caps)
+		return v.typeOfAnd(env, n, caps)
 
 	case ast.NodeTypeOr:
-		return typeOfOr(env, s, n, caps)
+		return v.typeOfOr(env, n, caps)
 
 	case ast.NodeTypeNot:
-		return typeOfNot(env, s, n, caps)
+		return v.typeOfNot(env, n, caps)
 
 	case ast.NodeTypeIfThenElse:
-		return typeOfIfThenElse(env, s, n, caps)
+		return v.typeOfIfThenElse(env, n, caps)
 
 	case ast.NodeTypeEquals:
-		return typeOfEquality(env, s, n.Left, n.Right, caps)
+		return v.typeOfEquality(env, n.Left, n.Right, caps)
 
 	case ast.NodeTypeNotEquals:
-		return typeOfEquality(env, s, n.Left, n.Right, caps)
+		return v.typeOfEquality(env, n.Left, n.Right, caps)
 
 	case ast.NodeTypeLessThan:
-		return typeOfComparison(env, s, n.Left, n.Right, caps, expectLong, expectLong)
+		return v.typeOfComparison(env, n.Left, n.Right, caps, expectLong, expectLong)
 
 	case ast.NodeTypeLessThanOrEqual:
-		return typeOfComparison(env, s, n.Left, n.Right, caps, expectLong, expectLong)
+		return v.typeOfComparison(env, n.Left, n.Right, caps, expectLong, expectLong)
 
 	case ast.NodeTypeGreaterThan:
-		return typeOfComparison(env, s, n.Left, n.Right, caps, expectLong, expectLong)
+		return v.typeOfComparison(env, n.Left, n.Right, caps, expectLong, expectLong)
 
 	case ast.NodeTypeGreaterThanOrEqual:
-		return typeOfComparison(env, s, n.Left, n.Right, caps, expectLong, expectLong)
+		return v.typeOfComparison(env, n.Left, n.Right, caps, expectLong, expectLong)
 
 	case ast.NodeTypeAdd:
-		return typeOfArith(env, s, n.Left, n.Right, caps)
+		return v.typeOfArith(env, n.Left, n.Right, caps)
 
 	case ast.NodeTypeSub:
-		return typeOfArith(env, s, n.Left, n.Right, caps)
+		return v.typeOfArith(env, n.Left, n.Right, caps)
 
 	case ast.NodeTypeMult:
-		return typeOfArith(env, s, n.Left, n.Right, caps)
+		return v.typeOfArith(env, n.Left, n.Right, caps)
 
 	case ast.NodeTypeNegate:
-		return typeOfNegate(env, s, n, caps)
+		return v.typeOfNegate(env, n, caps)
 
 	case ast.NodeTypeIn:
-		return typeOfIn(env, s, n, caps)
+		return v.typeOfIn(env, n, caps)
 
 	case ast.NodeTypeContains:
-		return typeOfContains(env, s, n, caps)
+		return v.typeOfContains(env, n, caps)
 
 	case ast.NodeTypeContainsAll:
-		return typeOfContainsAllAny(env, s, n.Left, n.Right, caps)
+		return v.typeOfContainsAllAny(env, n.Left, n.Right, caps)
 
 	case ast.NodeTypeContainsAny:
-		return typeOfContainsAllAny(env, s, n.Left, n.Right, caps)
+		return v.typeOfContainsAllAny(env, n.Left, n.Right, caps)
 
 	case ast.NodeTypeIsEmpty:
-		return typeOfIsEmpty(env, s, n, caps)
+		return v.typeOfIsEmpty(env, n, caps)
 
 	case ast.NodeTypeLike:
-		return typeOfLike(env, s, n, caps)
+		return v.typeOfLike(env, n, caps)
 
 	case ast.NodeTypeIs:
-		return typeOfIs(env, s, n, caps)
+		return v.typeOfIs(env, n, caps)
 
 	case ast.NodeTypeIsIn:
-		return typeOfIsIn(env, s, n, caps)
+		return v.typeOfIsIn(env, n, caps)
 
 	case ast.NodeTypeHas:
-		return typeOfHas(env, s, n, caps)
+		return v.typeOfHas(env, n, caps)
 
 	case ast.NodeTypeAccess:
-		return typeOfAccess(env, s, n, caps)
+		return v.typeOfAccess(env, n, caps)
 
 	case ast.NodeTypeHasTag:
-		return typeOfHasTag(env, s, n, caps)
+		return v.typeOfHasTag(env, n, caps)
 
 	case ast.NodeTypeGetTag:
-		return typeOfGetTag(env, s, n, caps)
+		return v.typeOfGetTag(env, n, caps)
 
 	case ast.NodeTypeRecord:
-		return typeOfRecord(env, s, n, caps)
+		return v.typeOfRecord(env, n, caps)
 
 	case ast.NodeTypeSet:
-		return typeOfSet(env, s, n, caps)
+		return v.typeOfSet(env, n, caps)
 
 	case ast.NodeTypeExtensionCall:
-		return typeOfExtensionCall(env, s, n, caps)
+		return v.typeOfExtensionCall(env, n, caps)
 
 	default:
 		return nil, caps, fmt.Errorf("unknown node type %T", expr)
@@ -114,10 +113,10 @@ func typeOfExpr(env *requestEnv, s *resolved.Schema, expr ast.IsNode, caps capab
 
 // typeOfValue validates and infers the type of a literal value.
 // Entity UIDs are validated against the schema (type must exist).
-func typeOfValue(s *resolved.Schema, v types.Value) (cedarType, error) {
-	switch v := v.(type) {
+func (v *Validator) typeOfValue(val types.Value) (cedarType, error) {
+	switch val := val.(type) {
 	case types.Boolean:
-		if v {
+		if val {
 			return typeTrue{}, nil
 		}
 		return typeFalse{}, nil
@@ -126,15 +125,15 @@ func typeOfValue(s *resolved.Schema, v types.Value) (cedarType, error) {
 	case types.String:
 		return typeString{}, nil
 	case types.EntityUID:
-		return typeOfEntityUID(s, v)
+		return v.typeOfEntityUID(val)
 	case types.Set:
 		var elemType cedarType = typeNever{}
-		for elem := range v.All() {
-			et, err := typeOfValue(s, elem)
+		for elem := range val.All() {
+			et, err := v.typeOfValue(elem)
 			if err != nil {
 				return nil, err
 			}
-			lub, err := leastUpperBound(elemType, et)
+			lub, err := v.leastUpperBound(elemType, et)
 			if err != nil {
 				return typeSet{element: typeNever{}}, nil
 			}
@@ -143,8 +142,8 @@ func typeOfValue(s *resolved.Schema, v types.Value) (cedarType, error) {
 		return typeSet{element: elemType}, nil
 	case types.Record:
 		attrs := make(map[types.String]attributeType)
-		for k, val := range v.All() {
-			vt, err := typeOfValue(s, val)
+		for k, rv := range val.All() {
+			vt, err := v.typeOfValue(rv)
 			if err != nil {
 				return nil, err
 			}
@@ -165,21 +164,21 @@ func typeOfValue(s *resolved.Schema, v types.Value) (cedarType, error) {
 }
 
 // typeOfEntityUID validates an entity UID's type exists in the schema.
-func typeOfEntityUID(s *resolved.Schema, uid types.EntityUID) (cedarType, error) {
+func (v *Validator) typeOfEntityUID(uid types.EntityUID) (cedarType, error) {
 	et := uid.Type
-	if _, ok := s.Entities[et]; ok {
+	if _, ok := v.schema.Entities[et]; ok {
 		return typeEntity{lub: singleEntityLUB(et)}, nil
 	}
-	if _, ok := s.Enums[et]; ok {
+	if _, ok := v.schema.Enums[et]; ok {
 		return typeEntity{lub: singleEntityLUB(et)}, nil
 	}
 	// Check if it's an action type
 	if isActionEntity(et) {
-		if _, ok := s.Actions[uid]; ok {
+		if _, ok := v.schema.Actions[uid]; ok {
 			return typeEntity{lub: singleEntityLUB(et)}, nil
 		}
 		// Action entity type exists if any action of this type exists
-		for aUID := range s.Actions {
+		for aUID := range v.schema.Actions {
 			if aUID.Type == et {
 				return typeEntity{lub: singleEntityLUB(et)}, nil
 			}
@@ -203,8 +202,8 @@ func typeOfVariable(env *requestEnv, name types.String) cedarType {
 	}
 }
 
-func typeOfAnd(env *requestEnv, s *resolved.Schema, n ast.NodeTypeAnd, caps capabilitySet) (cedarType, capabilitySet, error) {
-	lt, lCaps, err := typeOfExpr(env, s, n.Left, caps)
+func (v *Validator) typeOfAnd(env *requestEnv, n ast.NodeTypeAnd, caps capabilitySet) (cedarType, capabilitySet, error) {
+	lt, lCaps, err := v.typeOfExpr(env, n.Left, caps)
 	if err != nil {
 		return nil, caps, err
 	}
@@ -214,14 +213,14 @@ func typeOfAnd(env *requestEnv, s *resolved.Schema, n ast.NodeTypeAnd, caps capa
 
 	// Short-circuit: false && _ → typeFalse (skip RHS type checking but validate entity refs)
 	if _, ok := lt.(typeFalse); ok {
-		if err := validateEntityRefs(s, n.Right); err != nil {
+		if err := v.validateEntityRefs(n.Right); err != nil {
 			return nil, caps, err
 		}
 		return typeFalse{}, caps, nil
 	}
 
 	// RHS gets LHS capabilities
-	rt, rCaps, err := typeOfExpr(env, s, n.Right, caps.merge(lCaps))
+	rt, rCaps, err := v.typeOfExpr(env, n.Right, caps.merge(lCaps))
 	if err != nil {
 		return nil, caps, err
 	}
@@ -241,8 +240,8 @@ func typeOfAnd(env *requestEnv, s *resolved.Schema, n ast.NodeTypeAnd, caps capa
 	return typeBool{}, rCaps, nil
 }
 
-func typeOfOr(env *requestEnv, s *resolved.Schema, n ast.NodeTypeOr, caps capabilitySet) (cedarType, capabilitySet, error) {
-	lt, lCaps, err := typeOfExpr(env, s, n.Left, caps)
+func (v *Validator) typeOfOr(env *requestEnv, n ast.NodeTypeOr, caps capabilitySet) (cedarType, capabilitySet, error) {
+	lt, lCaps, err := v.typeOfExpr(env, n.Left, caps)
 	if err != nil {
 		return nil, caps, err
 	}
@@ -252,14 +251,14 @@ func typeOfOr(env *requestEnv, s *resolved.Schema, n ast.NodeTypeOr, caps capabi
 
 	// Short-circuit: true || _ → typeTrue (skip RHS type checking but validate entity refs)
 	if _, ok := lt.(typeTrue); ok {
-		if err := validateEntityRefs(s, n.Right); err != nil {
+		if err := v.validateEntityRefs(n.Right); err != nil {
 			return nil, caps, err
 		}
 		return typeTrue{}, lCaps, nil
 	}
 
 	// RHS does NOT get LHS capabilities
-	rt, rCaps, err := typeOfExpr(env, s, n.Right, caps)
+	rt, rCaps, err := v.typeOfExpr(env, n.Right, caps)
 	if err != nil {
 		return nil, caps, err
 	}
@@ -284,8 +283,8 @@ func typeOfOr(env *requestEnv, s *resolved.Schema, n ast.NodeTypeOr, caps capabi
 	return typeBool{}, lCaps.intersect(rCaps), nil
 }
 
-func typeOfNot(env *requestEnv, s *resolved.Schema, n ast.NodeTypeNot, caps capabilitySet) (cedarType, capabilitySet, error) {
-	t, _, err := typeOfExpr(env, s, n.Arg, caps)
+func (v *Validator) typeOfNot(env *requestEnv, n ast.NodeTypeNot, caps capabilitySet) (cedarType, capabilitySet, error) {
+	t, _, err := v.typeOfExpr(env, n.Arg, caps)
 	if err != nil {
 		return nil, caps, err
 	}
@@ -302,8 +301,8 @@ func typeOfNot(env *requestEnv, s *resolved.Schema, n ast.NodeTypeNot, caps capa
 	}
 }
 
-func typeOfIfThenElse(env *requestEnv, s *resolved.Schema, n ast.NodeTypeIfThenElse, caps capabilitySet) (cedarType, capabilitySet, error) {
-	condType, condCaps, err := typeOfExpr(env, s, n.If, caps)
+func (v *Validator) typeOfIfThenElse(env *requestEnv, n ast.NodeTypeIfThenElse, caps capabilitySet) (cedarType, capabilitySet, error) {
+	condType, condCaps, err := v.typeOfExpr(env, n.If, caps)
 	if err != nil {
 		return nil, caps, err
 	}
@@ -316,48 +315,48 @@ func typeOfIfThenElse(env *requestEnv, s *resolved.Schema, n ast.NodeTypeIfThenE
 
 	// Constant condition: skip dead branch type checking but validate entity refs
 	if _, ok := condType.(typeFalse); ok {
-		if err := validateEntityRefs(s, n.Then); err != nil {
+		if err := v.validateEntityRefs(n.Then); err != nil {
 			return nil, caps, err
 		}
-		return typeOfExpr(env, s, n.Else, caps)
+		return v.typeOfExpr(env, n.Else, caps)
 	}
 	if _, ok := condType.(typeTrue); ok {
-		if err := validateEntityRefs(s, n.Else); err != nil {
+		if err := v.validateEntityRefs(n.Else); err != nil {
 			return nil, caps, err
 		}
-		return typeOfExpr(env, s, n.Then, thenCaps)
+		return v.typeOfExpr(env, n.Then, thenCaps)
 	}
 
-	thenType, thenResultCaps, err := typeOfExpr(env, s, n.Then, thenCaps)
+	thenType, thenResultCaps, err := v.typeOfExpr(env, n.Then, thenCaps)
 	if err != nil {
 		return nil, caps, err
 	}
-	elseType, elseResultCaps, err := typeOfExpr(env, s, n.Else, caps)
+	elseType, elseResultCaps, err := v.typeOfExpr(env, n.Else, caps)
 	if err != nil {
 		return nil, caps, err
 	}
 
-	if err := checkStrictEntityLUB(s, thenType, elseType); err != nil {
+	if err := v.checkStrictEntityLUB(thenType, elseType); err != nil {
 		return nil, caps, fmt.Errorf("if-then-else branches have incompatible entity types")
 	}
-	result, err := leastUpperBound(thenType, elseType)
+	result, err := v.leastUpperBound(thenType, elseType)
 	if err != nil {
 		return nil, caps, fmt.Errorf("if-then-else branches have incompatible types")
 	}
 	return result, thenResultCaps.intersect(elseResultCaps), nil
 }
 
-func typeOfEquality(env *requestEnv, s *resolved.Schema, left, right ast.IsNode, caps capabilitySet) (cedarType, capabilitySet, error) {
-	lt, _, err := typeOfExpr(env, s, left, caps)
+func (v *Validator) typeOfEquality(env *requestEnv, left, right ast.IsNode, caps capabilitySet) (cedarType, capabilitySet, error) {
+	lt, _, err := v.typeOfExpr(env, left, caps)
 	if err != nil {
 		return nil, caps, err
 	}
-	rt, _, err := typeOfExpr(env, s, right, caps)
+	rt, _, err := v.typeOfExpr(env, right, caps)
 	if err != nil {
 		return nil, caps, err
 	}
 	// Types must be compatible (LUB must exist) for equality to make sense
-	if _, err := leastUpperBound(lt, rt); err != nil {
+	if _, err := v.leastUpperBound(lt, rt); err != nil {
 		return nil, caps, fmt.Errorf("equality comparison between incompatible types %T and %T", lt, rt)
 	}
 	return typeBool{}, caps, nil
@@ -372,8 +371,8 @@ var expectLong typeExpectation = func(t cedarType) error {
 	return nil
 }
 
-func typeOfComparison(env *requestEnv, s *resolved.Schema, left, right ast.IsNode, caps capabilitySet, expectLeft, expectRight typeExpectation) (cedarType, capabilitySet, error) {
-	lt, _, err := typeOfExpr(env, s, left, caps)
+func (v *Validator) typeOfComparison(env *requestEnv, left, right ast.IsNode, caps capabilitySet, expectLeft, expectRight typeExpectation) (cedarType, capabilitySet, error) {
+	lt, _, err := v.typeOfExpr(env, left, caps)
 	if err != nil {
 		return nil, caps, err
 	}
@@ -382,7 +381,7 @@ func typeOfComparison(env *requestEnv, s *resolved.Schema, left, right ast.IsNod
 			return nil, caps, fmt.Errorf("left operand: %w", err)
 		}
 	}
-	rt, _, err := typeOfExpr(env, s, right, caps)
+	rt, _, err := v.typeOfExpr(env, right, caps)
 	if err != nil {
 		return nil, caps, err
 	}
@@ -394,15 +393,15 @@ func typeOfComparison(env *requestEnv, s *resolved.Schema, left, right ast.IsNod
 	return typeBool{}, caps, nil
 }
 
-func typeOfArith(env *requestEnv, s *resolved.Schema, left, right ast.IsNode, caps capabilitySet) (cedarType, capabilitySet, error) {
-	lt, _, err := typeOfExpr(env, s, left, caps)
+func (v *Validator) typeOfArith(env *requestEnv, left, right ast.IsNode, caps capabilitySet) (cedarType, capabilitySet, error) {
+	lt, _, err := v.typeOfExpr(env, left, caps)
 	if err != nil {
 		return nil, caps, err
 	}
 	if _, ok := lt.(typeLong); !ok {
 		return nil, caps, fmt.Errorf("left operand of arithmetic must be Long, got %T", lt)
 	}
-	rt, _, err := typeOfExpr(env, s, right, caps)
+	rt, _, err := v.typeOfExpr(env, right, caps)
 	if err != nil {
 		return nil, caps, err
 	}
@@ -412,8 +411,8 @@ func typeOfArith(env *requestEnv, s *resolved.Schema, left, right ast.IsNode, ca
 	return typeLong{}, caps, nil
 }
 
-func typeOfNegate(env *requestEnv, s *resolved.Schema, n ast.NodeTypeNegate, caps capabilitySet) (cedarType, capabilitySet, error) {
-	t, _, err := typeOfExpr(env, s, n.Arg, caps)
+func (v *Validator) typeOfNegate(env *requestEnv, n ast.NodeTypeNegate, caps capabilitySet) (cedarType, capabilitySet, error) {
+	t, _, err := v.typeOfExpr(env, n.Arg, caps)
 	if err != nil {
 		return nil, caps, err
 	}
@@ -423,15 +422,15 @@ func typeOfNegate(env *requestEnv, s *resolved.Schema, n ast.NodeTypeNegate, cap
 	return typeLong{}, caps, nil
 }
 
-func typeOfIn(env *requestEnv, s *resolved.Schema, n ast.NodeTypeIn, caps capabilitySet) (cedarType, capabilitySet, error) {
-	lt, _, err := typeOfExpr(env, s, n.Left, caps)
+func (v *Validator) typeOfIn(env *requestEnv, n ast.NodeTypeIn, caps capabilitySet) (cedarType, capabilitySet, error) {
+	lt, _, err := v.typeOfExpr(env, n.Left, caps)
 	if err != nil {
 		return nil, caps, err
 	}
 	if !isEntityType(lt) {
 		return nil, caps, fmt.Errorf("left operand of 'in' must be entity, got %T", lt)
 	}
-	rt, _, err := typeOfExpr(env, s, n.Right, caps)
+	rt, _, err := v.typeOfExpr(env, n.Right, caps)
 	if err != nil {
 		return nil, caps, err
 	}
@@ -441,8 +440,8 @@ func typeOfIn(env *requestEnv, s *resolved.Schema, n ast.NodeTypeIn, caps capabi
 	return typeBool{}, caps, nil
 }
 
-func typeOfContains(env *requestEnv, s *resolved.Schema, n ast.NodeTypeContains, caps capabilitySet) (cedarType, capabilitySet, error) {
-	lt, _, err := typeOfExpr(env, s, n.Left, caps)
+func (v *Validator) typeOfContains(env *requestEnv, n ast.NodeTypeContains, caps capabilitySet) (cedarType, capabilitySet, error) {
+	lt, _, err := v.typeOfExpr(env, n.Left, caps)
 	if err != nil {
 		return nil, caps, err
 	}
@@ -450,48 +449,58 @@ func typeOfContains(env *requestEnv, s *resolved.Schema, n ast.NodeTypeContains,
 	if !ok {
 		return nil, caps, fmt.Errorf("operand of contains must be Set, got %T", lt)
 	}
-	rt, _, err := typeOfExpr(env, s, n.Right, caps)
+	rt, _, err := v.typeOfExpr(env, n.Right, caps)
 	if err != nil {
 		return nil, caps, err
 	}
-	// Strict mode: check element type compatibility
+	// Check element type compatibility
 	if _, isNever := st.element.(typeNever); isNever {
-		// Empty set (Set<Never>) can never contain any element — strict mode error
-		if _, argNever := rt.(typeNever); !argNever {
-			return nil, caps, fmt.Errorf("contains: empty set can never contain element of type %T", rt)
+		// Strict mode: empty set (Set<Never>) can never contain any element
+		if v.strict {
+			if _, argNever := rt.(typeNever); !argNever {
+				return nil, caps, fmt.Errorf("contains: empty set can never contain element of type %T", rt)
+			}
 		}
 	} else {
-		if _, err := leastUpperBound(st.element, rt); err != nil {
+		if _, err := v.leastUpperBound(st.element, rt); err != nil {
 			return nil, caps, fmt.Errorf("contains: element type incompatible with set element type")
 		}
 		// Strict mode: entity types must be related
-		if err := checkStrictEntityLUB(s, st.element, rt); err != nil {
+		if err := v.checkStrictEntityLUB(st.element, rt); err != nil {
 			return nil, caps, fmt.Errorf("contains: %w", err)
 		}
 	}
 	return typeBool{}, caps, nil
 }
 
-func typeOfContainsAllAny(env *requestEnv, s *resolved.Schema, left, right ast.IsNode, caps capabilitySet) (cedarType, capabilitySet, error) {
-	lt, _, err := typeOfExpr(env, s, left, caps)
+func (v *Validator) typeOfContainsAllAny(env *requestEnv, left, right ast.IsNode, caps capabilitySet) (cedarType, capabilitySet, error) {
+	lt, _, err := v.typeOfExpr(env, left, caps)
 	if err != nil {
 		return nil, caps, err
 	}
-	if _, ok := lt.(typeSet); !ok {
+	lSet, ok := lt.(typeSet)
+	if !ok {
 		return nil, caps, fmt.Errorf("left operand of containsAll/containsAny must be Set, got %T", lt)
 	}
-	rt, _, err := typeOfExpr(env, s, right, caps)
+	rt, _, err := v.typeOfExpr(env, right, caps)
 	if err != nil {
 		return nil, caps, err
 	}
-	if _, ok := rt.(typeSet); !ok {
+	rSet, ok := rt.(typeSet)
+	if !ok {
 		return nil, caps, fmt.Errorf("right operand of containsAll/containsAny must be Set, got %T", rt)
+	}
+	// Strict mode: element types must be compatible
+	if v.strict {
+		if _, err := v.leastUpperBound(lSet.element, rSet.element); err != nil {
+			return nil, caps, fmt.Errorf("containsAll/containsAny: element types are incompatible")
+		}
 	}
 	return typeBool{}, caps, nil
 }
 
-func typeOfIsEmpty(env *requestEnv, s *resolved.Schema, n ast.NodeTypeIsEmpty, caps capabilitySet) (cedarType, capabilitySet, error) {
-	t, _, err := typeOfExpr(env, s, n.Arg, caps)
+func (v *Validator) typeOfIsEmpty(env *requestEnv, n ast.NodeTypeIsEmpty, caps capabilitySet) (cedarType, capabilitySet, error) {
+	t, _, err := v.typeOfExpr(env, n.Arg, caps)
 	if err != nil {
 		return nil, caps, err
 	}
@@ -501,8 +510,8 @@ func typeOfIsEmpty(env *requestEnv, s *resolved.Schema, n ast.NodeTypeIsEmpty, c
 	return typeBool{}, caps, nil
 }
 
-func typeOfLike(env *requestEnv, s *resolved.Schema, n ast.NodeTypeLike, caps capabilitySet) (cedarType, capabilitySet, error) {
-	t, _, err := typeOfExpr(env, s, n.Arg, caps)
+func (v *Validator) typeOfLike(env *requestEnv, n ast.NodeTypeLike, caps capabilitySet) (cedarType, capabilitySet, error) {
+	t, _, err := v.typeOfExpr(env, n.Arg, caps)
 	if err != nil {
 		return nil, caps, err
 	}
@@ -512,8 +521,8 @@ func typeOfLike(env *requestEnv, s *resolved.Schema, n ast.NodeTypeLike, caps ca
 	return typeBool{}, caps, nil
 }
 
-func typeOfIs(env *requestEnv, s *resolved.Schema, n ast.NodeTypeIs, caps capabilitySet) (cedarType, capabilitySet, error) {
-	t, _, err := typeOfExpr(env, s, n.Left, caps)
+func (v *Validator) typeOfIs(env *requestEnv, n ast.NodeTypeIs, caps capabilitySet) (cedarType, capabilitySet, error) {
+	t, _, err := v.typeOfExpr(env, n.Left, caps)
 	if err != nil {
 		return nil, caps, err
 	}
@@ -534,15 +543,15 @@ func typeOfIs(env *requestEnv, s *resolved.Schema, n ast.NodeTypeIs, caps capabi
 	return typeBool{}, caps, nil
 }
 
-func typeOfIsIn(env *requestEnv, s *resolved.Schema, n ast.NodeTypeIsIn, caps capabilitySet) (cedarType, capabilitySet, error) {
-	lt, _, err := typeOfExpr(env, s, n.Left, caps)
+func (v *Validator) typeOfIsIn(env *requestEnv, n ast.NodeTypeIsIn, caps capabilitySet) (cedarType, capabilitySet, error) {
+	lt, _, err := v.typeOfExpr(env, n.Left, caps)
 	if err != nil {
 		return nil, caps, err
 	}
 	if !isEntityType(lt) {
 		return nil, caps, fmt.Errorf("left operand of is...in must be entity, got %T", lt)
 	}
-	rt, _, err := typeOfExpr(env, s, n.Entity, caps)
+	rt, _, err := v.typeOfExpr(env, n.Entity, caps)
 	if err != nil {
 		return nil, caps, err
 	}
@@ -552,8 +561,8 @@ func typeOfIsIn(env *requestEnv, s *resolved.Schema, n ast.NodeTypeIsIn, caps ca
 	return typeBool{}, caps, nil
 }
 
-func typeOfHas(env *requestEnv, s *resolved.Schema, n ast.NodeTypeHas, caps capabilitySet) (cedarType, capabilitySet, error) {
-	t, _, err := typeOfExpr(env, s, n.Arg, caps)
+func (v *Validator) typeOfHas(env *requestEnv, n ast.NodeTypeHas, caps capabilitySet) (cedarType, capabilitySet, error) {
+	t, _, err := v.typeOfExpr(env, n.Arg, caps)
 	if err != nil {
 		return nil, caps, err
 	}
@@ -562,7 +571,7 @@ func typeOfHas(env *requestEnv, s *resolved.Schema, n ast.NodeTypeHas, caps capa
 	}
 
 	// Determine precise bool type based on attribute existence
-	resultType := hasResultType(s, t, n.Value)
+	resultType := v.hasResultType(t, n.Value)
 
 	// For entity types with required/optional attributes that returned typeBool,
 	// check if the entity is already known to exist via a prior capability.
@@ -585,7 +594,7 @@ func typeOfHas(env *requestEnv, s *resolved.Schema, n ast.NodeTypeHas, caps capa
 }
 
 // hasResultType returns the precise bool type for a `has` check.
-func hasResultType(s *resolved.Schema, t cedarType, attr types.String) cedarType {
+func (v *Validator) hasResultType(t cedarType, attr types.String) cedarType {
 	switch tv := t.(type) {
 	case typeRecord:
 		if tv.openAttributes {
@@ -600,7 +609,7 @@ func hasResultType(s *resolved.Schema, t cedarType, attr types.String) cedarType
 		}
 		return typeBool{} // Optional attr
 	case typeEntity:
-		return hasResultTypeEntity(s, tv.lub, attr)
+		return v.hasResultTypeEntity(tv.lub, attr)
 	case typeAnyEntity:
 		return typeBool{} // Can't know
 	default:
@@ -608,13 +617,13 @@ func hasResultType(s *resolved.Schema, t cedarType, attr types.String) cedarType
 	}
 }
 
-func hasResultTypeEntity(s *resolved.Schema, lub entityLUB, attr types.String) cedarType {
+func (v *Validator) hasResultTypeEntity(lub entityLUB, attr types.String) cedarType {
 	if len(lub.elements) == 0 {
 		return typeBool{}
 	}
 	anyHas := false
 	for _, et := range lub.elements {
-		entity, ok := s.Entities[et]
+		entity, ok := v.schema.Entities[et]
 		if !ok {
 			continue
 		}
@@ -626,10 +635,10 @@ func hasResultTypeEntity(s *resolved.Schema, lub entityLUB, attr types.String) c
 		// Check if all entity types are known and none have the attr
 		allKnown := true
 		for _, et := range lub.elements {
-			if _, ok := s.Entities[et]; ok {
+			if _, ok := v.schema.Entities[et]; ok {
 				continue
 			}
-			if _, ok := s.Enums[et]; ok {
+			if _, ok := v.schema.Enums[et]; ok {
 				continue
 			}
 			if isActionEntity(et) {
@@ -649,8 +658,8 @@ func hasResultTypeEntity(s *resolved.Schema, lub entityLUB, attr types.String) c
 	return typeBool{}
 }
 
-func typeOfAccess(env *requestEnv, s *resolved.Schema, n ast.NodeTypeAccess, caps capabilitySet) (cedarType, capabilitySet, error) {
-	t, _, err := typeOfExpr(env, s, n.Arg, caps)
+func (v *Validator) typeOfAccess(env *requestEnv, n ast.NodeTypeAccess, caps capabilitySet) (cedarType, capabilitySet, error) {
+	t, _, err := v.typeOfExpr(env, n.Arg, caps)
 	if err != nil {
 		return nil, caps, err
 	}
@@ -658,9 +667,9 @@ func typeOfAccess(env *requestEnv, s *resolved.Schema, n ast.NodeTypeAccess, cap
 		return nil, caps, fmt.Errorf("operand of attribute access must be entity or record, got %T", t)
 	}
 
-	attrType := lookupAttributeType(s, t, n.Value)
+	attrType := v.lookupAttributeType(t, n.Value)
 	if attrType == nil {
-		if !mayHaveAttr(s, t, n.Value) {
+		if !v.mayHaveAttr(t, n.Value) {
 			return nil, caps, fmt.Errorf("attribute %q not found on type", n.Value)
 		}
 		return typeNever{}, caps, nil
@@ -677,8 +686,8 @@ func typeOfAccess(env *requestEnv, s *resolved.Schema, n ast.NodeTypeAccess, cap
 	return attrType.typ, caps, nil
 }
 
-func typeOfHasTag(env *requestEnv, s *resolved.Schema, n ast.NodeTypeHasTag, caps capabilitySet) (cedarType, capabilitySet, error) {
-	lt, _, err := typeOfExpr(env, s, n.Left, caps)
+func (v *Validator) typeOfHasTag(env *requestEnv, n ast.NodeTypeHasTag, caps capabilitySet) (cedarType, capabilitySet, error) {
+	lt, _, err := v.typeOfExpr(env, n.Left, caps)
 	if err != nil {
 		return nil, caps, err
 	}
@@ -687,7 +696,7 @@ func typeOfHasTag(env *requestEnv, s *resolved.Schema, n ast.NodeTypeHasTag, cap
 	}
 
 	// Type check the tag key expression
-	rt, _, err := typeOfExpr(env, s, n.Right, caps)
+	rt, _, err := v.typeOfExpr(env, n.Right, caps)
 	if err != nil {
 		return nil, caps, err
 	}
@@ -697,7 +706,7 @@ func typeOfHasTag(env *requestEnv, s *resolved.Schema, n ast.NodeTypeHasTag, cap
 
 	// Return typeFalse if entity doesn't support tags (not an error, just always false)
 	if et, ok := lt.(typeEntity); ok {
-		if !entityHasTags(s, et.lub) {
+		if !v.entityHasTags(et.lub) {
 			return typeFalse{}, caps, nil
 		}
 	}
@@ -713,8 +722,8 @@ func typeOfHasTag(env *requestEnv, s *resolved.Schema, n ast.NodeTypeHasTag, cap
 	return typeBool{}, newCaps, nil
 }
 
-func typeOfGetTag(env *requestEnv, s *resolved.Schema, n ast.NodeTypeGetTag, caps capabilitySet) (cedarType, capabilitySet, error) {
-	lt, _, err := typeOfExpr(env, s, n.Left, caps)
+func (v *Validator) typeOfGetTag(env *requestEnv, n ast.NodeTypeGetTag, caps capabilitySet) (cedarType, capabilitySet, error) {
+	lt, _, err := v.typeOfExpr(env, n.Left, caps)
 	if err != nil {
 		return nil, caps, err
 	}
@@ -723,7 +732,7 @@ func typeOfGetTag(env *requestEnv, s *resolved.Schema, n ast.NodeTypeGetTag, cap
 		return nil, caps, fmt.Errorf("operand of getTag must be entity, got %T", lt)
 	}
 
-	if !entityHasTags(s, et.lub) {
+	if !v.entityHasTags(et.lub) {
 		return nil, caps, fmt.Errorf("entity type does not support tags")
 	}
 
@@ -735,14 +744,14 @@ func typeOfGetTag(env *requestEnv, s *resolved.Schema, n ast.NodeTypeGetTag, cap
 		}
 	}
 
-	tagType := entityTagType(s, et.lub)
+	tagType := v.entityTagType(et.lub)
 	return tagType, caps, nil
 }
 
-func typeOfRecord(env *requestEnv, s *resolved.Schema, n ast.NodeTypeRecord, caps capabilitySet) (cedarType, capabilitySet, error) {
+func (v *Validator) typeOfRecord(env *requestEnv, n ast.NodeTypeRecord, caps capabilitySet) (cedarType, capabilitySet, error) {
 	attrs := make(map[types.String]attributeType, len(n.Elements))
 	for _, elem := range n.Elements {
-		elemType, _, err := typeOfExpr(env, s, elem.Value, caps)
+		elemType, _, err := v.typeOfExpr(env, elem.Value, caps)
 		if err != nil {
 			return nil, caps, err
 		}
@@ -751,18 +760,21 @@ func typeOfRecord(env *requestEnv, s *resolved.Schema, n ast.NodeTypeRecord, cap
 	return typeRecord{attrs: attrs}, caps, nil
 }
 
-func typeOfSet(env *requestEnv, s *resolved.Schema, n ast.NodeTypeSet, caps capabilitySet) (cedarType, capabilitySet, error) {
+func (v *Validator) typeOfSet(env *requestEnv, n ast.NodeTypeSet, caps capabilitySet) (cedarType, capabilitySet, error) {
+	// Strict mode: forbid empty set literals
+	if v.strict && len(n.Elements) == 0 {
+		return nil, caps, fmt.Errorf("empty set literal is not allowed in strict mode")
+	}
 	var elemType cedarType = typeNever{}
 	for _, elem := range n.Elements {
-		et, _, err := typeOfExpr(env, s, elem, caps)
+		et, _, err := v.typeOfExpr(env, elem, caps)
 		if err != nil {
 			return nil, caps, err
 		}
-		// Strict mode: entity types must be related
-		if err := checkStrictEntityLUB(s, elemType, et); err != nil {
+		if err := v.checkStrictEntityLUB(elemType, et); err != nil {
 			return nil, caps, fmt.Errorf("set elements have incompatible entity types")
 		}
-		lub, err := leastUpperBound(elemType, et)
+		lub, err := v.leastUpperBound(elemType, et)
 		if err != nil {
 			return nil, caps, fmt.Errorf("set elements have incompatible types")
 		}
@@ -771,7 +783,7 @@ func typeOfSet(env *requestEnv, s *resolved.Schema, n ast.NodeTypeSet, caps capa
 	return typeSet{element: elemType}, caps, nil
 }
 
-func typeOfExtensionCall(env *requestEnv, s *resolved.Schema, n ast.NodeTypeExtensionCall, caps capabilitySet) (cedarType, capabilitySet, error) {
+func (v *Validator) typeOfExtensionCall(env *requestEnv, n ast.NodeTypeExtensionCall, caps capabilitySet) (cedarType, capabilitySet, error) {
 	sig, ok := extFuncTypes[n.Name]
 	if !ok {
 		return nil, caps, fmt.Errorf("unknown extension function %q", n.Name)
@@ -781,12 +793,28 @@ func typeOfExtensionCall(env *requestEnv, s *resolved.Schema, n ast.NodeTypeExte
 		return nil, caps, fmt.Errorf("extension function %q expects %d arguments, got %d", n.Name, len(sig.argTypes), len(n.Args))
 	}
 
+	// Strict mode: extension constructors require string literal arguments
+	if v.strict {
+		switch n.Name {
+		case "ip", "decimal", "datetime", "duration":
+			for _, arg := range n.Args {
+				nv, ok := arg.(ast.NodeValue)
+				if !ok {
+					return nil, caps, fmt.Errorf("extension function %q requires a string literal argument in strict mode", n.Name)
+				}
+				if _, ok := nv.Value.(types.String); !ok {
+					return nil, caps, fmt.Errorf("extension function %q requires a string literal argument in strict mode", n.Name)
+				}
+			}
+		}
+	}
+
 	for i, arg := range n.Args {
-		argType, _, err := typeOfExpr(env, s, arg, caps)
+		argType, _, err := v.typeOfExpr(env, arg, caps)
 		if err != nil {
 			return nil, caps, err
 		}
-		if !isSubtype(argType, sig.argTypes[i]) {
+		if !v.isSubtype(argType, sig.argTypes[i]) {
 			return nil, caps, fmt.Errorf("extension function %q argument %d: expected %T, got %T", n.Name, i, sig.argTypes[i], argType)
 		}
 	}
@@ -831,13 +859,13 @@ func isEntityOrSetOfEntity(t cedarType) bool {
 // exprVarName extracts a variable name from an expression if it is a simple variable reference
 // or a chain of accesses on a variable.
 func exprVarName(n ast.IsNode) types.String {
-	switch v := n.(type) {
+	switch nd := n.(type) {
 	case ast.NodeTypeVariable:
-		return v.Name
+		return nd.Name
 	case ast.NodeTypeAccess:
-		parent := exprVarName(v.Arg)
+		parent := exprVarName(nd.Arg)
 		if parent != "" {
-			return parent + "." + v.Value
+			return parent + "." + nd.Value
 		}
 	}
 	return ""
@@ -846,18 +874,18 @@ func exprVarName(n ast.IsNode) types.String {
 // validateEntityRefs walks an AST subtree and validates that all entity UID
 // references point to types that exist in the schema. This runs on dead code
 // branches to catch issues even when full type checking is skipped.
-func validateEntityRefs(s *resolved.Schema, n ast.IsNode) error {
-	switch v := n.(type) {
+func (v *Validator) validateEntityRefs(n ast.IsNode) error {
+	switch nd := n.(type) {
 	case ast.NodeValue:
-		if uid, ok := v.Value.(types.EntityUID); ok {
-			if _, err := typeOfEntityUID(s, uid); err != nil {
+		if uid, ok := nd.Value.(types.EntityUID); ok {
+			if _, err := v.typeOfEntityUID(uid); err != nil {
 				return err
 			}
 		}
-		if set, ok := v.Value.(types.Set); ok {
+		if set, ok := nd.Value.(types.Set); ok {
 			for elem := range set.All() {
 				if uid, ok := elem.(types.EntityUID); ok {
-					if _, err := typeOfEntityUID(s, uid); err != nil {
+					if _, err := v.typeOfEntityUID(uid); err != nil {
 						return err
 					}
 				}
@@ -866,96 +894,96 @@ func validateEntityRefs(s *resolved.Schema, n ast.IsNode) error {
 	case ast.NodeTypeVariable:
 		// no entity refs to validate
 	case ast.NodeTypeIfThenElse:
-		if err := validateEntityRefs(s, v.If); err != nil {
+		if err := v.validateEntityRefs(nd.If); err != nil {
 			return err
 		}
-		if err := validateEntityRefs(s, v.Then); err != nil {
+		if err := v.validateEntityRefs(nd.Then); err != nil {
 			return err
 		}
-		return validateEntityRefs(s, v.Else)
+		return v.validateEntityRefs(nd.Else)
 	case ast.NodeTypeExtensionCall:
-		for _, arg := range v.Args {
-			if err := validateEntityRefs(s, arg); err != nil {
+		for _, arg := range nd.Args {
+			if err := v.validateEntityRefs(arg); err != nil {
 				return err
 			}
 		}
 	case ast.NodeTypeRecord:
-		for _, elem := range v.Elements {
-			if err := validateEntityRefs(s, elem.Value); err != nil {
+		for _, elem := range nd.Elements {
+			if err := v.validateEntityRefs(elem.Value); err != nil {
 				return err
 			}
 		}
 	case ast.NodeTypeSet:
-		for _, elem := range v.Elements {
-			if err := validateEntityRefs(s, elem); err != nil {
+		for _, elem := range nd.Elements {
+			if err := v.validateEntityRefs(elem); err != nil {
 				return err
 			}
 		}
 	case ast.NodeTypeAnd:
-		return validateEntityRefsPair(s, v.Left, v.Right)
+		return v.validateEntityRefsPair(nd.Left, nd.Right)
 	case ast.NodeTypeOr:
-		return validateEntityRefsPair(s, v.Left, v.Right)
+		return v.validateEntityRefsPair(nd.Left, nd.Right)
 	case ast.NodeTypeEquals:
-		return validateEntityRefsPair(s, v.Left, v.Right)
+		return v.validateEntityRefsPair(nd.Left, nd.Right)
 	case ast.NodeTypeNotEquals:
-		return validateEntityRefsPair(s, v.Left, v.Right)
+		return v.validateEntityRefsPair(nd.Left, nd.Right)
 	case ast.NodeTypeLessThan:
-		return validateEntityRefsPair(s, v.Left, v.Right)
+		return v.validateEntityRefsPair(nd.Left, nd.Right)
 	case ast.NodeTypeLessThanOrEqual:
-		return validateEntityRefsPair(s, v.Left, v.Right)
+		return v.validateEntityRefsPair(nd.Left, nd.Right)
 	case ast.NodeTypeGreaterThan:
-		return validateEntityRefsPair(s, v.Left, v.Right)
+		return v.validateEntityRefsPair(nd.Left, nd.Right)
 	case ast.NodeTypeGreaterThanOrEqual:
-		return validateEntityRefsPair(s, v.Left, v.Right)
+		return v.validateEntityRefsPair(nd.Left, nd.Right)
 	case ast.NodeTypeAdd:
-		return validateEntityRefsPair(s, v.Left, v.Right)
+		return v.validateEntityRefsPair(nd.Left, nd.Right)
 	case ast.NodeTypeSub:
-		return validateEntityRefsPair(s, v.Left, v.Right)
+		return v.validateEntityRefsPair(nd.Left, nd.Right)
 	case ast.NodeTypeMult:
-		return validateEntityRefsPair(s, v.Left, v.Right)
+		return v.validateEntityRefsPair(nd.Left, nd.Right)
 	case ast.NodeTypeIn:
-		return validateEntityRefsPair(s, v.Left, v.Right)
+		return v.validateEntityRefsPair(nd.Left, nd.Right)
 	case ast.NodeTypeContains:
-		return validateEntityRefsPair(s, v.Left, v.Right)
+		return v.validateEntityRefsPair(nd.Left, nd.Right)
 	case ast.NodeTypeContainsAll:
-		return validateEntityRefsPair(s, v.Left, v.Right)
+		return v.validateEntityRefsPair(nd.Left, nd.Right)
 	case ast.NodeTypeContainsAny:
-		return validateEntityRefsPair(s, v.Left, v.Right)
+		return v.validateEntityRefsPair(nd.Left, nd.Right)
 	case ast.NodeTypeHasTag:
-		return validateEntityRefsPair(s, v.Left, v.Right)
+		return v.validateEntityRefsPair(nd.Left, nd.Right)
 	case ast.NodeTypeGetTag:
-		return validateEntityRefsPair(s, v.Left, v.Right)
+		return v.validateEntityRefsPair(nd.Left, nd.Right)
 	case ast.NodeTypeNegate:
-		return validateEntityRefs(s, v.Arg)
+		return v.validateEntityRefs(nd.Arg)
 	case ast.NodeTypeNot:
-		return validateEntityRefs(s, v.Arg)
+		return v.validateEntityRefs(nd.Arg)
 	case ast.NodeTypeIsEmpty:
-		return validateEntityRefs(s, v.Arg)
+		return v.validateEntityRefs(nd.Arg)
 	case ast.NodeTypeHas:
-		return validateEntityRefs(s, v.Arg)
+		return v.validateEntityRefs(nd.Arg)
 	case ast.NodeTypeAccess:
-		return validateEntityRefs(s, v.Arg)
+		return v.validateEntityRefs(nd.Arg)
 	case ast.NodeTypeLike:
-		return validateEntityRefs(s, v.Arg)
+		return v.validateEntityRefs(nd.Arg)
 	case ast.NodeTypeIs:
-		return validateEntityRefs(s, v.Left)
+		return v.validateEntityRefs(nd.Left)
 	case ast.NodeTypeIsIn:
-		return validateEntityRefsPair(s, v.Left, v.Entity)
+		return v.validateEntityRefsPair(nd.Left, nd.Entity)
 	}
 	return nil
 }
 
-func validateEntityRefsPair(s *resolved.Schema, a, b ast.IsNode) error {
-	if err := validateEntityRefs(s, a); err != nil {
+func (v *Validator) validateEntityRefsPair(a, b ast.IsNode) error {
+	if err := v.validateEntityRefs(a); err != nil {
 		return err
 	}
-	return validateEntityRefs(s, b)
+	return v.validateEntityRefs(b)
 }
 
 // tagCapabilityKey extracts a string key from a tag expression for capability tracking.
 func tagCapabilityKey(n ast.IsNode) types.String {
-	if v, ok := n.(ast.NodeValue); ok {
-		if s, ok := v.Value.(types.String); ok {
+	if nv, ok := n.(ast.NodeValue); ok {
+		if s, ok := nv.Value.(types.String); ok {
 			return s
 		}
 	}

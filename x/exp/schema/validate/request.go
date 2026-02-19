@@ -5,13 +5,12 @@ import (
 	"slices"
 
 	"github.com/cedar-policy/cedar-go/types"
-	"github.com/cedar-policy/cedar-go/x/exp/schema/resolved"
 )
 
 // Request validates a request against the schema.
-func Request(s *resolved.Schema, req types.Request) error {
+func (v *Validator) Request(req types.Request) error {
 	// Look up action
-	action, ok := s.Actions[req.Action]
+	action, ok := v.schema.Actions[req.Action]
 	if !ok {
 		return fmt.Errorf("action %s not found in schema", req.Action)
 	}
@@ -21,7 +20,7 @@ func Request(s *resolved.Schema, req types.Request) error {
 	}
 
 	// Validate principal type
-	if err := validateRequestEntityType(s, req.Principal, "principal"); err != nil {
+	if err := v.validateRequestEntityType(req.Principal, "principal"); err != nil {
 		return err
 	}
 	if !slices.Contains(action.AppliesTo.Principals, req.Principal.Type) {
@@ -29,7 +28,7 @@ func Request(s *resolved.Schema, req types.Request) error {
 	}
 
 	// Validate resource type
-	if err := validateRequestEntityType(s, req.Resource, "resource"); err != nil {
+	if err := v.validateRequestEntityType(req.Resource, "resource"); err != nil {
 		return err
 	}
 	if !slices.Contains(action.AppliesTo.Resources, req.Resource.Type) {
@@ -37,12 +36,12 @@ func Request(s *resolved.Schema, req types.Request) error {
 	}
 
 	// Validate enum IDs for principal/resource
-	if schemaEnum, ok := s.Enums[req.Principal.Type]; ok {
+	if schemaEnum, ok := v.schema.Enums[req.Principal.Type]; ok {
 		if !isValidEnumID(req.Principal, schemaEnum) {
 			return fmt.Errorf("invalid enum ID %q for principal type %q", req.Principal.ID, req.Principal.Type)
 		}
 	}
-	if schemaEnum, ok := s.Enums[req.Resource.Type]; ok {
+	if schemaEnum, ok := v.schema.Enums[req.Resource.Type]; ok {
 		if !isValidEnumID(req.Resource, schemaEnum) {
 			return fmt.Errorf("invalid enum ID %q for resource type %q", req.Resource.ID, req.Resource.Type)
 		}
@@ -56,12 +55,12 @@ func Request(s *resolved.Schema, req types.Request) error {
 	return nil
 }
 
-func validateRequestEntityType(s *resolved.Schema, uid types.EntityUID, role string) error {
+func (v *Validator) validateRequestEntityType(uid types.EntityUID, role string) error {
 	et := uid.Type
-	if _, ok := s.Entities[et]; ok {
+	if _, ok := v.schema.Entities[et]; ok {
 		return nil
 	}
-	if _, ok := s.Enums[et]; ok {
+	if _, ok := v.schema.Enums[et]; ok {
 		return nil
 	}
 	return fmt.Errorf("%s type %q not found in schema", role, et)

@@ -250,7 +250,8 @@ func TestCorpus(t *testing.T) {
 				testutil.OK(t, err)
 
 				// Validate entities (for coverage, but not part of shouldValidate)
-				_ = validate.Entities(rs, entities)
+				v := validate.New(rs)
+				_ = v.Entities(entities)
 
 				// Validate each request (for coverage, but not part of shouldValidate)
 				for _, request := range tt.Requests {
@@ -260,13 +261,13 @@ func TestCorpus(t *testing.T) {
 						Resource:  cedar.EntityUID(request.Resource),
 						Context:   request.Context,
 					}
-					_ = validate.Request(rs, req)
+					_ = v.Request(req)
 				}
 
 				// Validate each policy
 				var policyErrs []error
 				for _, p := range policySet.All() {
-					if err := validate.Policy(rs, (*ast.Policy)(p.AST())); err != nil {
+					if err := v.Policy((*ast.Policy)(p.AST())); err != nil {
 						policyErrs = append(policyErrs, err)
 					}
 				}
