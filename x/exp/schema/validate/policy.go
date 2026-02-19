@@ -12,36 +12,36 @@ import (
 
 // Policy validates a policy against the schema, performing RBAC scope validation
 // and expression type checking.
-func Policy(s *resolved.Schema, policy *ast.Policy) error {
+func (v *Validator) Policy(policy *ast.Policy) error {
 	var errs []error
 
 	// RBAC scope validation
-	principalTypes, err := validatePrincipalScope(s, policy.Principal)
+	principalTypes, err := v.validatePrincipalScope(policy.Principal)
 	if err != nil {
 		errs = append(errs, fmt.Errorf("principal scope: %w", err))
 	}
 
-	actionUIDs, err := validateActionScope(s, policy.Action)
+	actionUIDs, err := v.validateActionScope(policy.Action)
 	if err != nil {
 		errs = append(errs, fmt.Errorf("action scope: %w", err))
 	}
 
-	resourceTypes, err := validateResourceScope(s, policy.Resource)
+	resourceTypes, err := v.validateResourceScope(policy.Resource)
 	if err != nil {
 		errs = append(errs, fmt.Errorf("resource scope: %w", err))
 	}
 
 	// Check action application
-	if err := validateActionApplication(s, principalTypes, resourceTypes, actionUIDs); err != nil {
+	if err := v.validateActionApplication(principalTypes, resourceTypes, actionUIDs); err != nil {
 		errs = append(errs, err)
 	}
 
 	// Expression type checking
-	allEnvs := generateRequestEnvs(s)
-	envs := filterEnvsForPolicy(s, allEnvs, principalTypes, resourceTypes, actionUIDs)
+	allEnvs := v.generateRequestEnvs()
+	envs := v.filterEnvsForPolicy(allEnvs, principalTypes, resourceTypes, actionUIDs)
 
 	if len(envs) > 0 && len(policy.Conditions) > 0 {
-		if err := typecheckConditions(s, envs, policy.Conditions); err != nil {
+		if err := v.typecheckConditions(envs, policy.Conditions); err != nil {
 			errs = append(errs, err)
 		}
 	}
@@ -50,28 +50,28 @@ func Policy(s *resolved.Schema, policy *ast.Policy) error {
 }
 
 // validatePrincipalScope validates the principal scope and returns the entity types it constrains to.
-func validatePrincipalScope(s *resolved.Schema, scope ast.IsPrincipalScopeNode) ([]types.EntityType, error) {
+func (v *Validator) validatePrincipalScope(scope ast.IsPrincipalScopeNode) ([]types.EntityType, error) {
 	switch sc := scope.(type) {
 	case ast.ScopeTypeAll:
 		return nil, nil // matches any type
 	case ast.ScopeTypeEq:
-		return validateScopeEntity(s, sc.Entity)
+		return v.validateScopeEntity(sc.Entity)
 	case ast.ScopeTypeIn:
-		if _, err := validateScopeEntity(s, sc.Entity); err != nil {
+		if _, err := v.validateScopeEntity(sc.Entity); err != nil {
 			return nil, err
 		}
-		return getEntityTypesIn(s, sc.Entity.Type), nil
+		return v.getEntityTypesIn(sc.Entity.Type), nil
 	case ast.ScopeTypeIs:
-		return validateScopeType(s, sc.Type)
+		return v.validateScopeType(sc.Type)
 	case ast.ScopeTypeIsIn:
-		types, err := validateScopeType(s, sc.Type)
+		types, err := v.validateScopeType(sc.Type)
 		if err != nil {
 			return nil, err
 		}
-		if _, err := validateScopeEntity(s, sc.Entity); err != nil {
+		if _, err := v.validateScopeEntity(sc.Entity); err != nil {
 			return nil, err
 		}
-		if err := validateIsInScope(s, sc.Type, sc.Entity.Type); err != nil {
+		if err := v.validateIsInScope(sc.Type, sc.Entity.Type); err != nil {
 			return nil, err
 		}
 		return types, nil
@@ -81,24 +81,24 @@ func validatePrincipalScope(s *resolved.Schema, scope ast.IsPrincipalScopeNode) 
 }
 
 // validateActionScope validates the action scope and returns the action UIDs it constrains to.
-func validateActionScope(s *resolved.Schema, scope ast.IsActionScopeNode) ([]types.EntityUID, error) {
+func (v *Validator) validateActionScope(scope ast.IsActionScopeNode) ([]types.EntityUID, error) {
 	switch sc := scope.(type) {
 	case ast.ScopeTypeAll:
 		return nil, nil // matches any action
 	case ast.ScopeTypeEq:
-		if _, ok := s.Actions[sc.Entity]; !ok {
+		if _, ok := v.schema.Actions[sc.Entity]; !ok {
 			return nil, fmt.Errorf("action %s not found in schema", sc.Entity)
 		}
 		return []types.EntityUID{sc.Entity}, nil
 	case ast.ScopeTypeIn:
-		if _, ok := s.Actions[sc.Entity]; !ok {
+		if _, ok := v.schema.Actions[sc.Entity]; !ok {
 			return nil, fmt.Errorf("action %s not found in schema", sc.Entity)
 		}
 		return []types.EntityUID{sc.Entity}, nil
 	case ast.ScopeTypeInSet:
 		uids := make([]types.EntityUID, 0, len(sc.Entities))
 		for _, uid := range sc.Entities {
-			if _, ok := s.Actions[uid]; !ok {
+			if _, ok := v.schema.Actions[uid]; !ok {
 				return nil, fmt.Errorf("action %s not found in schema", uid)
 			}
 			uids = append(uids, uid)
@@ -110,28 +110,28 @@ func validateActionScope(s *resolved.Schema, scope ast.IsActionScopeNode) ([]typ
 }
 
 // validateResourceScope validates the resource scope and returns the entity types it constrains to.
-func validateResourceScope(s *resolved.Schema, scope ast.IsResourceScopeNode) ([]types.EntityType, error) {
+func (v *Validator) validateResourceScope(scope ast.IsResourceScopeNode) ([]types.EntityType, error) {
 	switch sc := scope.(type) {
 	case ast.ScopeTypeAll:
 		return nil, nil
 	case ast.ScopeTypeEq:
-		return validateScopeEntity(s, sc.Entity)
+		return v.validateScopeEntity(sc.Entity)
 	case ast.ScopeTypeIn:
-		if _, err := validateScopeEntity(s, sc.Entity); err != nil {
+		if _, err := v.validateScopeEntity(sc.Entity); err != nil {
 			return nil, err
 		}
-		return getEntityTypesIn(s, sc.Entity.Type), nil
+		return v.getEntityTypesIn(sc.Entity.Type), nil
 	case ast.ScopeTypeIs:
-		return validateScopeType(s, sc.Type)
+		return v.validateScopeType(sc.Type)
 	case ast.ScopeTypeIsIn:
-		types, err := validateScopeType(s, sc.Type)
+		types, err := v.validateScopeType(sc.Type)
 		if err != nil {
 			return nil, err
 		}
-		if _, err := validateScopeEntity(s, sc.Entity); err != nil {
+		if _, err := v.validateScopeEntity(sc.Entity); err != nil {
 			return nil, err
 		}
-		if err := validateIsInScope(s, sc.Type, sc.Entity.Type); err != nil {
+		if err := v.validateIsInScope(sc.Type, sc.Entity.Type); err != nil {
 			return nil, err
 		}
 		return types, nil
@@ -140,30 +140,30 @@ func validateResourceScope(s *resolved.Schema, scope ast.IsResourceScopeNode) ([
 	}
 }
 
-func validateScopeEntity(s *resolved.Schema, uid types.EntityUID) ([]types.EntityType, error) {
+func (v *Validator) validateScopeEntity(uid types.EntityUID) ([]types.EntityType, error) {
 	et := uid.Type
-	if _, ok := s.Entities[et]; ok {
+	if _, ok := v.schema.Entities[et]; ok {
 		return []types.EntityType{et}, nil
 	}
-	if schemaEnum, ok := s.Enums[et]; ok {
+	if schemaEnum, ok := v.schema.Enums[et]; ok {
 		if !isValidEnumID(uid, schemaEnum) {
 			return nil, fmt.Errorf("invalid enum value %q for type %q", uid.ID, et)
 		}
 		return []types.EntityType{et}, nil
 	}
 	if isActionEntity(et) {
-		if _, ok := s.Actions[uid]; ok {
+		if _, ok := v.schema.Actions[uid]; ok {
 			return []types.EntityType{et}, nil
 		}
 	}
 	return nil, fmt.Errorf("entity type %q not found in schema", et)
 }
 
-func validateScopeType(s *resolved.Schema, et types.EntityType) ([]types.EntityType, error) {
-	if _, ok := s.Entities[et]; ok {
+func (v *Validator) validateScopeType(et types.EntityType) ([]types.EntityType, error) {
+	if _, ok := v.schema.Entities[et]; ok {
 		return []types.EntityType{et}, nil
 	}
-	if _, ok := s.Enums[et]; ok {
+	if _, ok := v.schema.Enums[et]; ok {
 		return []types.EntityType{et}, nil
 	}
 	return nil, fmt.Errorf("entity type %q not found in schema", et)
@@ -171,7 +171,7 @@ func validateScopeType(s *resolved.Schema, et types.EntityType) ([]types.EntityT
 
 // validateActionApplication checks that at least one action's AppliesTo intersects
 // the policy's principal AND resource constraints.
-func validateActionApplication(s *resolved.Schema, principalTypes, resourceTypes []types.EntityType, actionUIDs []types.EntityUID) error {
+func (v *Validator) validateActionApplication(principalTypes, resourceTypes []types.EntityType, actionUIDs []types.EntityUID) error {
 	// If we have no constraints on anything, it's valid
 	if principalTypes == nil && resourceTypes == nil && actionUIDs == nil {
 		return nil
@@ -180,20 +180,20 @@ func validateActionApplication(s *resolved.Schema, principalTypes, resourceTypes
 	// Collect relevant actions
 	var actions []resolved.Action
 	if actionUIDs == nil {
-		for _, a := range s.Actions {
+		for _, a := range v.schema.Actions {
 			actions = append(actions, a)
 		}
 	} else {
 		for _, uid := range actionUIDs {
-			if a, ok := s.Actions[uid]; ok {
+			if a, ok := v.schema.Actions[uid]; ok {
 				actions = append(actions, a)
 			}
 			// Also include actions that are descendants of the specified actions
-			for aUID, a := range s.Actions {
+			for aUID, a := range v.schema.Actions {
 				if aUID == uid {
 					continue
 				}
-				if isActionDescendant(s, aUID, uid) {
+				if v.isActionDescendant(aUID, uid) {
 					actions = append(actions, a)
 				}
 			}
@@ -231,8 +231,8 @@ func validateActionApplication(s *resolved.Schema, principalTypes, resourceTypes
 }
 
 // isActionDescendant checks if actionUID is a descendant of ancestorUID.
-func isActionDescendant(s *resolved.Schema, actionUID, ancestorUID types.EntityUID) bool {
-	action, ok := s.Actions[actionUID]
+func (v *Validator) isActionDescendant(actionUID, ancestorUID types.EntityUID) bool {
+	action, ok := v.schema.Actions[actionUID]
 	if !ok {
 		return false
 	}
@@ -240,7 +240,7 @@ func isActionDescendant(s *resolved.Schema, actionUID, ancestorUID types.EntityU
 		if parent == ancestorUID {
 			return true
 		}
-		if isActionDescendant(s, parent, ancestorUID) {
+		if v.isActionDescendant(parent, ancestorUID) {
 			return true
 		}
 	}
@@ -249,9 +249,9 @@ func isActionDescendant(s *resolved.Schema, actionUID, ancestorUID types.EntityU
 
 // validateIsInScope checks that the `is` type can actually be "in" the `in` entity's type.
 // For `principal is X in Y::""`, X must be a type that can be a descendant of Y's type.
-func validateIsInScope(s *resolved.Schema, isType, inType types.EntityType) error {
+func (v *Validator) validateIsInScope(isType, inType types.EntityType) error {
 	// Collect all entity types that can be "in" inType (i.e., descendants + itself)
-	typesIn := getEntityTypesIn(s, inType)
+	typesIn := v.getEntityTypesIn(inType)
 	if !slices.Contains(typesIn, isType) {
 		return fmt.Errorf("entity type %q can never be a member of entity type %q", isType, inType)
 	}
@@ -260,10 +260,10 @@ func validateIsInScope(s *resolved.Schema, isType, inType types.EntityType) erro
 
 // getEntityTypesIn returns all entity types that can be "in" (descendants of) the given entity type,
 // including the type itself.
-func getEntityTypesIn(s *resolved.Schema, target types.EntityType) []types.EntityType {
+func (v *Validator) getEntityTypesIn(target types.EntityType) []types.EntityType {
 	result := []types.EntityType{target}
 	// Find all entity types whose ParentTypes include the target (direct children)
-	for name, entity := range s.Entities {
+	for name, entity := range v.schema.Entities {
 		if slices.Contains(entity.ParentTypes, target) {
 			result = append(result, name)
 		}
@@ -272,7 +272,7 @@ func getEntityTypesIn(s *resolved.Schema, target types.EntityType) []types.Entit
 	changed := true
 	for changed {
 		changed = false
-		for name, entity := range s.Entities {
+		for name, entity := range v.schema.Entities {
 			if slices.Contains(result, name) {
 				continue
 			}
@@ -288,12 +288,12 @@ func getEntityTypesIn(s *resolved.Schema, target types.EntityType) []types.Entit
 	return result
 }
 
-func typecheckConditions(s *resolved.Schema, envs []requestEnv, conditions []ast.ConditionType) error {
+func (v *Validator) typecheckConditions(envs []requestEnv, conditions []ast.ConditionType) error {
 	var errs []error
 	for _, env := range envs {
 		for i, cond := range conditions {
 			caps := newCapabilitySet()
-			t, _, err := typeOfExpr(&env, s, cond.Body, caps)
+			t, _, err := v.typeOfExpr(&env, cond.Body, caps)
 			if err != nil {
 				errs = append(errs, fmt.Errorf("condition %d: %w", i, err))
 				continue

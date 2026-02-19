@@ -63,7 +63,7 @@ func singleEntityLUB(et types.EntityType) entityLUB {
 }
 
 // isSubtype returns true if a is a subtype of b.
-func isSubtype(a, b cedarType) bool {
+func (v *Validator) isSubtype(a, b cedarType) bool {
 	// Never is subtype of everything
 	if _, ok := a.(typeNever); ok {
 		return true
@@ -94,13 +94,13 @@ func isSubtype(a, b cedarType) bool {
 		if !ok {
 			return false
 		}
-		return isSubtype(av.element, bv.element)
+		return v.isSubtype(av.element, bv.element)
 	case typeRecord:
 		av, ok := a.(typeRecord)
 		if !ok {
 			return false
 		}
-		return isSubtypeRecord(av, bv)
+		return v.isSubtypeRecord(av, bv)
 	case typeEntity:
 		av, ok := a.(typeEntity)
 		if !ok {
@@ -109,8 +109,15 @@ func isSubtype(a, b cedarType) bool {
 			}
 			return false
 		}
+		if v.strict {
+			return equalLUB(av.lub, bv.lub)
+		}
 		return isSubsetLUB(av.lub, bv.lub)
 	case typeAnyEntity:
+		if v.strict {
+			_, ok := a.(typeAnyEntity)
+			return ok
+		}
 		switch a.(type) {
 		case typeEntity, typeAnyEntity:
 			return true
@@ -126,10 +133,10 @@ func isSubtype(a, b cedarType) bool {
 	return false
 }
 
-func isSubtypeRecord(a, b typeRecord) bool {
-	// If b is open, a just needs to have all of b's required attrs as subtypes
-	// If b is closed, a must not have extra attrs
-	if !b.openAttributes {
+func (v *Validator) isSubtypeRecord(a, b typeRecord) bool {
+	// Strict: no width subtyping (always reject extra attrs)
+	// Permissive: only reject extras when b is closed
+	if v.strict || !b.openAttributes {
 		for k := range a.attrs {
 			if _, ok := b.attrs[k]; !ok {
 				return false
@@ -144,15 +151,26 @@ func isSubtypeRecord(a, b typeRecord) bool {
 			}
 			continue
 		}
-		if !isSubtype(aAttr.typ, bAttr.typ) {
+		if !v.isSubtype(aAttr.typ, bAttr.typ) {
 			return false
 		}
-		// If b requires it, a must also require it
-		if bAttr.required && !aAttr.required {
-			return false
+		if v.strict {
+			// Strict: required/optional must match exactly
+			if aAttr.required != bAttr.required {
+				return false
+			}
+		} else {
+			// Permissive: only fail if b requires but a doesn't
+			if bAttr.required && !aAttr.required {
+				return false
+			}
 		}
 	}
 	return true
+}
+
+func equalLUB(a, b entityLUB) bool {
+	return slices.Equal(a.elements, b.elements)
 }
 
 func isSubsetLUB(a, b entityLUB) bool {
@@ -165,7 +183,7 @@ func isSubsetLUB(a, b entityLUB) bool {
 }
 
 // leastUpperBound computes the LUB of two types.
-func leastUpperBound(a, b cedarType) (cedarType, error) {
+func (v *Validator) leastUpperBound(a, b cedarType) (cedarType, error) {
 	if _, ok := a.(typeNever); ok {
 		return b, nil
 	}
@@ -203,7 +221,7 @@ func leastUpperBound(a, b cedarType) (cedarType, error) {
 		}
 	case typeSet:
 		if bv, ok := b.(typeSet); ok {
-			elem, err := leastUpperBound(av.element, bv.element)
+			elem, err := v.leastUpperBound(av.element, bv.element)
 			if err != nil {
 				return nil, err
 			}
@@ -211,7 +229,7 @@ func leastUpperBound(a, b cedarType) (cedarType, error) {
 		}
 	case typeRecord:
 		if bv, ok := b.(typeRecord); ok {
-			return lubRecord(av, bv)
+			return v.lubRecord(av, bv)
 		}
 	case typeEntity:
 		switch bv := b.(type) {
@@ -234,25 +252,34 @@ func leastUpperBound(a, b cedarType) (cedarType, error) {
 	return nil, fmt.Errorf("incompatible types for least upper bound")
 }
 
-func lubRecord(a, b typeRecord) (cedarType, error) {
+func (v *Validator) lubRecord(a, b typeRecord) (cedarType, error) {
 	attrs := make(map[types.String]attributeType)
 	// Attributes in both
 	for k, aAttr := range a.attrs {
 		if bAttr, ok := b.attrs[k]; ok {
-			lub, err := leastUpperBound(aAttr.typ, bAttr.typ)
+			lub, err := v.leastUpperBound(aAttr.typ, bAttr.typ)
 			if err != nil {
 				return nil, err
+			}
+			if v.strict && aAttr.required != bAttr.required {
+				return nil, fmt.Errorf("incompatible record types for least upper bound")
 			}
 			attrs[k] = attributeType{
 				typ:      lub,
 				required: aAttr.required && bAttr.required,
 			}
 		} else {
+			if v.strict {
+				return nil, fmt.Errorf("incompatible record types for least upper bound")
+			}
 			attrs[k] = attributeType{typ: aAttr.typ, required: false}
 		}
 	}
 	for k, bAttr := range b.attrs {
 		if _, ok := a.attrs[k]; !ok {
+			if v.strict {
+				return nil, fmt.Errorf("incompatible record types for least upper bound")
+			}
 			attrs[k] = attributeType{typ: bAttr.typ, required: false}
 		}
 	}
@@ -303,7 +330,7 @@ func schemaRecordToCedarType(rec resolved.RecordType) typeRecord {
 }
 
 // lookupAttributeType looks up an attribute on a type using schema information.
-func lookupAttributeType(s *resolved.Schema, ty cedarType, attr types.String) *attributeType {
+func (v *Validator) lookupAttributeType(ty cedarType, attr types.String) *attributeType {
 	switch tv := ty.(type) {
 	case typeRecord:
 		if a, ok := tv.attrs[attr]; ok {
@@ -311,19 +338,19 @@ func lookupAttributeType(s *resolved.Schema, ty cedarType, attr types.String) *a
 		}
 		return nil
 	case typeEntity:
-		return lookupEntityAttr(s, tv.lub, attr)
+		return v.lookupEntityAttr(tv.lub, attr)
 	default:
 		return nil
 	}
 }
 
-func lookupEntityAttr(s *resolved.Schema, lub entityLUB, attr types.String) *attributeType {
+func (v *Validator) lookupEntityAttr(lub entityLUB, attr types.String) *attributeType {
 	if len(lub.elements) == 0 {
 		return nil
 	}
 	var result *attributeType
 	for _, et := range lub.elements {
-		entity, ok := s.Entities[et]
+		entity, ok := v.schema.Entities[et]
 		if !ok {
 			return nil
 		}
@@ -338,12 +365,12 @@ func lookupEntityAttr(s *resolved.Schema, lub entityLUB, attr types.String) *att
 		if result == nil {
 			result = at
 		} else {
-			lub, err := leastUpperBound(result.typ, at.typ)
+			lubType, err := v.leastUpperBound(result.typ, at.typ)
 			if err != nil {
 				return nil
 			}
 			result = &attributeType{
-				typ:      lub,
+				typ:      lubType,
 				required: result.required && at.required,
 			}
 		}
@@ -352,7 +379,7 @@ func lookupEntityAttr(s *resolved.Schema, lub entityLUB, attr types.String) *att
 }
 
 // mayHaveAttr returns true if the type might have the given attribute.
-func mayHaveAttr(s *resolved.Schema, ty cedarType, attr types.String) bool {
+func (v *Validator) mayHaveAttr(ty cedarType, attr types.String) bool {
 	switch tv := ty.(type) {
 	case typeRecord:
 		if tv.openAttributes {
@@ -361,7 +388,7 @@ func mayHaveAttr(s *resolved.Schema, ty cedarType, attr types.String) bool {
 		_, ok := tv.attrs[attr]
 		return ok
 	case typeEntity:
-		return mayEntityHaveAttr(s, tv.lub, attr)
+		return v.mayEntityHaveAttr(tv.lub, attr)
 	case typeAnyEntity:
 		return true
 	default:
@@ -369,9 +396,9 @@ func mayHaveAttr(s *resolved.Schema, ty cedarType, attr types.String) bool {
 	}
 }
 
-func mayEntityHaveAttr(s *resolved.Schema, lub entityLUB, attr types.String) bool {
+func (v *Validator) mayEntityHaveAttr(lub entityLUB, attr types.String) bool {
 	for _, et := range lub.elements {
-		entity, ok := s.Entities[et]
+		entity, ok := v.schema.Entities[et]
 		if !ok {
 			continue
 		}
@@ -383,12 +410,12 @@ func mayEntityHaveAttr(s *resolved.Schema, lub entityLUB, attr types.String) boo
 }
 
 // entityHasTags returns true if all entities in the LUB have tags defined.
-func entityHasTags(s *resolved.Schema, lub entityLUB) bool {
+func (v *Validator) entityHasTags(lub entityLUB) bool {
 	if len(lub.elements) == 0 {
 		return false
 	}
 	for _, et := range lub.elements {
-		entity, ok := s.Entities[et]
+		entity, ok := v.schema.Entities[et]
 		if !ok {
 			return false
 		}
@@ -400,13 +427,13 @@ func entityHasTags(s *resolved.Schema, lub entityLUB) bool {
 }
 
 // entityTagType returns the LUB of the tag types for all entities in the LUB.
-func entityTagType(s *resolved.Schema, lub entityLUB) cedarType {
+func (v *Validator) entityTagType(lub entityLUB) cedarType {
 	if len(lub.elements) == 0 {
 		return typeNever{}
 	}
 	var result cedarType = typeNever{}
 	for _, et := range lub.elements {
-		entity, ok := s.Entities[et]
+		entity, ok := v.schema.Entities[et]
 		if !ok {
 			return typeNever{}
 		}
@@ -414,18 +441,21 @@ func entityTagType(s *resolved.Schema, lub entityLUB) cedarType {
 			return typeNever{}
 		}
 		tagType := schemaTypeToCedarType(entity.Tags)
-		lub, err := leastUpperBound(result, tagType)
+		tagLUB, err := v.leastUpperBound(result, tagType)
 		if err != nil {
 			return typeNever{}
 		}
-		result = lub
+		result = tagLUB
 	}
 	return result
 }
 
 // checkStrictEntityLUB checks if two types have compatible entity types in strict mode.
 // In strict mode, entity LUBs between unrelated entity types are disallowed.
-func checkStrictEntityLUB(s *resolved.Schema, a, b cedarType) error {
+func (v *Validator) checkStrictEntityLUB(a, b cedarType) error {
+	if !v.strict {
+		return nil
+	}
 	if _, ok := a.(typeNever); ok {
 		return nil
 	}
@@ -437,7 +467,7 @@ func checkStrictEntityLUB(s *resolved.Schema, a, b cedarType) error {
 	if !aOk || !bOk {
 		return nil
 	}
-	if !entityLUBsRelated(s, ae.lub, be.lub) {
+	if !v.entityLUBsRelated(ae.lub, be.lub) {
 		return fmt.Errorf("entity types are incompatible in strict mode")
 	}
 	return nil
@@ -445,13 +475,13 @@ func checkStrictEntityLUB(s *resolved.Schema, a, b cedarType) error {
 
 // entityLUBsRelated returns true if any entity type in LUB a is related to
 // any entity type in LUB b (same type, or ancestor/descendant relationship).
-func entityLUBsRelated(s *resolved.Schema, a, b entityLUB) bool {
+func (v *Validator) entityLUBsRelated(a, b entityLUB) bool {
 	for _, at := range a.elements {
 		for _, bt := range b.elements {
 			if at == bt {
 				return true
 			}
-			if isEntityDescendant(s, at, bt) || isEntityDescendant(s, bt, at) {
+			if v.isEntityDescendant(at, bt) || v.isEntityDescendant(bt, at) {
 				return true
 			}
 		}
@@ -461,8 +491,8 @@ func entityLUBsRelated(s *resolved.Schema, a, b entityLUB) bool {
 
 // isEntityDescendant returns true if childType can be a descendant (member) of ancestorType.
 // This means childType lists ancestorType (directly or transitively) in its ParentTypes.
-func isEntityDescendant(s *resolved.Schema, childType, ancestorType types.EntityType) bool {
-	entity, ok := s.Entities[childType]
+func (v *Validator) isEntityDescendant(childType, ancestorType types.EntityType) bool {
+	entity, ok := v.schema.Entities[childType]
 	if !ok {
 		return false
 	}
@@ -470,7 +500,7 @@ func isEntityDescendant(s *resolved.Schema, childType, ancestorType types.Entity
 		if parent == ancestorType {
 			return true
 		}
-		if isEntityDescendant(s, parent, ancestorType) {
+		if v.isEntityDescendant(parent, ancestorType) {
 			return true
 		}
 	}
