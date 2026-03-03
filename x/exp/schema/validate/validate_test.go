@@ -716,7 +716,7 @@ func TestTypeCheckStrict(t *testing.T) {
 				Left:  ast.NodeTypeVariable{Name: "principal"},
 				Right: ast.NodeValue{Value: types.String("foo")},
 			}},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "containsLongSetStringArg",
@@ -2899,7 +2899,7 @@ func TestFilterEnvsNoMatch(t *testing.T) {
 	testutil.Equals(t, len(filtered), 0)
 }
 
-func TestIsActionInGroupTransitive(t *testing.T) {
+func TestIsActionDescendantTransitive(t *testing.T) {
 	t.Parallel()
 	// Create action hierarchy: child → parent → grandparent
 	s := &resolved.Schema{
@@ -2924,18 +2924,18 @@ func TestIsActionInGroupTransitive(t *testing.T) {
 		},
 	}
 	v := New(s)
-	// child is in grandparent (transitive)
-	testutil.Equals(t, v.isActionInGroup(
+	// child is descendant of grandparent (transitive)
+	testutil.Equals(t, v.isActionDescendant(
 		types.NewEntityUID("Action", "child"),
 		types.NewEntityUID("Action", "grandparent")), true)
 
 	// Unknown action → false
-	testutil.Equals(t, v.isActionInGroup(
+	testutil.Equals(t, v.isActionDescendant(
 		types.NewEntityUID("Action", "unknown"),
 		types.NewEntityUID("Action", "grandparent")), false)
 
-	// Not in group → false
-	testutil.Equals(t, v.isActionInGroup(
+	// Not a descendant → false
+	testutil.Equals(t, v.isActionDescendant(
 		types.NewEntityUID("Action", "grandparent"),
 		types.NewEntityUID("Action", "child")), false)
 }
@@ -3548,19 +3548,21 @@ func TestIsActionDescendantRecursive(t *testing.T) {
 		types.NewEntityUID("Action", "nonexistent")), false)
 }
 
-func TestMatchesActionConstraintInGroup(t *testing.T) {
+func TestMatchesActionConstraint(t *testing.T) {
 	t.Parallel()
-	s := testSchema()
-	v := New(s)
-	// Action that is in a group of the constraint
-	testutil.Equals(t, v.matchesActionConstraint(
+	// matchesActionConstraint only checks direct equality (group expansion is done in validateActionScope)
+	testutil.Equals(t, matchesActionConstraint(
 		types.NewEntityUID("Action", "edit"),
-		[]types.EntityUID{types.NewEntityUID("Action", "view")}), true)
+		[]types.EntityUID{types.NewEntityUID("Action", "edit")}), true)
 
-	// Action that is not in group
-	testutil.Equals(t, v.matchesActionConstraint(
-		types.NewEntityUID("Action", "view"),
-		[]types.EntityUID{types.NewEntityUID("Action", "edit")}), false)
+	// Non-matching action
+	testutil.Equals(t, matchesActionConstraint(
+		types.NewEntityUID("Action", "edit"),
+		[]types.EntityUID{types.NewEntityUID("Action", "view")}), false)
+
+	// Nil constraints match everything
+	testutil.Equals(t, matchesActionConstraint(
+		types.NewEntityUID("Action", "edit"), nil), true)
 }
 
 func TestFilterEnvsForPolicyFilters(t *testing.T) {

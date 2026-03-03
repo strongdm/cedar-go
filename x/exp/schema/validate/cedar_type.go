@@ -10,6 +10,8 @@ import (
 )
 
 // cedarType is the sum type representing Cedar types for the type checker.
+//
+//sumtype:decl
 type cedarType interface {
 	isCedarType()
 }
@@ -46,7 +48,11 @@ type attributeType struct {
 	required bool
 }
 
-// entityLUB represents the least upper bound of a set of entity types.
+// entityLUB represents the least upper bound (LUB) of a set of entity types.
+// In type theory, the LUB is the most specific type that is a supertype of all
+// given types. For entities, this is the union of the entity type names: e.g.
+// the LUB of User and Admin is {User, Admin}. Elements are stored sorted for
+// deterministic equality comparison.
 type entityLUB struct {
 	elements []types.EntityType // sorted, unique
 }
@@ -58,6 +64,8 @@ func newEntityLUB(types ...types.EntityType) entityLUB {
 	return entityLUB{elements: elems}
 }
 
+// singleEntityLUB is an optimized constructor for the common single-element case,
+// avoiding the clone/sort/compact overhead of newEntityLUB.
 func singleEntityLUB(et types.EntityType) entityLUB {
 	return entityLUB{elements: []types.EntityType{et}}
 }
@@ -104,10 +112,7 @@ func (v *Validator) isSubtype(a, b cedarType) bool {
 	case typeEntity:
 		av, ok := a.(typeEntity)
 		if !ok {
-			if _, ok := a.(typeAnyEntity); ok {
-				return false
-			}
-			return false
+			return false // includes typeAnyEntity: AnyEntity is not a subtype of a named Entity
 		}
 		if v.strict {
 			return equalLUB(av.lub, bv.lub)
@@ -314,6 +319,8 @@ func schemaTypeToCedarType(t resolved.IsType) cedarType {
 	case resolved.EntityType:
 		return typeEntity{lub: singleEntityLUB(types.EntityType(t))}
 	default:
+		// All known resolved.IsType variants are handled above.
+		// Return typeNever (bottom type) for any unexpected variants.
 		return typeNever{}
 	}
 }

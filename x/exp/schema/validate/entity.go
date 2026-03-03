@@ -46,14 +46,17 @@ func (v *Validator) validateActionEntity(entity types.Entity) error {
 		return fmt.Errorf("action %s not found in schema", entity.UID)
 	}
 
-	// Verify parents match
-	schemaParents := make(map[types.EntityUID]bool)
-	for parent := range action.Entity.Parents.All() {
-		schemaParents[parent] = true
+	// Action entities should not have attributes or tags
+	if entity.Attributes.Len() > 0 {
+		return fmt.Errorf("action %s should not have attributes", entity.UID)
+	}
+	if entity.Tags.Len() > 0 {
+		return fmt.Errorf("action %s should not have tags", entity.UID)
 	}
 
+	// Verify parents match
 	for parent := range entity.Parents.All() {
-		if !schemaParents[parent] {
+		if !action.Entity.Parents.Contains(parent) {
 			return fmt.Errorf("action %s has unexpected parent %s", entity.UID, parent)
 		}
 	}
@@ -69,7 +72,7 @@ func (v *Validator) validateActionEntity(entity types.Entity) error {
 func (v *Validator) validateEntity(entity types.Entity, schemaEntity resolved.Entity) error {
 	// Validate parents
 	for parent := range entity.Parents.All() {
-		if !isValidParentType(parent.Type, schemaEntity.ParentTypes) {
+		if !slices.Contains(schemaEntity.ParentTypes, parent.Type) {
 			return fmt.Errorf("invalid parent type %q for entity type %q", parent.Type, entity.UID.Type)
 		}
 		// If parent is an enum type, validate the ID
@@ -91,7 +94,7 @@ func (v *Validator) validateEntity(entity types.Entity, schemaEntity resolved.En
 			return fmt.Errorf("entity type %q does not allow tags", entity.UID.Type)
 		}
 	} else {
-		for _, tagVal := range entity.Tags.All() {
+		for tagVal := range entity.Tags.Values() {
 			if err := checkValue(tagVal, schemaEntity.Tags); err != nil {
 				return fmt.Errorf("tag value: %w", err)
 			}
@@ -118,10 +121,6 @@ func validateEnumEntity(entity types.Entity, schemaEnum resolved.Enum) error {
 	}
 
 	return nil
-}
-
-func isValidParentType(parentType types.EntityType, allowedTypes []types.EntityType) bool {
-	return slices.Contains(allowedTypes, parentType)
 }
 
 func isValidEnumID(uid types.EntityUID, schemaEnum resolved.Enum) bool {

@@ -347,17 +347,14 @@ func (v *Validator) typeOfIfThenElse(env *requestEnv, n ast.NodeTypeIfThenElse, 
 }
 
 func (v *Validator) typeOfEquality(env *requestEnv, left, right ast.IsNode, caps capabilitySet) (cedarType, capabilitySet, error) {
-	lt, _, err := v.typeOfExpr(env, left, caps)
+	// Equality between incompatible types is valid Cedar; it evaluates to false at runtime.
+	_, _, err := v.typeOfExpr(env, left, caps)
 	if err != nil {
 		return nil, caps, err
 	}
-	rt, _, err := v.typeOfExpr(env, right, caps)
+	_, _, err = v.typeOfExpr(env, right, caps)
 	if err != nil {
 		return nil, caps, err
-	}
-	// Types must be compatible (LUB must exist) for equality to make sense
-	if _, err := v.leastUpperBound(lt, rt); err != nil {
-		return nil, caps, fmt.Errorf("equality comparison between incompatible types %T and %T", lt, rt)
 	}
 	return typeBool{}, caps, nil
 }

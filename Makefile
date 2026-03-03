@@ -1,4 +1,4 @@
-.PHONY: test linters corpus-update
+.PHONY: test linters corpus-update corpus-validate
 
 # Run all tests
 test:
@@ -31,7 +31,29 @@ corpus-tests-json-schemas.tar.gz: corpus-tests.tar.gz
 	@rm -rf /tmp/corpus-tests /tmp/corpus-tests-json-schemas
 	@echo "Done! Created corpus-tests-json-schemas.tar.gz"
 
-# Download and convert
+# Build cedar-validation-tool and generate validation results
+test/cedar-validation-tool/target/release/cedar-validation-tool: test/cedar-validation-tool/src/main.rs test/cedar-validation-tool/Cargo.toml
+	@echo "Building cedar-validation-tool..."
+	@cd test/cedar-validation-tool && cargo build --release
+
+corpus-validate: corpus-tests.tar.gz test/cedar-validation-tool/target/release/cedar-validation-tool
+	@echo "Generating validation results from Rust Cedar..."
+	@rm -rf /tmp/corpus-tests /tmp/corpus-tests-validation
+	@mkdir -p /tmp/corpus-tests-validation
+	@tar -xzf corpus-tests.tar.gz -C /tmp/
+	@for testjson in /tmp/corpus-tests/*.json; do \
+		case "$$testjson" in *.entities.json) continue ;; esac; \
+		basename=$$(basename $$testjson .json); \
+		test/cedar-validation-tool/target/release/cedar-validation-tool \
+			"$$testjson" "/tmp/corpus-tests-validation/$${basename}.validation.json"; \
+	done
+	@cd /tmp && tar -czf corpus-tests-validation.tar.gz corpus-tests-validation/
+	@mv /tmp/corpus-tests-validation.tar.gz .
+	@rm -rf /tmp/corpus-tests /tmp/corpus-tests-validation
+	@echo "Done! Created corpus-tests-validation.tar.gz"
+
+# Download, convert, and validate
 corpus-update:
 	rm -f corpus-tests.tar.gz corpus-tests-json-schemas.tar.gz
 	$(MAKE) corpus-tests-json-schemas.tar.gz
+	$(MAKE) corpus-validate

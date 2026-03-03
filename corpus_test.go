@@ -61,6 +61,25 @@ var corpusArchive []byte
 //go:embed corpus-tests-json-schemas.tar.gz
 var corpusJSONSchemasArchive []byte
 
+//go:embed corpus-tests-validation.tar.gz
+var corpusValidationArchive []byte
+
+type corpusValidation struct {
+	PolicyValidation struct {
+		Strict     bool `json:"strict"`
+		Permissive bool `json:"permissive"`
+	} `json:"policyValidation"`
+	EntityValidation struct {
+		Strict     bool `json:"strict"`
+		Permissive bool `json:"permissive"`
+	} `json:"entityValidation"`
+	RequestValidation []struct {
+		Description string `json:"description"`
+		Strict      *bool  `json:"strict"`
+		Permissive  *bool  `json:"permissive"`
+	} `json:"requestValidation"`
+}
+
 type tarFileDataPointer struct {
 	Position int64
 	Size     int64
@@ -141,6 +160,9 @@ func TestCorpus(t *testing.T) {
 
 	// Load JSON schemas for validation
 	jsonSchemasFdm := loadTarGz(t, corpusJSONSchemasArchive)
+
+	// Load validation results from Rust Cedar
+	validationFdm := loadTarGz(t, corpusValidationArchive)
 
 	for _, testFile := range testFiles {
 		testFile := testFile
@@ -244,38 +266,91 @@ func TestCorpus(t *testing.T) {
 				t.Fatal("error parsing policy set", err)
 			}
 
-			t.Run("schema-validation", func(t *testing.T) {
+			// Load Rust validation results for this test
+			testBasename := strings.TrimSuffix(strings.TrimPrefix(testFile, "corpus-tests/"), ".json")
+			validationPath := fmt.Sprintf("corpus-tests-validation/%s.validation.json", testBasename)
+			validationContent, err := validationFdm.GetFileData(validationPath)
+			if err != nil {
+				t.Fatal("error reading validation data", err)
+			}
+			var cv corpusValidation
+			if err := json.Unmarshal(validationContent, &cv); err != nil {
+				t.Fatal("error unmarshalling validation data", err)
+			}
+
+			rs, err := s.Resolve()
+			testutil.OK(t, err)
+
+			t.Run("validate-policy-strict", func(t *testing.T) {
 				t.Parallel()
-				rs, err := s.Resolve()
-				testutil.OK(t, err)
-
-				// Validate entities (for coverage, but not part of shouldValidate)
-				v := validate.New(rs)
-				_ = v.Entities(entities)
-
-				// Validate each request (for coverage, but not part of shouldValidate)
-				for _, request := range tt.Requests {
-					req := cedar.Request{
-						Principal: cedar.EntityUID(request.Principal),
-						Action:    cedar.EntityUID(request.Action),
-						Resource:  cedar.EntityUID(request.Resource),
-						Context:   request.Context,
-					}
-					_ = v.Request(req)
-				}
-
-				// Validate each policy
+				v := validate.New(rs, validate.WithStrict())
 				var policyErrs []error
 				for _, p := range policySet.All() {
 					if err := v.Policy((*ast.Policy)(p.AST())); err != nil {
 						policyErrs = append(policyErrs, err)
 					}
 				}
-
-				// Only policy validation errors determine shouldValidate (matching Rust behavior)
 				allValid := len(policyErrs) == 0
-				testutil.Equals(t, allValid, tt.ShouldValidate)
+				testutil.Equals(t, allValid, cv.PolicyValidation.Strict)
 			})
+
+			t.Run("validate-policy-permissive", func(t *testing.T) {
+				t.Parallel()
+				v := validate.New(rs, validate.WithPermissive())
+				var policyErrs []error
+				for _, p := range policySet.All() {
+					if err := v.Policy((*ast.Policy)(p.AST())); err != nil {
+						policyErrs = append(policyErrs, err)
+					}
+				}
+				allValid := len(policyErrs) == 0
+				testutil.Equals(t, allValid, cv.PolicyValidation.Permissive)
+			})
+
+			t.Run("validate-entities-strict", func(t *testing.T) {
+				t.Parallel()
+				v := validate.New(rs, validate.WithStrict())
+				err := v.Entities(entities)
+				testutil.Equals(t, err == nil, cv.EntityValidation.Strict)
+			})
+
+			t.Run("validate-entities-permissive", func(t *testing.T) {
+				t.Parallel()
+				v := validate.New(rs, validate.WithPermissive())
+				err := v.Entities(entities)
+				testutil.Equals(t, err == nil, cv.EntityValidation.Permissive)
+			})
+
+			for i, reqVal := range cv.RequestValidation {
+				if reqVal.Strict != nil {
+					t.Run(fmt.Sprintf("validate-request-strict/%s", reqVal.Description), func(t *testing.T) {
+						t.Parallel()
+						v := validate.New(rs, validate.WithStrict())
+						req := cedar.Request{
+							Principal: cedar.EntityUID(tt.Requests[i].Principal),
+							Action:    cedar.EntityUID(tt.Requests[i].Action),
+							Resource:  cedar.EntityUID(tt.Requests[i].Resource),
+							Context:   tt.Requests[i].Context,
+						}
+						err := v.Request(req)
+						testutil.Equals(t, err == nil, *reqVal.Strict)
+					})
+				}
+				if reqVal.Permissive != nil {
+					t.Run(fmt.Sprintf("validate-request-permissive/%s", reqVal.Description), func(t *testing.T) {
+						t.Parallel()
+						v := validate.New(rs, validate.WithPermissive())
+						req := cedar.Request{
+							Principal: cedar.EntityUID(tt.Requests[i].Principal),
+							Action:    cedar.EntityUID(tt.Requests[i].Action),
+							Resource:  cedar.EntityUID(tt.Requests[i].Resource),
+							Context:   tt.Requests[i].Context,
+						}
+						err := v.Request(req)
+						testutil.Equals(t, err == nil, *reqVal.Permissive)
+					})
+				}
+			}
 
 			for _, request := range tt.Requests {
 				if len(request.Reasons) == 0 && request.Reasons != nil {

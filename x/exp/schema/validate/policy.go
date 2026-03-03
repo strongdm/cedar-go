@@ -10,7 +10,7 @@ import (
 	"github.com/cedar-policy/cedar-go/x/exp/schema/resolved"
 )
 
-// Policy validates a policy against the schema, performing RBAC scope validation
+// Policy validates a policy against the schema, performing scope validation
 // and expression type checking.
 func (v *Validator) Policy(policy *ast.Policy) error {
 	var errs []error
@@ -81,6 +81,8 @@ func (v *Validator) validatePrincipalScope(scope ast.IsPrincipalScopeNode) ([]ty
 }
 
 // validateActionScope validates the action scope and returns the action UIDs it constrains to.
+// For `==` constraints, only the exact action is returned.
+// For `in` constraints, the action and all its descendants are returned.
 func (v *Validator) validateActionScope(scope ast.IsActionScopeNode) ([]types.EntityUID, error) {
 	switch sc := scope.(type) {
 	case ast.ScopeTypeAll:
@@ -94,16 +96,14 @@ func (v *Validator) validateActionScope(scope ast.IsActionScopeNode) ([]types.En
 		if _, ok := v.schema.Actions[sc.Entity]; !ok {
 			return nil, fmt.Errorf("action %s not found in schema", sc.Entity)
 		}
-		return []types.EntityUID{sc.Entity}, nil
+		return v.getActionsInSet([]types.EntityUID{sc.Entity}), nil
 	case ast.ScopeTypeInSet:
-		uids := make([]types.EntityUID, 0, len(sc.Entities))
 		for _, uid := range sc.Entities {
 			if _, ok := v.schema.Actions[uid]; !ok {
 				return nil, fmt.Errorf("action %s not found in schema", uid)
 			}
-			uids = append(uids, uid)
 		}
-		return uids, nil
+		return v.getActionsInSet(sc.Entities), nil
 	default:
 		return nil, fmt.Errorf("unknown action scope type %T", scope)
 	}
@@ -177,7 +177,7 @@ func (v *Validator) validateActionApplication(principalTypes, resourceTypes []ty
 		return nil
 	}
 
-	// Collect relevant actions
+	// Collect relevant actions (actionUIDs already includes descendants for `in` scopes)
 	var actions []resolved.Action
 	if actionUIDs == nil {
 		for _, a := range v.schema.Actions {
@@ -187,15 +187,6 @@ func (v *Validator) validateActionApplication(principalTypes, resourceTypes []ty
 		for _, uid := range actionUIDs {
 			if a, ok := v.schema.Actions[uid]; ok {
 				actions = append(actions, a)
-			}
-			// Also include actions that are descendants of the specified actions
-			for aUID, a := range v.schema.Actions {
-				if aUID == uid {
-					continue
-				}
-				if v.isActionDescendant(aUID, uid) {
-					actions = append(actions, a)
-				}
 			}
 		}
 	}
@@ -228,6 +219,24 @@ func (v *Validator) validateActionApplication(principalTypes, resourceTypes []ty
 	}
 
 	return fmt.Errorf("no action applies to the given principal and resource type constraints")
+}
+
+// getActionsInSet returns all action UIDs that are in the given set of actions,
+// including the actions themselves and all their descendants.
+func (v *Validator) getActionsInSet(uids []types.EntityUID) []types.EntityUID {
+	result := make([]types.EntityUID, 0, len(uids))
+	for _, uid := range uids {
+		result = append(result, uid)
+		for aUID := range v.schema.Actions {
+			if aUID == uid {
+				continue
+			}
+			if v.isActionDescendant(aUID, uid) {
+				result = append(result, aUID)
+			}
+		}
+	}
+	return result
 }
 
 // isActionDescendant checks if actionUID is a descendant of ancestorUID.
