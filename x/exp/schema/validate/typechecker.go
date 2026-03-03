@@ -296,9 +296,10 @@ func (v *Validator) typeOfNot(env *requestEnv, n ast.NodeTypeNot, caps capabilit
 		return typeFalse{}, caps, nil
 	case typeFalse:
 		return typeTrue{}, caps, nil
-	default:
+	case typeBool, typeNever, typeLong, typeString, typeSet, typeRecord, typeEntity, typeAnyEntity, typeExtension:
 		return typeBool{}, caps, nil
 	}
+	return typeBool{}, caps, nil
 }
 
 func (v *Validator) typeOfIfThenElse(env *requestEnv, n ast.NodeTypeIfThenElse, caps capabilitySet) (cedarType, capabilitySet, error) {
@@ -347,14 +348,27 @@ func (v *Validator) typeOfIfThenElse(env *requestEnv, n ast.NodeTypeIfThenElse, 
 }
 
 func (v *Validator) typeOfEquality(env *requestEnv, left, right ast.IsNode, caps capabilitySet) (cedarType, capabilitySet, error) {
-	// Equality between incompatible types is valid Cedar; it evaluates to false at runtime.
-	_, _, err := v.typeOfExpr(env, left, caps)
+	lt, _, err := v.typeOfExpr(env, left, caps)
 	if err != nil {
 		return nil, caps, err
 	}
-	_, _, err = v.typeOfExpr(env, right, caps)
+	rt, _, err := v.typeOfExpr(env, right, caps)
 	if err != nil {
 		return nil, caps, err
+	}
+	// In strict mode, equality between incompatible types is disallowed.
+	// However, equality between primitive types (bool, long, string) is always
+	// permitted since the comparison is well-defined (always returns false).
+	// In permissive mode, equality between any types is valid.
+	if v.strict {
+		if err := v.checkStrictEntityLUB(lt, rt); err != nil {
+			return nil, caps, fmt.Errorf("equality comparison has incompatible entity types")
+		}
+		if !bothPrimitive(lt, rt) {
+			if _, err := v.leastUpperBound(lt, rt); err != nil {
+				return nil, caps, fmt.Errorf("equality comparison has incompatible types")
+			}
+		}
 	}
 	return typeBool{}, caps, nil
 }
@@ -609,9 +623,10 @@ func (v *Validator) hasResultType(t cedarType, attr types.String) cedarType {
 		return v.hasResultTypeEntity(tv.lub, attr)
 	case typeAnyEntity:
 		return typeBool{} // Can't know
-	default:
+	case typeNever, typeTrue, typeFalse, typeBool, typeLong, typeString, typeSet, typeExtension:
 		return typeBool{}
 	}
+	return typeBool{}
 }
 
 func (v *Validator) hasResultTypeEntity(lub entityLUB, attr types.String) cedarType {
@@ -733,12 +748,25 @@ func (v *Validator) typeOfGetTag(env *requestEnv, n ast.NodeTypeGetTag, caps cap
 		return nil, caps, fmt.Errorf("entity type does not support tags")
 	}
 
+	// Type check the tag key expression
+	rt, _, err := v.typeOfExpr(env, n.Right, caps)
+	if err != nil {
+		return nil, caps, err
+	}
+	if _, ok := rt.(typeString); !ok {
+		return nil, caps, fmt.Errorf("getTag key must be String, got %T", rt)
+	}
+
+	// getTag requires a prior hasTag check. If the entity expression is a variable
+	// and the tag key is a string literal, we can verify the capability precisely.
+	// Otherwise, if we can't track the capability, it's always an error.
 	varName := exprVarName(n.Left)
 	tagKey := tagCapabilityKey(n.Right)
-	if varName != "" && tagKey != "" {
-		if !caps.has(capability{varName: varName, attr: types.String("__tag:" + tagKey)}) {
-			return nil, caps, fmt.Errorf("tag access requires prior hasTag check")
-		}
+	if varName == "" || tagKey == "" {
+		return nil, caps, fmt.Errorf("tag access requires prior hasTag check")
+	}
+	if !caps.has(capability{varName: varName, attr: types.String("__tag:" + tagKey)}) {
+		return nil, caps, fmt.Errorf("tag access requires prior hasTag check")
 	}
 
 	tagType := v.entityTagType(et.lub)
@@ -790,12 +818,20 @@ func (v *Validator) typeOfExtensionCall(env *requestEnv, n ast.NodeTypeExtension
 		return nil, caps, fmt.Errorf("extension function %q expects %d arguments, got %d", n.Name, len(sig.argTypes), len(n.Args))
 	}
 
-	// Strict mode: extension constructors require string literal arguments
-	if v.strict {
-		switch n.Name {
-		case "ip", "decimal", "datetime", "duration":
-			for _, arg := range n.Args {
-				nv, ok := arg.(ast.NodeValue)
+	// Extension constructors: validate string literal arguments
+	switch n.Name {
+	case "ip", "decimal", "datetime", "duration":
+		if len(n.Args) == 1 {
+			if nv, ok := n.Args[0].(ast.NodeValue); ok {
+				if s, ok := nv.Value.(types.String); ok {
+					if err := validateExtensionValue(n.Name, string(s)); err != nil {
+						return nil, caps, err
+					}
+				}
+			}
+			// Strict mode: require a string literal argument
+			if v.strict {
+				nv, ok := n.Args[0].(ast.NodeValue)
 				if !ok {
 					return nil, caps, fmt.Errorf("extension function %q requires a string literal argument in strict mode", n.Name)
 				}
@@ -819,10 +855,50 @@ func (v *Validator) typeOfExtensionCall(env *requestEnv, n ast.NodeTypeExtension
 	return sig.returnType, caps, nil
 }
 
+// bothPrimitive returns true if both types are Cedar primitive types
+// (Bool, Long, String, or their singleton variants True/False).
+func bothPrimitive(a, b cedarType) bool {
+	return isPrimitive(a) && isPrimitive(b)
+}
+
+func isPrimitive(t cedarType) bool {
+	switch t.(type) {
+	case typeBool, typeTrue, typeFalse, typeLong, typeString:
+		return true
+	case typeNever, typeSet, typeRecord, typeEntity, typeAnyEntity, typeExtension:
+		return false
+	}
+	return false
+}
+
+func validateExtensionValue(funcName types.Path, value string) error {
+	switch funcName {
+	case "ip":
+		if _, err := types.ParseIPAddr(value); err != nil {
+			return fmt.Errorf("invalid ip value %q: %w", value, err)
+		}
+	case "decimal":
+		if _, err := types.ParseDecimal(value); err != nil {
+			return fmt.Errorf("invalid decimal value %q: %w", value, err)
+		}
+	case "datetime":
+		if _, err := types.ParseDatetime(value); err != nil {
+			return fmt.Errorf("invalid datetime value %q: %w", value, err)
+		}
+	case "duration":
+		if _, err := types.ParseDuration(value); err != nil {
+			return fmt.Errorf("invalid duration value %q: %w", value, err)
+		}
+	}
+	return nil
+}
+
 func isBoolType(t cedarType) bool {
 	switch t.(type) {
 	case typeBool, typeTrue, typeFalse:
 		return true
+	case typeNever, typeLong, typeString, typeSet, typeRecord, typeEntity, typeAnyEntity, typeExtension:
+		return false
 	}
 	return false
 }
@@ -831,6 +907,8 @@ func isEntityType(t cedarType) bool {
 	switch t.(type) {
 	case typeEntity, typeAnyEntity:
 		return true
+	case typeNever, typeTrue, typeFalse, typeBool, typeLong, typeString, typeSet, typeRecord, typeExtension:
+		return false
 	}
 	return false
 }
@@ -839,6 +917,8 @@ func isEntityOrRecordType(t cedarType) bool {
 	switch t.(type) {
 	case typeEntity, typeAnyEntity, typeRecord:
 		return true
+	case typeNever, typeTrue, typeFalse, typeBool, typeLong, typeString, typeSet, typeExtension:
+		return false
 	}
 	return false
 }
@@ -848,6 +928,9 @@ func isEntityOrSetOfEntity(t cedarType) bool {
 		return true
 	}
 	if st, ok := t.(typeSet); ok {
+		if _, isNever := st.element.(typeNever); isNever {
+			return true // empty set is valid for `in` operator
+		}
 		return isEntityType(st.element)
 	}
 	return false

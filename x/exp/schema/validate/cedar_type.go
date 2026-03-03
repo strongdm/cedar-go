@@ -89,6 +89,8 @@ func (v *Validator) isSubtype(a, b cedarType) bool {
 		switch a.(type) {
 		case typeBool, typeTrue, typeFalse:
 			return true
+		case typeNever, typeLong, typeString, typeSet, typeRecord, typeEntity, typeAnyEntity, typeExtension:
+			return false
 		}
 		return false
 	case typeLong:
@@ -126,6 +128,8 @@ func (v *Validator) isSubtype(a, b cedarType) bool {
 		switch a.(type) {
 		case typeEntity, typeAnyEntity:
 			return true
+		case typeNever, typeTrue, typeFalse, typeBool, typeLong, typeString, typeSet, typeRecord, typeExtension:
+			return false
 		}
 		return false
 	case typeExtension:
@@ -197,12 +201,15 @@ func (v *Validator) leastUpperBound(a, b cedarType) (cedarType, error) {
 	}
 
 	switch av := a.(type) {
+	case typeNever:
+		return b, nil // already handled above, but needed for exhaustiveness
 	case typeTrue:
 		switch b.(type) {
 		case typeTrue:
 			return typeTrue{}, nil
 		case typeFalse, typeBool:
 			return typeBool{}, nil
+		case typeNever, typeLong, typeString, typeSet, typeRecord, typeEntity, typeAnyEntity, typeExtension:
 		}
 	case typeFalse:
 		switch b.(type) {
@@ -210,11 +217,13 @@ func (v *Validator) leastUpperBound(a, b cedarType) (cedarType, error) {
 			return typeFalse{}, nil
 		case typeTrue, typeBool:
 			return typeBool{}, nil
+		case typeNever, typeLong, typeString, typeSet, typeRecord, typeEntity, typeAnyEntity, typeExtension:
 		}
 	case typeBool:
 		switch b.(type) {
 		case typeTrue, typeFalse, typeBool:
 			return typeBool{}, nil
+		case typeNever, typeLong, typeString, typeSet, typeRecord, typeEntity, typeAnyEntity, typeExtension:
 		}
 	case typeLong:
 		if _, ok := b.(typeLong); ok {
@@ -242,11 +251,13 @@ func (v *Validator) leastUpperBound(a, b cedarType) (cedarType, error) {
 			return typeEntity{lub: unionLUB(av.lub, bv.lub)}, nil
 		case typeAnyEntity:
 			return typeAnyEntity{}, nil
+		case typeNever, typeTrue, typeFalse, typeBool, typeLong, typeString, typeSet, typeRecord, typeExtension:
 		}
 	case typeAnyEntity:
 		switch b.(type) {
 		case typeEntity, typeAnyEntity:
 			return typeAnyEntity{}, nil
+		case typeNever, typeTrue, typeFalse, typeBool, typeLong, typeString, typeSet, typeRecord, typeExtension:
 		}
 	case typeExtension:
 		if bv, ok := b.(typeExtension); ok && av.name == bv.name {
@@ -266,25 +277,16 @@ func (v *Validator) lubRecord(a, b typeRecord) (cedarType, error) {
 			if err != nil {
 				return nil, err
 			}
-			if v.strict && aAttr.required != bAttr.required {
-				return nil, fmt.Errorf("incompatible record types for least upper bound")
-			}
 			attrs[k] = attributeType{
 				typ:      lub,
 				required: aAttr.required && bAttr.required,
 			}
 		} else {
-			if v.strict {
-				return nil, fmt.Errorf("incompatible record types for least upper bound")
-			}
 			attrs[k] = attributeType{typ: aAttr.typ, required: false}
 		}
 	}
 	for k, bAttr := range b.attrs {
 		if _, ok := a.attrs[k]; !ok {
-			if v.strict {
-				return nil, fmt.Errorf("incompatible record types for least upper bound")
-			}
 			attrs[k] = attributeType{typ: bAttr.typ, required: false}
 		}
 	}
@@ -346,9 +348,10 @@ func (v *Validator) lookupAttributeType(ty cedarType, attr types.String) *attrib
 		return nil
 	case typeEntity:
 		return v.lookupEntityAttr(tv.lub, attr)
-	default:
+	case typeNever, typeTrue, typeFalse, typeBool, typeLong, typeString, typeSet, typeAnyEntity, typeExtension:
 		return nil
 	}
+	return nil
 }
 
 func (v *Validator) lookupEntityAttr(lub entityLUB, attr types.String) *attributeType {
@@ -398,9 +401,10 @@ func (v *Validator) mayHaveAttr(ty cedarType, attr types.String) bool {
 		return v.mayEntityHaveAttr(tv.lub, attr)
 	case typeAnyEntity:
 		return true
-	default:
+	case typeNever, typeTrue, typeFalse, typeBool, typeLong, typeString, typeSet, typeExtension:
 		return false
 	}
+	return false
 }
 
 func (v *Validator) mayEntityHaveAttr(lub entityLUB, attr types.String) bool {

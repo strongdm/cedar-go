@@ -716,7 +716,7 @@ func TestTypeCheckStrict(t *testing.T) {
 				Left:  ast.NodeTypeVariable{Name: "principal"},
 				Right: ast.NodeValue{Value: types.String("foo")},
 			}},
-			wantErr: false,
+			wantErr: true,
 		},
 		{
 			name: "containsLongSetStringArg",
@@ -4090,33 +4090,30 @@ func TestLubRecordStrict(t *testing.T) {
 	t.Parallel()
 	v := New(&resolved.Schema{})
 
-	// Strict: key only in one record → error
+	// Record LUB with differing keys makes the non-shared keys optional
 	a := typeRecord{attrs: map[types.String]attributeType{
 		"x": {typ: typeLong{}, required: true},
 	}}
 	b := typeRecord{attrs: map[types.String]attributeType{
 		"y": {typ: typeString{}, required: true},
 	}}
-	_, err := v.lubRecord(a, b)
-	testutil.Error(t, err)
+	result, err := v.lubRecord(a, b)
+	testutil.OK(t, err)
+	rec := result.(typeRecord)
+	testutil.Equals(t, rec.attrs["x"].required, false)
+	testutil.Equals(t, rec.attrs["y"].required, false)
 
-	// Strict: key only in b → error
-	c := typeRecord{attrs: map[types.String]attributeType{}}
-	d := typeRecord{attrs: map[types.String]attributeType{
-		"z": {typ: typeLong{}, required: true},
-	}}
-	_, err = v.lubRecord(c, d)
-	testutil.Error(t, err)
-
-	// Strict: same key, different required/optional → error
+	// Same key, different required/optional → required=false
 	e := typeRecord{attrs: map[types.String]attributeType{
 		"x": {typ: typeLong{}, required: true},
 	}}
 	f := typeRecord{attrs: map[types.String]attributeType{
 		"x": {typ: typeLong{}, required: false},
 	}}
-	_, err = v.lubRecord(e, f)
-	testutil.Error(t, err)
+	result, err = v.lubRecord(e, f)
+	testutil.OK(t, err)
+	rec = result.(typeRecord)
+	testutil.Equals(t, rec.attrs["x"].required, false)
 }
 
 func TestTypeOfContainsPermissiveEmptySet(t *testing.T) {

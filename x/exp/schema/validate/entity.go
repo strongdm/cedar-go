@@ -54,13 +54,31 @@ func (v *Validator) validateActionEntity(entity types.Entity) error {
 		return fmt.Errorf("action %s should not have tags", entity.UID)
 	}
 
-	// Verify parents match
+	// Compute transitive closure of the action's parents from the schema
+	closure := make(map[types.EntityUID]bool)
+	var walk func(types.EntityUID)
+	walk = func(uid types.EntityUID) {
+		if closure[uid] {
+			return
+		}
+		closure[uid] = true
+		if a, ok := v.schema.Actions[uid]; ok {
+			for p := range a.Entity.Parents.All() {
+				walk(p)
+			}
+		}
+	}
+	for p := range action.Entity.Parents.All() {
+		walk(p)
+	}
+
+	// Verify entity parents match the transitive closure
 	for parent := range entity.Parents.All() {
-		if !action.Entity.Parents.Contains(parent) {
+		if !closure[parent] {
 			return fmt.Errorf("action %s has unexpected parent %s", entity.UID, parent)
 		}
 	}
-	for parent := range action.Entity.Parents.All() {
+	for parent := range closure {
 		if !entity.Parents.Contains(parent) {
 			return fmt.Errorf("action %s missing expected parent %s", entity.UID, parent)
 		}
