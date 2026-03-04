@@ -32,10 +32,10 @@ func (v *Validator) typeOfExpr(env *requestEnv, expr ast.IsNode, caps capability
 		return v.typeOfIfThenElse(env, n, caps)
 
 	case ast.NodeTypeEquals:
-		return v.typeOfEquality(env, n.Left, n.Right, caps)
+		return v.typeOfEquality(env, n.Left, n.Right, false, caps)
 
 	case ast.NodeTypeNotEquals:
-		return v.typeOfEquality(env, n.Left, n.Right, caps)
+		return v.typeOfEquality(env, n.Left, n.Right, true, caps)
 
 	case ast.NodeTypeLessThan:
 		return v.typeOfComparison(env, n.Left, n.Right, caps, expectLong, expectLong)
@@ -347,7 +347,7 @@ func (v *Validator) typeOfIfThenElse(env *requestEnv, n ast.NodeTypeIfThenElse, 
 	return result, thenResultCaps.intersect(elseResultCaps), nil
 }
 
-func (v *Validator) typeOfEquality(env *requestEnv, left, right ast.IsNode, caps capabilitySet) (cedarType, capabilitySet, error) {
+func (v *Validator) typeOfEquality(env *requestEnv, left, right ast.IsNode, negated bool, caps capabilitySet) (cedarType, capabilitySet, error) {
 	lt, _, err := v.typeOfExpr(env, left, caps)
 	if err != nil {
 		return nil, caps, err
@@ -355,6 +355,19 @@ func (v *Validator) typeOfEquality(env *requestEnv, left, right ast.IsNode, caps
 	rt, _, err := v.typeOfExpr(env, right, caps)
 	if err != nil {
 		return nil, caps, err
+	}
+	// When both operands are literals, evaluate equality at type-check time
+	// to enable short-circuiting in if-then-else and && expressions.
+	// This is checked before strict mode checks because Rust skips strict
+	// compatibility checks when the result is statically known.
+	if result, ok := evalLiteralEquality(left, right); ok {
+		if negated {
+			result = !result
+		}
+		if result {
+			return typeTrue{}, caps, nil
+		}
+		return typeFalse{}, caps, nil
 	}
 	// In strict mode, equality between incompatible types is disallowed.
 	// However, equality between primitive types (bool, long, string) is always
@@ -448,6 +461,24 @@ func (v *Validator) typeOfIn(env *requestEnv, n ast.NodeTypeIn, caps capabilityS
 	if !isEntityOrSetOfEntity(rt) {
 		return nil, caps, fmt.Errorf("right operand of 'in' must be entity or set of entities, got %T", rt)
 	}
+
+	// Check if the `in` relationship can ever be true based on entity types.
+	// If the LHS entity type(s) can never be a descendant of any RHS entity
+	// type(s), return typeFalse to enable short-circuiting in && expressions.
+	if le, ok := lt.(typeEntity); ok {
+		var rhsLUB *entityLUB
+		if re, ok := rt.(typeEntity); ok {
+			rhsLUB = &re.lub
+		} else if rs, ok := rt.(typeSet); ok {
+			if re, ok := rs.element.(typeEntity); ok {
+				rhsLUB = &re.lub
+			}
+		}
+		if rhsLUB != nil && !v.anyEntityDescendantOf(le.lub, *rhsLUB) {
+			return typeFalse{}, caps, nil
+		}
+	}
+
 	return typeBool{}, caps, nil
 }
 
@@ -1058,6 +1089,19 @@ func (v *Validator) validateEntityRefsPair(a, b ast.IsNode) error {
 		return err
 	}
 	return v.validateEntityRefs(b)
+}
+
+// evalLiteralEquality checks if both operands are value literals, and if so,
+// returns whether they are equal. This enables short-circuiting in if-then-else
+// and && expressions when the condition can be statically determined.
+func evalLiteralEquality(left, right ast.IsNode) (bool, bool) {
+	lv, lok := left.(ast.NodeValue)
+	rv, rok := right.(ast.NodeValue)
+	if !lok || !rok {
+		return false, false
+	}
+	// Use Cedar value equality: compare the values directly
+	return lv.Value.Equal(rv.Value), true
 }
 
 // tagCapabilityKey extracts a string key from a tag expression for capability tracking.

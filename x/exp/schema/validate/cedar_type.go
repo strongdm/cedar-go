@@ -269,6 +269,18 @@ func (v *Validator) leastUpperBound(a, b cedarType) (cedarType, error) {
 }
 
 func (v *Validator) lubRecord(a, b typeRecord) (cedarType, error) {
+	// Strict mode: records with different key sets cannot be combined (no width subtyping)
+	if v.strict {
+		if len(a.attrs) != len(b.attrs) {
+			return nil, fmt.Errorf("record types have different attributes in strict mode")
+		}
+		for k := range a.attrs {
+			if _, ok := b.attrs[k]; !ok {
+				return nil, fmt.Errorf("record types have different attributes in strict mode")
+			}
+		}
+	}
+
 	attrs := make(map[types.String]attributeType)
 	// Attributes in both
 	for k, aAttr := range a.attrs {
@@ -513,6 +525,23 @@ func (v *Validator) isEntityDescendant(childType, ancestorType types.EntityType)
 		}
 		if v.isEntityDescendant(parent, ancestorType) {
 			return true
+		}
+	}
+	return false
+}
+
+// anyEntityDescendantOf returns true if any entity type in lhs can be a
+// descendant (member) of any entity type in rhs, or if lhs and rhs share a
+// common entity type (same type means "in" can be true for the same entity).
+func (v *Validator) anyEntityDescendantOf(lhs, rhs entityLUB) bool {
+	for _, lt := range lhs.elements {
+		for _, rt := range rhs.elements {
+			if lt == rt {
+				return true
+			}
+			if v.isEntityDescendant(lt, rt) {
+				return true
+			}
 		}
 	}
 	return false

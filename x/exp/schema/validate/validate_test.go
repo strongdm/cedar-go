@@ -745,10 +745,7 @@ func TestTypeCheckStrict(t *testing.T) {
 		{
 			name: "ifIncompatibleEntities",
 			expr: ast.NodeTypeIfThenElse{
-				If: ast.NodeTypeEquals{BinaryNode: ast.BinaryNode{
-					Left:  ast.NodeValue{Value: types.Long(1)},
-					Right: ast.NodeValue{Value: types.Long(1)},
-				}},
+				If:   ast.NodeTypeHas{StrOpNode: ast.StrOpNode{Arg: ast.NodeTypeVariable{Name: "principal"}, Value: "name"}},
 				Then: ast.NodeValue{Value: types.NewEntityUID("User", "a")},
 				Else: ast.NodeValue{Value: types.NewEntityUID("Photo", "b")},
 			},
@@ -1199,7 +1196,7 @@ func TestTypeCheckNot(t *testing.T) {
 		}},
 	}}, caps)
 	testutil.OK(t, err)
-	testutil.Equals[cedarType](t, ty, typeBool{})
+	testutil.Equals[cedarType](t, ty, typeFalse{})
 
 	// !42 → error
 	_, _, err = v.typeOfExpr(env, ast.NodeTypeNot{UnaryNode: ast.UnaryNode{
@@ -1616,12 +1613,12 @@ func TestTypeCheckAndBranches(t *testing.T) {
 	testutil.OK(t, err)
 	testutil.Equals[cedarType](t, ty, typeFalse{})
 
-	// (1==1) && (2==2) → typeBool
+	// (1==1) && (2==2) → typeTrue (both literal equalities resolve to true)
 	ty, _, err = v.typeOfExpr(env, ast.NodeTypeAnd{BinaryNode: ast.BinaryNode{
 		Left: cmp, Right: cmp,
 	}}, caps)
 	testutil.OK(t, err)
-	testutil.Equals[cedarType](t, ty, typeBool{})
+	testutil.Equals[cedarType](t, ty, typeTrue{})
 
 	// 42 && true → error (left not bool)
 	_, _, err = v.typeOfExpr(env, ast.NodeTypeAnd{BinaryNode: ast.BinaryNode{
@@ -1664,8 +1661,8 @@ func TestTypeCheckIfThenElseShortCircuit(t *testing.T) {
 	}, caps)
 	testutil.Error(t, err)
 
-	// if (1==1) then 1 else "hello" → error (incompatible branch types)
-	_, _, err = v.typeOfExpr(env, ast.NodeTypeIfThenElse{
+	// if (1==1) then 1 else "hello" → typeLong (1==1 is statically true, short-circuits to then)
+	ty, _, err = v.typeOfExpr(env, ast.NodeTypeIfThenElse{
 		If: ast.NodeTypeEquals{BinaryNode: ast.BinaryNode{
 			Left:  ast.NodeValue{Value: types.Long(1)},
 			Right: ast.NodeValue{Value: types.Long(1)},
@@ -1673,7 +1670,8 @@ func TestTypeCheckIfThenElseShortCircuit(t *testing.T) {
 		Then: ast.NodeValue{Value: types.Long(1)},
 		Else: ast.NodeValue{Value: types.String("hello")},
 	}, caps)
-	testutil.Error(t, err)
+	testutil.OK(t, err)
+	testutil.Equals[cedarType](t, ty, typeLong{})
 
 	// Dead branch with bad entity ref → error
 	_, _, err = v.typeOfExpr(env, ast.NodeTypeIfThenElse{
@@ -1704,12 +1702,24 @@ func TestTypeCheckIfThenElseShortCircuit(t *testing.T) {
 	}, caps)
 	testutil.Error(t, err)
 
-	// else error propagates
-	_, _, err = v.typeOfExpr(env, ast.NodeTypeIfThenElse{
+	// if (1==1) then 1 else (1+"x") → no error (1==1 is statically true, else branch is dead)
+	ty, _, err = v.typeOfExpr(env, ast.NodeTypeIfThenElse{
 		If: ast.NodeTypeEquals{BinaryNode: ast.BinaryNode{
 			Left:  ast.NodeValue{Value: types.Long(1)},
 			Right: ast.NodeValue{Value: types.Long(1)},
 		}},
+		Then: ast.NodeValue{Value: types.Long(1)},
+		Else: ast.NodeTypeAdd{BinaryNode: ast.BinaryNode{
+			Left:  ast.NodeValue{Value: types.Long(1)},
+			Right: ast.NodeValue{Value: types.String("x")},
+		}},
+	}, caps)
+	testutil.OK(t, err)
+	testutil.Equals[cedarType](t, ty, typeLong{})
+
+	// else error propagates when condition is not statically known
+	_, _, err = v.typeOfExpr(env, ast.NodeTypeIfThenElse{
+		If:   ast.NodeTypeHas{StrOpNode: ast.StrOpNode{Arg: ast.NodeTypeVariable{Name: "principal"}, Value: "name"}},
 		Then: ast.NodeValue{Value: types.Long(1)},
 		Else: ast.NodeTypeAdd{BinaryNode: ast.BinaryNode{
 			Left:  ast.NodeValue{Value: types.Long(1)},
@@ -3713,11 +3723,9 @@ func TestIsMultipleEntityTypes(t *testing.T) {
 	}
 
 	// Manually create an expression that would have a multi-element LUB
-	// Use if-then-else to create a LUB of User and Group entities
+	// Use if-then-else with a non-literal condition to avoid short-circuiting
 	ifExpr := ast.NodeTypeIfThenElse{
-		If: ast.NodeTypeEquals{BinaryNode: ast.BinaryNode{
-			Left: ast.NodeValue{Value: types.Long(1)}, Right: ast.NodeValue{Value: types.Long(1)},
-		}},
+		If:   ast.NodeTypeHas{StrOpNode: ast.StrOpNode{Arg: ast.NodeTypeVariable{Name: "principal"}, Value: "name"}},
 		Then: ast.NodeValue{Value: types.NewEntityUID("User", "a")},
 		Else: ast.NodeValue{Value: types.NewEntityUID("Group", "b")},
 	}
@@ -4090,29 +4098,37 @@ func TestLubRecordStrict(t *testing.T) {
 	t.Parallel()
 	v := New(&resolved.Schema{})
 
-	// Record LUB with differing keys makes the non-shared keys optional
+	// Strict mode: Record LUB with different number of keys is rejected
 	a := typeRecord{attrs: map[types.String]attributeType{
 		"x": {typ: typeLong{}, required: true},
 	}}
 	b := typeRecord{attrs: map[types.String]attributeType{
+		"x": {typ: typeLong{}, required: true},
 		"y": {typ: typeString{}, required: true},
 	}}
-	result, err := v.lubRecord(a, b)
-	testutil.OK(t, err)
-	rec := result.(typeRecord)
-	testutil.Equals(t, rec.attrs["x"].required, false)
-	testutil.Equals(t, rec.attrs["y"].required, false)
+	_, err := v.lubRecord(a, b)
+	testutil.Error(t, err)
 
-	// Same key, different required/optional → required=false
+	// Strict mode: Record LUB with same number but different keys is rejected
+	c := typeRecord{attrs: map[types.String]attributeType{
+		"x": {typ: typeLong{}, required: true},
+	}}
+	d := typeRecord{attrs: map[types.String]attributeType{
+		"y": {typ: typeString{}, required: true},
+	}}
+	_, err = v.lubRecord(c, d)
+	testutil.Error(t, err)
+
+	// Same key, different required/optional → required=false (still valid)
 	e := typeRecord{attrs: map[types.String]attributeType{
 		"x": {typ: typeLong{}, required: true},
 	}}
 	f := typeRecord{attrs: map[types.String]attributeType{
 		"x": {typ: typeLong{}, required: false},
 	}}
-	result, err = v.lubRecord(e, f)
+	result, err := v.lubRecord(e, f)
 	testutil.OK(t, err)
-	rec = result.(typeRecord)
+	rec := result.(typeRecord)
 	testutil.Equals(t, rec.attrs["x"].required, false)
 }
 
@@ -4272,4 +4288,346 @@ func TestTypeOfSetStrictEmpty(t *testing.T) {
 	vp := New(s, WithPermissive())
 	_, _, err = vp.typeOfExpr(env, ast.NodeTypeSet{Elements: []ast.IsNode{}}, caps)
 	testutil.OK(t, err)
+}
+
+func TestEvalLiteralEquality(t *testing.T) {
+	t.Parallel()
+	s := testSchema()
+	v := New(s)
+	env := testEnv()
+	caps := newCapabilitySet()
+
+	// == with matching literals → typeTrue
+	ty, _, err := v.typeOfExpr(env, ast.NodeTypeEquals{BinaryNode: ast.BinaryNode{
+		Left:  ast.NodeValue{Value: types.Long(42)},
+		Right: ast.NodeValue{Value: types.Long(42)},
+	}}, caps)
+	testutil.OK(t, err)
+	testutil.Equals[cedarType](t, ty, typeTrue{})
+
+	// == with non-matching literals → typeFalse
+	ty, _, err = v.typeOfExpr(env, ast.NodeTypeEquals{BinaryNode: ast.BinaryNode{
+		Left:  ast.NodeValue{Value: types.Long(1)},
+		Right: ast.NodeValue{Value: types.Long(2)},
+	}}, caps)
+	testutil.OK(t, err)
+	testutil.Equals[cedarType](t, ty, typeFalse{})
+
+	// != with matching literals → typeFalse
+	ty, _, err = v.typeOfExpr(env, ast.NodeTypeNotEquals{BinaryNode: ast.BinaryNode{
+		Left:  ast.NodeValue{Value: types.Long(1)},
+		Right: ast.NodeValue{Value: types.Long(1)},
+	}}, caps)
+	testutil.OK(t, err)
+	testutil.Equals[cedarType](t, ty, typeFalse{})
+
+	// != with non-matching literals → typeTrue
+	ty, _, err = v.typeOfExpr(env, ast.NodeTypeNotEquals{BinaryNode: ast.BinaryNode{
+		Left:  ast.NodeValue{Value: types.Long(1)},
+		Right: ast.NodeValue{Value: types.Long(2)},
+	}}, caps)
+	testutil.OK(t, err)
+	testutil.Equals[cedarType](t, ty, typeTrue{})
+
+	// == with non-literal operand → typeBool
+	ty, _, err = v.typeOfExpr(env, ast.NodeTypeEquals{BinaryNode: ast.BinaryNode{
+		Left:  ast.NodeTypeVariable{Name: "principal"},
+		Right: ast.NodeValue{Value: types.NewEntityUID("User", "a")},
+	}}, caps)
+	testutil.OK(t, err)
+	testutil.Equals[cedarType](t, ty, typeBool{})
+
+	// Permissive mode: literal equality still works
+	vp := New(s, WithPermissive())
+	ty, _, err = vp.typeOfExpr(env, ast.NodeTypeEquals{BinaryNode: ast.BinaryNode{
+		Left:  ast.NodeValue{Value: types.Long(1)},
+		Right: ast.NodeValue{Value: types.Long(1)},
+	}}, caps)
+	testutil.OK(t, err)
+	testutil.Equals[cedarType](t, ty, typeTrue{})
+}
+
+func TestTypeOfInEntityDescendant(t *testing.T) {
+	t.Parallel()
+	s := testSchemaWithPhoto()
+	v := New(s)
+	env := testEnv()
+	caps := newCapabilitySet()
+
+	// entity in unrelated entity → typeFalse (User not descendant of Photo)
+	ty, _, err := v.typeOfExpr(env, ast.NodeTypeIn{BinaryNode: ast.BinaryNode{
+		Left:  ast.NodeValue{Value: types.NewEntityUID("User", "a")},
+		Right: ast.NodeValue{Value: types.NewEntityUID("Photo", "b")},
+	}}, caps)
+	testutil.OK(t, err)
+	testutil.Equals[cedarType](t, ty, typeFalse{})
+
+	// entity in same entity → typeBool (same type can be in itself)
+	ty, _, err = v.typeOfExpr(env, ast.NodeTypeIn{BinaryNode: ast.BinaryNode{
+		Left:  ast.NodeValue{Value: types.NewEntityUID("User", "a")},
+		Right: ast.NodeValue{Value: types.NewEntityUID("User", "b")},
+	}}, caps)
+	testutil.OK(t, err)
+	testutil.Equals[cedarType](t, ty, typeBool{})
+
+	// entity in ancestor entity → typeBool (User is descendant of Group)
+	ty, _, err = v.typeOfExpr(env, ast.NodeTypeIn{BinaryNode: ast.BinaryNode{
+		Left:  ast.NodeValue{Value: types.NewEntityUID("User", "a")},
+		Right: ast.NodeValue{Value: types.NewEntityUID("Group", "b")},
+	}}, caps)
+	testutil.OK(t, err)
+	testutil.Equals[cedarType](t, ty, typeBool{})
+
+	// entity in set of unrelated entities → typeFalse
+	ty, _, err = v.typeOfExpr(env, ast.NodeTypeIn{BinaryNode: ast.BinaryNode{
+		Left: ast.NodeValue{Value: types.NewEntityUID("User", "a")},
+		Right: ast.NodeTypeSet{Elements: []ast.IsNode{
+			ast.NodeValue{Value: types.NewEntityUID("Photo", "b")},
+		}},
+	}}, caps)
+	testutil.OK(t, err)
+	testutil.Equals[cedarType](t, ty, typeFalse{})
+
+	// entity in set of same type → typeBool
+	ty, _, err = v.typeOfExpr(env, ast.NodeTypeIn{BinaryNode: ast.BinaryNode{
+		Left: ast.NodeValue{Value: types.NewEntityUID("User", "a")},
+		Right: ast.NodeTypeSet{Elements: []ast.IsNode{
+			ast.NodeValue{Value: types.NewEntityUID("User", "b")},
+		}},
+	}}, caps)
+	testutil.OK(t, err)
+	testutil.Equals[cedarType](t, ty, typeBool{})
+}
+
+func TestAnyEntityDescendantOf(t *testing.T) {
+	t.Parallel()
+	v := New(&resolved.Schema{
+		Entities: map[types.EntityType]resolved.Entity{
+			"Child":  {ParentTypes: []types.EntityType{"Parent"}},
+			"Parent": {},
+		},
+	})
+
+	// Same type → true
+	testutil.Equals(t, v.anyEntityDescendantOf(
+		newEntityLUB("Parent"), newEntityLUB("Parent")), true)
+
+	// Child is descendant of Parent → true
+	testutil.Equals(t, v.anyEntityDescendantOf(
+		newEntityLUB("Child"), newEntityLUB("Parent")), true)
+
+	// Parent is NOT descendant of Child → false
+	testutil.Equals(t, v.anyEntityDescendantOf(
+		newEntityLUB("Parent"), newEntityLUB("Child")), false)
+}
+
+func TestLubRecordPermissiveDifferentKeys(t *testing.T) {
+	t.Parallel()
+	v := New(&resolved.Schema{}, WithPermissive())
+
+	// Permissive: Record LUB with differing keys makes the non-shared keys optional
+	a := typeRecord{attrs: map[types.String]attributeType{
+		"x": {typ: typeLong{}, required: true},
+	}}
+	b := typeRecord{attrs: map[types.String]attributeType{
+		"y": {typ: typeString{}, required: true},
+	}}
+	result, err := v.lubRecord(a, b)
+	testutil.OK(t, err)
+	rec := result.(typeRecord)
+	testutil.Equals(t, rec.attrs["x"].required, false)
+	testutil.Equals(t, rec.attrs["y"].required, false)
+}
+
+// TestTypePredicatesCoverage exercises all type predicate functions with all
+// cedarType variants to ensure complete coverage of exhaustive type switches.
+func TestTypePredicatesCoverage(t *testing.T) {
+	t.Parallel()
+	allTypes := []cedarType{
+		typeNever{}, typeTrue{}, typeFalse{}, typeBool{}, typeLong{},
+		typeString{}, typeSet{element: typeLong{}}, typeRecord{},
+		typeEntity{lub: singleEntityLUB("User")}, typeAnyEntity{},
+		typeExtension{name: "ipaddr"},
+	}
+	for _, ty := range allTypes {
+		isPrimitive(ty)
+		isBoolType(ty)
+		isEntityType(ty)
+		isEntityOrRecordType(ty)
+		isEntityOrSetOfEntity(ty)
+	}
+	// Set of entity is valid for isEntityOrSetOfEntity
+	testutil.Equals(t, isEntityOrSetOfEntity(typeSet{element: typeEntity{lub: singleEntityLUB("User")}}), true)
+	// Set of non-entity is not
+	testutil.Equals(t, isEntityOrSetOfEntity(typeSet{element: typeLong{}}), false)
+	// Empty set is valid
+	testutil.Equals(t, isEntityOrSetOfEntity(typeSet{element: typeNever{}}), true)
+}
+
+// TestIsSubtypeAllVariants exercises isSubtype with various type combinations.
+func TestIsSubtypeAllVariants(t *testing.T) {
+	t.Parallel()
+	v := New(&resolved.Schema{
+		Entities: map[types.EntityType]resolved.Entity{
+			"User":  {ParentTypes: []types.EntityType{"Group"}},
+			"Group": {},
+		},
+	})
+	testutil.Equals(t, v.isSubtype(typeNever{}, typeLong{}), true)
+	testutil.Equals(t, v.isSubtype(typeLong{}, typeNever{}), false)
+	testutil.Equals(t, v.isSubtype(typeTrue{}, typeTrue{}), true)
+	testutil.Equals(t, v.isSubtype(typeFalse{}, typeFalse{}), true)
+	testutil.Equals(t, v.isSubtype(typeTrue{}, typeBool{}), true)
+	testutil.Equals(t, v.isSubtype(typeFalse{}, typeBool{}), true)
+	testutil.Equals(t, v.isSubtype(typeBool{}, typeBool{}), true)
+	testutil.Equals(t, v.isSubtype(typeLong{}, typeLong{}), true)
+	testutil.Equals(t, v.isSubtype(typeString{}, typeString{}), true)
+	testutil.Equals(t, v.isSubtype(typeExtension{"ipaddr"}, typeExtension{"ipaddr"}), true)
+	testutil.Equals(t, v.isSubtype(typeExtension{"ipaddr"}, typeExtension{"decimal"}), false)
+	testutil.Equals(t, v.isSubtype(typeLong{}, typeString{}), false)
+	testutil.Equals(t, v.isSubtype(typeString{}, typeLong{}), false)
+	testutil.Equals(t, v.isSubtype(typeBool{}, typeLong{}), false)
+	testutil.Equals(t, v.isSubtype(typeTrue{}, typeLong{}), false)
+	testutil.Equals(t, v.isSubtype(typeFalse{}, typeLong{}), false)
+	testutil.Equals(t, v.isSubtype(typeTrue{}, typeFalse{}), false)
+	testutil.Equals(t, v.isSubtype(typeFalse{}, typeTrue{}), false)
+	testutil.Equals(t, v.isSubtype(typeAnyEntity{}, typeEntity{lub: singleEntityLUB("User")}), false)
+	testutil.Equals(t, v.isSubtype(typeEntity{lub: singleEntityLUB("User")}, typeAnyEntity{}), false) // strict mode
+	testutil.Equals(t, v.isSubtype(typeAnyEntity{}, typeAnyEntity{}), true)
+	testutil.Equals(t, v.isSubtype(typeSet{element: typeLong{}}, typeSet{element: typeLong{}}), true)
+	testutil.Equals(t, v.isSubtype(typeSet{element: typeLong{}}, typeSet{element: typeString{}}), false)
+	testutil.Equals(t, v.isSubtype(typeLong{}, typeSet{element: typeLong{}}), false)
+}
+
+// TestLeastUpperBoundAllVariants exercises LUB with various type combinations.
+func TestLeastUpperBoundAllVariants(t *testing.T) {
+	t.Parallel()
+	v := New(&resolved.Schema{})
+
+	_, err := v.leastUpperBound(typeTrue{}, typeFalse{})
+	testutil.OK(t, err)
+	_, err = v.leastUpperBound(typeFalse{}, typeTrue{})
+	testutil.OK(t, err)
+	_, err = v.leastUpperBound(typeFalse{}, typeFalse{})
+	testutil.OK(t, err)
+	_, err = v.leastUpperBound(typeFalse{}, typeBool{})
+	testutil.OK(t, err)
+	_, err = v.leastUpperBound(typeBool{}, typeTrue{})
+	testutil.OK(t, err)
+	_, err = v.leastUpperBound(typeBool{}, typeFalse{})
+	testutil.OK(t, err)
+	_, err = v.leastUpperBound(typeExtension{"ipaddr"}, typeExtension{"ipaddr"})
+	testutil.OK(t, err)
+	_, err = v.leastUpperBound(typeExtension{"ipaddr"}, typeExtension{"decimal"})
+	testutil.Error(t, err)
+	_, err = v.leastUpperBound(typeLong{}, typeString{})
+	testutil.Error(t, err)
+	_, err = v.leastUpperBound(typeTrue{}, typeLong{})
+	testutil.Error(t, err)
+	_, err = v.leastUpperBound(typeFalse{}, typeLong{})
+	testutil.Error(t, err)
+	_, err = v.leastUpperBound(typeBool{}, typeLong{})
+	testutil.Error(t, err)
+	_, err = v.leastUpperBound(typeEntity{lub: singleEntityLUB("A")}, typeAnyEntity{})
+	testutil.OK(t, err)
+	_, err = v.leastUpperBound(typeAnyEntity{}, typeEntity{lub: singleEntityLUB("A")})
+	testutil.OK(t, err)
+	_, err = v.leastUpperBound(typeAnyEntity{}, typeAnyEntity{})
+	testutil.OK(t, err)
+}
+
+// TestTypeOfAndBoolFalse covers the typeBool && typeFalse → typeFalse path.
+func TestTypeOfAndBoolFalse(t *testing.T) {
+	t.Parallel()
+	s := testSchema()
+	v := New(s)
+	env := testEnv()
+	caps := newCapabilitySet()
+
+	// typeBool && false → typeFalse
+	ty, _, err := v.typeOfExpr(env, ast.NodeTypeAnd{BinaryNode: ast.BinaryNode{
+		Left: ast.NodeTypeHas{StrOpNode: ast.StrOpNode{
+			Arg: ast.NodeTypeVariable{Name: "principal"}, Value: "name",
+		}},
+		Right: ast.NodeValue{Value: types.Boolean(false)},
+	}}, caps)
+	testutil.OK(t, err)
+	testutil.Equals[cedarType](t, ty, typeFalse{})
+}
+
+// TestTypeOfOrBranches covers the typeTrue and typeFalse RHS paths of ||.
+func TestTypeOfOrBranches(t *testing.T) {
+	t.Parallel()
+	s := testSchema()
+	v := New(s)
+	env := testEnv()
+	caps := newCapabilitySet()
+
+	boolExpr := ast.NodeTypeHas{StrOpNode: ast.StrOpNode{
+		Arg: ast.NodeTypeVariable{Name: "principal"}, Value: "name",
+	}}
+
+	// typeBool || true → typeTrue
+	ty, _, err := v.typeOfExpr(env, ast.NodeTypeOr{BinaryNode: ast.BinaryNode{
+		Left: boolExpr, Right: ast.NodeValue{Value: types.Boolean(true)},
+	}}, caps)
+	testutil.OK(t, err)
+	testutil.Equals[cedarType](t, ty, typeTrue{})
+
+	// typeBool || false → typeBool (depends on LHS)
+	ty, _, err = v.typeOfExpr(env, ast.NodeTypeOr{BinaryNode: ast.BinaryNode{
+		Left: boolExpr, Right: ast.NodeValue{Value: types.Boolean(false)},
+	}}, caps)
+	testutil.OK(t, err)
+	testutil.Equals[cedarType](t, ty, typeBool{})
+}
+
+// TestTypeOfNotBool covers the !typeBool path.
+func TestTypeOfNotBool(t *testing.T) {
+	t.Parallel()
+	s := testSchema()
+	v := New(s)
+	env := testEnv()
+	caps := newCapabilitySet()
+
+	// !typeBool → typeBool
+	ty, _, err := v.typeOfExpr(env, ast.NodeTypeNot{UnaryNode: ast.UnaryNode{
+		Arg: ast.NodeTypeHas{StrOpNode: ast.StrOpNode{
+			Arg: ast.NodeTypeVariable{Name: "principal"}, Value: "name",
+		}},
+	}}, caps)
+	testutil.OK(t, err)
+	testutil.Equals[cedarType](t, ty, typeBool{})
+}
+
+// TestTypeOfIfThenElseErrors covers then-branch error and LUB error paths.
+func TestTypeOfIfThenElseErrors(t *testing.T) {
+	t.Parallel()
+	s := testSchemaWithPhoto()
+	v := New(s)
+	env := testEnv()
+	caps := newCapabilitySet()
+
+	boolCond := ast.NodeTypeHas{StrOpNode: ast.StrOpNode{
+		Arg: ast.NodeTypeVariable{Name: "principal"}, Value: "name",
+	}}
+
+	// Then-branch type error with non-constant condition
+	_, _, err := v.typeOfExpr(env, ast.NodeTypeIfThenElse{
+		If: boolCond,
+		Then: ast.NodeTypeAdd{BinaryNode: ast.BinaryNode{
+			Left:  ast.NodeValue{Value: types.Long(1)},
+			Right: ast.NodeValue{Value: types.String("x")},
+		}},
+		Else: ast.NodeValue{Value: types.Long(1)},
+	}, caps)
+	testutil.Error(t, err)
+
+	// Incompatible branch types (Long vs String) with non-constant condition
+	_, _, err = v.typeOfExpr(env, ast.NodeTypeIfThenElse{
+		If:   boolCond,
+		Then: ast.NodeValue{Value: types.Long(1)},
+		Else: ast.NodeValue{Value: types.String("hello")},
+	}, caps)
+	testutil.Error(t, err)
 }
