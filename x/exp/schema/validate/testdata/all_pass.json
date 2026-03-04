@@ -1,0 +1,18 @@
+{
+    "schema": "testdata/all_pass.cedarschema",
+    "policies": "testdata/all_pass.cedar",
+    "shouldValidate": true,
+    "entities": "testdata/all_pass.entities.json",
+    "requests": [
+        {
+            "description": "User views Document",
+            "principal": { "type": "User", "id": "alice" },
+            "action": { "type": "Action", "id": "view" },
+            "resource": { "type": "Document", "id": "doc1" },
+            "context": {},
+            "decision": "allow",
+            "reason": ["policy0"],
+            "errors": []
+        }
+    ]
+}

@@ -49,6 +49,10 @@ struct ValidationResult {
 struct ModeResult {
     strict: bool,
     permissive: bool,
+    #[serde(rename = "strictErrors", skip_serializing_if = "Vec::is_empty")]
+    strict_errors: Vec<String>,
+    #[serde(rename = "permissiveErrors", skip_serializing_if = "Vec::is_empty")]
+    permissive_errors: Vec<String>,
 }
 
 #[derive(Serialize)]
@@ -56,6 +60,8 @@ struct RequestResult {
     description: String,
     strict: Option<bool>,
     permissive: Option<bool>,
+    #[serde(rename = "errors", skip_serializing_if = "Vec::is_empty")]
+    errors: Vec<String>,
 }
 
 fn make_entity_uid(r: &EntityRef) -> EntityUid {
@@ -107,15 +113,30 @@ fn main() {
     let policy_validation = ModeResult {
         strict: strict_policy.validation_passed(),
         permissive: permissive_policy.validation_passed(),
+        strict_errors: strict_policy
+            .validation_errors()
+            .map(|e| format!("{e}"))
+            .collect(),
+        permissive_errors: permissive_policy
+            .validation_errors()
+            .map(|e| format!("{e}"))
+            .collect(),
     };
 
     // 2. Entity validation
     // The Rust Entities API doesn't take a validation mode parameter,
     // so strict and permissive produce the same result.
-    let entity_valid = Entities::from_json_str(&entities_str, Some(&schema)).is_ok();
+    let entity_result = Entities::from_json_str(&entities_str, Some(&schema));
+    let entity_valid = entity_result.is_ok();
+    let entity_errors: Vec<String> = match &entity_result {
+        Err(e) => vec![format!("{e}")],
+        Ok(_) => vec![],
+    };
     let entity_validation = ModeResult {
         strict: entity_valid,
         permissive: entity_valid,
+        strict_errors: entity_errors.clone(),
+        permissive_errors: entity_errors,
     };
 
     // 3. Per-request validation
@@ -126,6 +147,7 @@ fn main() {
                 description: req.description.clone(),
                 strict: None,
                 permissive: None,
+                errors: vec![],
             });
             continue;
         }
@@ -137,18 +159,23 @@ fn main() {
         // Validate request: build context with schema, then build request with schema.
         // The Rust Request API doesn't take a validation mode parameter,
         // so strict and permissive produce the same result.
-        let valid = (|| -> Result<(), Box<dyn std::error::Error>> {
+        let result = (|| -> Result<(), Box<dyn std::error::Error>> {
             let context =
                 Context::from_json_value(req.context.clone(), Some((&schema, &action)))?;
             Request::new(principal, action, resource, context, Some(&schema))?;
             Ok(())
-        })()
-        .is_ok();
+        })();
+        let valid = result.is_ok();
+        let errors: Vec<String> = match &result {
+            Err(e) => vec![format!("{e}")],
+            Ok(_) => vec![],
+        };
 
         request_validation.push(RequestResult {
             description: req.description.clone(),
             strict: Some(valid),
             permissive: Some(valid),
+            errors,
         });
     }
 
