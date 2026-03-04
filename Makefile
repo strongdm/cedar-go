@@ -61,7 +61,4 @@ corpus-tests-validation.tar.gz: corpus-tests.tar.gz test/cedar-validation-tool/t
 	@echo "Done! Created corpus-tests-validation.tar.gz"
 
 # Download, convert, and validate
-corpus-update:
-	rm -f corpus-tests-json-schemas.tar.gz corpus-tests-validation.tar.gz
-	$(MAKE) corpus-tests-json-schemas.tar.gz
-	$(MAKE) corpus-tests-validation.tar.gz
+corpus-update: corpus-tests-json-schemas.tar.gz corpus-tests-validation.tar.gz
