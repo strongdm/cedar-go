@@ -1,4 +1,4 @@
-.PHONY: test linters corpus-update corpus-validate
+.PHONY: test linters corpus-update
 
 # Run all tests
 test:
@@ -36,7 +36,7 @@ test/cedar-validation-tool/target/release/cedar-validation-tool: test/cedar-vali
 	@echo "Building cedar-validation-tool..."
 	@cd test/cedar-validation-tool && cargo build --release
 
-corpus-validate: corpus-tests.tar.gz test/cedar-validation-tool/target/release/cedar-validation-tool
+corpus-tests-validation.tar.gz: corpus-tests.tar.gz test/cedar-validation-tool/target/release/cedar-validation-tool
 	@echo "Generating validation results from Rust Cedar..."
 	@rm -rf /tmp/corpus-tests /tmp/corpus-tests-validation
 	@mkdir -p /tmp/corpus-tests-validation
@@ -54,6 +54,6 @@ corpus-validate: corpus-tests.tar.gz test/cedar-validation-tool/target/release/c
 
 # Download, convert, and validate
 corpus-update:
-	rm -f corpus-tests.tar.gz corpus-tests-json-schemas.tar.gz
+	rm -f corpus-tests.tar.gz corpus-tests-json-schemas.tar.gz corpus-tests-validation.tar.gz
 	$(MAKE) corpus-tests-json-schemas.tar.gz
-	$(MAKE) corpus-validate
+	$(MAKE) corpus-tests-validation.tar.gz
