@@ -1,4 +1,4 @@
-.PHONY: test linters corpus-update
+.PHONY: test linters corpus-update check-upstream-corpus
 
 # Run all tests
 test:
@@ -12,9 +12,17 @@ linters:
 	sed -i '' '/^github.com\/cedar-policy\/cedar-go\/internal\/schema\/parser\/cedarschema.go/d' coverage.out
 	go tool cover -func=coverage.out | sed 's/%$$//' | awk '{ if ($$3 < 100.0) { printf "Insufficient code coverage for %s\n", $$0; failed=1 } } END { exit failed }'
 
-# Download the latest corpus tests tarball
-corpus-tests.tar.gz:
-	curl -L -o corpus-tests.tar.gz https://raw.githubusercontent.com/cedar-policy/cedar-integration-tests/main/corpus-tests.tar.gz
+# Download the latest corpus tests tarball and overwrite corpus-tests.tar.gz if changed
+.PHONY: check-upstream-corpus
+check-upstream-corpus:
+	@tmp="$$(mktemp)" && \
+	curl -fL -o "$$tmp" https://raw.githubusercontent.com/cedar-policy/cedar-integration-tests/main/corpus-tests.tar.gz && \
+	if cmp -s "$$tmp" corpus-tests.tar.gz; then echo "corpus-tests.tar.gz is up to date."; rm -f "$$tmp"; else mv "$$tmp" corpus-tests.tar.gz; echo "corpus-tests.tar.gz updated."; fi
+
+# Use an order-only prerequisite to check for changes. This allows other targets to
+# reference corpus-tests.tar.gz as a dependency so that they'll only be re-created
+# if the corpus tests are updated.
+corpus-tests.tar.gz: | check-upstream-corpus
 
 # Convert Cedar schemas to JSON schemas
 corpus-tests-json-schemas.tar.gz: corpus-tests.tar.gz
@@ -54,6 +62,6 @@ corpus-tests-validation.tar.gz: corpus-tests.tar.gz test/cedar-validation-tool/t
 
 # Download, convert, and validate
 corpus-update:
-	rm -f corpus-tests.tar.gz corpus-tests-json-schemas.tar.gz corpus-tests-validation.tar.gz
+	rm -f corpus-tests-json-schemas.tar.gz corpus-tests-validation.tar.gz
 	$(MAKE) corpus-tests-json-schemas.tar.gz
 	$(MAKE) corpus-tests-validation.tar.gz
