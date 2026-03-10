@@ -1,0 +1,18 @@
+{
+    "schema": "testdata/request_wrong_resource_type.cedarschema",
+    "policies": "testdata/request_wrong_resource_type.cedar",
+    "shouldValidate": true,
+    "entities": "testdata/request_wrong_resource_type.entities.json",
+    "requests": [
+        {
+            "description": "Wrong resource type: User instead of Document",
+            "principal": { "type": "User", "id": "alice" },
+            "action": { "type": "Action", "id": "view" },
+            "resource": { "type": "User", "id": "bob" },
+            "context": {
+                "ip": { "__extn": { "fn": "ip", "arg": "127.0.0.1" } }
+            },
+            "validateRequest": true
+        }
+    ]
+}

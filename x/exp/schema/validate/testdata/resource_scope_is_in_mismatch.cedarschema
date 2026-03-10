@@ -1,0 +1,5 @@
+entity User;
+entity Document;
+entity Folder in [Folder];
+entity Image;
+action "view" appliesTo { principal: [User], resource: [Document, Image] };

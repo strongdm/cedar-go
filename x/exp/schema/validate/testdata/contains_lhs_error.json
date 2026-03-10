@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/contains_lhs_error.cedarschema",
+    "policies": "testdata/contains_lhs_error.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/contains_lhs_error.entities.json",
+    "requests": []
+}

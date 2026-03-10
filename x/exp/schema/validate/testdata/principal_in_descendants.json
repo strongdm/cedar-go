@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/principal_in_descendants.cedarschema",
+    "policies": "testdata/principal_in_descendants.cedar",
+    "shouldValidate": true,
+    "entities": "testdata/principal_in_descendants.entities.json",
+    "requests": []
+}

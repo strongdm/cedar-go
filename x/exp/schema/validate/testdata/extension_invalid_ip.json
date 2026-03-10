@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/extension_invalid_ip.cedarschema",
+    "policies": "testdata/extension_invalid_ip.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/extension_invalid_ip.entities.json",
+    "requests": []
+}

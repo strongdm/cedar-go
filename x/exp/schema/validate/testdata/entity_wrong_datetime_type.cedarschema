@@ -1,0 +1,7 @@
+entity Event { start: __cedar::datetime };
+entity User;
+
+action "view" appliesTo {
+    principal: User,
+    resource: Event,
+};

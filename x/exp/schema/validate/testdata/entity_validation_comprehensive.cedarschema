@@ -1,0 +1,28 @@
+namespace Test {
+    entity User in [Group] {
+        name: String,
+        email: String,
+        age?: Long,
+    };
+    
+    entity Group {
+        name: String,
+    };
+    
+    entity Document in [Folder] {
+        title: String,
+        public: Bool,
+    } tags String;
+    
+    entity Folder;
+    
+    action view appliesTo {
+        principal: [User],
+        resource: [Document]
+    };
+    
+    action edit in [view] appliesTo {
+        principal: [User],
+        resource: [Document]
+    };
+}

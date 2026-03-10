@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/and_branches.cedarschema",
+    "policies": "testdata/and_branches.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/and_branches.entities.json",
+    "requests": []
+}

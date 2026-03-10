@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/is_in_joined_errors.cedarschema",
+    "policies": "testdata/is_in_joined_errors.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/is_in_joined_errors.entities.json",
+    "requests": []
+}

@@ -1,0 +1,21 @@
+{
+  "policyValidation": {
+    "strict": false,
+    "permissive": false,
+    "strictErrors": [
+      "for policy `policy0`, unexpected type: expected Bool but saw Long",
+      "for policy `policy0`, unexpected type: expected String but saw Long",
+      "for policy `policy0`, unable to guarantee safety of access to tag `42` on entity type `User`"
+    ],
+    "permissiveErrors": [
+      "for policy `policy0`, unexpected type: expected Bool but saw Long",
+      "for policy `policy0`, unable to guarantee safety of access to tag `42` on entity type `User`",
+      "for policy `policy0`, unexpected type: expected String but saw Long"
+    ]
+  },
+  "entityValidation": {
+    "strict": true,
+    "permissive": true
+  },
+  "requestValidation": []
+}

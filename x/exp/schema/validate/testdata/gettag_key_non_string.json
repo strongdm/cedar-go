@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/gettag_key_non_string.cedarschema",
+    "policies": "testdata/gettag_key_non_string.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/gettag_key_non_string.entities.json",
+    "requests": []
+}

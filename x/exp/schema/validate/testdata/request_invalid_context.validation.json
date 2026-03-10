@@ -1,0 +1,25 @@
+{
+  "policyValidation": {
+    "strict": true,
+    "permissive": true
+  },
+  "entityValidation": {
+    "strict": true,
+    "permissive": true
+  },
+  "requestValidation": [
+    {
+      "description": "Valid request with required context",
+      "strict": true,
+      "permissive": true
+    },
+    {
+      "description": "Invalid request with missing required context field",
+      "strict": false,
+      "permissive": false,
+      "errors": [
+        "while parsing context, expected the record to have an attribute `ip`, but it does not"
+      ]
+    }
+  ]
+}

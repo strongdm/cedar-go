@@ -1,0 +1,14 @@
+entity User {
+    name: String,
+    age?: Long,
+    email: String
+};
+
+entity Group {
+    name: String
+};
+
+action "test" appliesTo {
+    principal: User,
+    resource: Group
+};

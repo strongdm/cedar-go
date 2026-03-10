@@ -1,0 +1,9 @@
+entity User;
+entity Document = {
+    "owner": User
+};
+
+action view appliesTo {
+    principal: [User],
+    resource: [Document]
+};

@@ -1,0 +1,10 @@
+entity Event {
+    scheduledAt: __cedar::datetime,
+};
+
+entity User;
+
+action "attend" appliesTo {
+    principal: User,
+    resource: Event,
+};

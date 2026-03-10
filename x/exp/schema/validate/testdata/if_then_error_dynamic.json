@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/if_then_error_dynamic.cedarschema",
+    "policies": "testdata/if_then_error_dynamic.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/if_then_error_dynamic.entities.json",
+    "requests": []
+}

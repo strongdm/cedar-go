@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/enum_not_in_action_principals.cedarschema",
+    "policies": "testdata/enum_not_in_action_principals.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/enum_not_in_action_principals.entities.json",
+    "requests": []
+}

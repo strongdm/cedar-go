@@ -1,0 +1,6 @@
+entity User;
+entity Document;
+action "grandparent" appliesTo { principal: [User], resource: [Document] };
+action "parent1" in [Action::"grandparent"] appliesTo { principal: [User], resource: [Document] };
+action "parent2" in [Action::"grandparent"] appliesTo { principal: [User], resource: [Document] };
+action "child" in [Action::"parent1", Action::"parent2"] appliesTo { principal: [User], resource: [Document] };

@@ -1,0 +1,8 @@
+entity User;
+entity Photo;
+entity Group in [Group];
+
+action "view" appliesTo {
+    principal: [User, Group],
+    resource: [User, Group, Photo],
+};

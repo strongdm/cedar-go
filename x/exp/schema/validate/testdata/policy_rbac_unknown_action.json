@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/policy_rbac_unknown_action.cedarschema",
+    "policies": "testdata/policy_rbac_unknown_action.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/policy_rbac_unknown_action.entities.json",
+    "requests": []
+}

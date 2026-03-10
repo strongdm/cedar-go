@@ -1,0 +1,23 @@
+{
+    "schema": "testdata/unit_test_request_valid.cedarschema",
+    "policies": "testdata/unit_test_request_valid.cedar",
+    "shouldValidate": true,
+    "entities": "testdata/unit_test_request_valid.entities.json",
+    "requests": [
+        {
+            "description": "valid request",
+            "principal": { "type": "User", "id": "alice" },
+            "action": { "type": "Action", "id": "view" },
+            "resource": { "type": "Document", "id": "doc1" },
+            "context": {
+                "ip": {
+                    "__extn": {
+                        "fn": "ip",
+                        "arg": "127.0.0.1"
+                    }
+                }
+            },
+            "validateRequest": true
+        }
+    ]
+}

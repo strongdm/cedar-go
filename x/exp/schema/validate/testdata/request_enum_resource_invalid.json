@@ -1,0 +1,16 @@
+{
+    "schema": "testdata/request_enum_resource_invalid.cedarschema",
+    "policies": "testdata/request_enum_resource_invalid.cedar",
+    "shouldValidate": true,
+    "entities": "testdata/request_enum_resource_invalid.entities.json",
+    "requests": [
+        {
+            "description": "Invalid enum resource value",
+            "principal": { "type": "User", "id": "alice" },
+            "action": { "type": "Action", "id": "color_view" },
+            "resource": { "type": "Color", "id": "purple" },
+            "context": {},
+            "validateRequest": true
+        }
+    ]
+}

@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/if_then_else_entity_mismatch.cedarschema",
+    "policies": "testdata/if_then_else_entity_mismatch.cedar",
+    "shouldValidate": true,
+    "entities": "testdata/if_then_else_entity_mismatch.entities.json",
+    "requests": []
+}

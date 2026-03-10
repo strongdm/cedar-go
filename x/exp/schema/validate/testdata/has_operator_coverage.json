@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/has_operator_coverage.cedarschema",
+    "policies": "testdata/has_operator_coverage.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/has_operator_coverage.entities.json",
+    "requests": []
+}

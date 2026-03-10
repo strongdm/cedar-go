@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/scope_principal_is_in_invalid.cedarschema",
+    "policies": "testdata/scope_principal_is_in_invalid.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/scope_principal_is_in_invalid.entities.json",
+    "requests": []
+}

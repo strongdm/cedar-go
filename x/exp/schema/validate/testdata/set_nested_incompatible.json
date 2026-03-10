@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/set_nested_incompatible.cedarschema",
+    "policies": "testdata/set_nested_incompatible.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/set_nested_incompatible.entities.json",
+    "requests": []
+}

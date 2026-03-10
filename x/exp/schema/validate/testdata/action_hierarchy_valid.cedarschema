@@ -1,0 +1,3 @@
+action view;
+action edit in [view];
+action admin in [edit];

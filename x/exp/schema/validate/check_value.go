@@ -48,8 +48,6 @@ func checkValue(v types.Value, expected resolved.IsType) error {
 		return checkRecord(rec, expected)
 	case resolved.ExtensionType:
 		return checkExtensionValue(v, expected)
-	default:
-		return fmt.Errorf("unknown schema type %T", expected)
 	}
 	return nil
 }
@@ -98,8 +96,6 @@ func checkExtensionValue(v types.Value, expected resolved.ExtensionType) error {
 		if _, ok := v.(types.Duration); !ok {
 			return fmt.Errorf("expected Duration, got %T", v)
 		}
-	default:
-		return fmt.Errorf("unknown extension type %q", expected)
 	}
 	return nil
 }

@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/or_capability_mismatch.cedarschema",
+    "policies": "testdata/or_capability_mismatch.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/or_capability_mismatch.entities.json",
+    "requests": []
+}

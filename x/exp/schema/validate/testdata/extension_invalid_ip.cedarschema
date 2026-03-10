@@ -1,0 +1,10 @@
+namespace App {
+    entity User;
+    entity Resource;
+
+    action view appliesTo {
+        principal: [User],
+        resource: [Resource],
+        context: {}
+    };
+}

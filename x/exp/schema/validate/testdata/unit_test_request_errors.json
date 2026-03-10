@@ -1,0 +1,54 @@
+{
+    "schema": "testdata/unit_test_request_errors.cedarschema",
+    "policies": "testdata/unit_test_request_errors.cedar",
+    "shouldValidate": true,
+    "entities": "testdata/unit_test_request_errors.entities.json",
+    "requests": [
+        {
+            "description": "unknownAction",
+            "principal": { "type": "User", "id": "alice" },
+            "action": { "type": "Action", "id": "delete" },
+            "resource": { "type": "Document", "id": "doc1" },
+            "context": {},
+            "validateRequest": true
+        },
+        {
+            "description": "wrongPrincipalType",
+            "principal": { "type": "Document", "id": "doc1" },
+            "action": { "type": "Action", "id": "view" },
+            "resource": { "type": "Document", "id": "doc1" },
+            "context": {
+                "ip": {
+                    "__extn": {
+                        "fn": "ip",
+                        "arg": "127.0.0.1"
+                    }
+                }
+            },
+            "validateRequest": true
+        },
+        {
+            "description": "wrongResourceType",
+            "principal": { "type": "User", "id": "alice" },
+            "action": { "type": "Action", "id": "view" },
+            "resource": { "type": "User", "id": "bob" },
+            "context": {
+                "ip": {
+                    "__extn": {
+                        "fn": "ip",
+                        "arg": "127.0.0.1"
+                    }
+                }
+            },
+            "validateRequest": true
+        },
+        {
+            "description": "invalidContext",
+            "principal": { "type": "User", "id": "alice" },
+            "action": { "type": "Action", "id": "view" },
+            "resource": { "type": "Document", "id": "doc1" },
+            "context": {},
+            "validateRequest": true
+        }
+    ]
+}

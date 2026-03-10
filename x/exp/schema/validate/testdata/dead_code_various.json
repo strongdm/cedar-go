@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/dead_code_various.cedarschema",
+    "policies": "testdata/dead_code_various.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/dead_code_various.entities.json",
+    "requests": []
+}

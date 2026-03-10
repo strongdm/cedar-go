@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/contains_all_type_error_nonset.cedarschema",
+    "policies": "testdata/contains_all_type_error_nonset.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/contains_all_type_error_nonset.entities.json",
+    "requests": []
+}

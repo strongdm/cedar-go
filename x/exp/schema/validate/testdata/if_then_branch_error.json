@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/if_then_branch_error.cedarschema",
+    "policies": "testdata/if_then_branch_error.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/if_then_branch_error.entities.json",
+    "requests": []
+}

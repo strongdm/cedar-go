@@ -1,0 +1,8 @@
+entity User = {
+    "ip": ipaddr
+};
+
+action read appliesTo {
+    principal: [User],
+    resource: [User]
+};

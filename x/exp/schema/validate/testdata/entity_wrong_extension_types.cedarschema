@@ -1,0 +1,13 @@
+entity User {
+    birthday: datetime,
+    balance: decimal,
+    membership_period: duration,
+    ip_addr: ipaddr
+};
+
+entity Document;
+
+action "view" appliesTo {
+    principal: User,
+    resource: Document
+};

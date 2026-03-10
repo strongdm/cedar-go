@@ -1,0 +1,88 @@
+[
+    {
+        "uid": {"type": "User", "id": "alice"},
+        "parents": [{"type": "Group", "id": "admins"}],
+        "attrs": {
+            "name": "Alice",
+            "email": "alice@example.com"
+        }
+    },
+    {
+        "uid": {"type": "Unknown", "id": "x"},
+        "attrs": {}
+    },
+    {
+        "uid": {"type": "User", "id": "bob"},
+        "parents": [{"type": "Document", "id": "doc1"}],
+        "attrs": {
+            "name": "Bob",
+            "email": "bob@example.com"
+        }
+    },
+    {
+        "uid": {"type": "User", "id": "charlie"},
+        "attrs": {
+            "name": "Charlie"
+        }
+    },
+    {
+        "uid": {"type": "User", "id": "dave"},
+        "attrs": {
+            "name": "Dave",
+            "email": "dave@example.com",
+            "unknown": "extra"
+        }
+    },
+    {
+        "uid": {"type": "User", "id": "eve"},
+        "attrs": {
+            "name": 42,
+            "email": "eve@example.com"
+        }
+    },
+    {
+        "uid": {"type": "Document", "id": "doc1"},
+        "parents": [{"type": "Folder", "id": "folder1"}],
+        "attrs": {
+            "title": "My Doc",
+            "public": true
+        },
+        "tags": {
+            "category": "report"
+        }
+    },
+    {
+        "uid": {"type": "User", "id": "frank"},
+        "attrs": {
+            "name": "Frank",
+            "email": "frank@example.com"
+        },
+        "tags": {
+            "tag1": "val"
+        }
+    },
+    {
+        "uid": {"type": "Document", "id": "doc2"},
+        "parents": [{"type": "Folder", "id": "folder1"}],
+        "attrs": {
+            "title": "My Doc",
+            "public": true
+        },
+        "tags": {
+            "category": 42
+        }
+    },
+    {
+        "uid": {"type": "Color", "id": "red"}
+    },
+    {
+        "uid": {"type": "Color", "id": "purple"}
+    },
+    {
+        "uid": {"type": "Action", "id": "edit"},
+        "parents": [{"type": "Action", "id": "view"}]
+    },
+    {
+        "uid": {"type": "Action", "id": "delete"}
+    }
+]

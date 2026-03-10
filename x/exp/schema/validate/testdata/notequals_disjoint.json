@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/notequals_disjoint.cedarschema",
+    "policies": "testdata/notequals_disjoint.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/notequals_disjoint.entities.json",
+    "requests": []
+}

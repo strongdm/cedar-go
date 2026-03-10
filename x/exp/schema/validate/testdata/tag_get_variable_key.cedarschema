@@ -1,0 +1,13 @@
+entity Document {
+  tags: String
+};
+
+action "view" appliesTo {
+  principal: User,
+  resource: Document,
+  context: {
+    tagName: String
+  }
+};
+
+entity User;

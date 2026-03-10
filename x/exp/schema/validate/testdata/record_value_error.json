@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/record_value_error.cedarschema",
+    "policies": "testdata/record_value_error.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/record_value_error.entities.json",
+    "requests": []
+}

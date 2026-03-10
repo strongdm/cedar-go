@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/equality_incompatible_entities.cedarschema",
+    "policies": "testdata/equality_incompatible_entities.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/equality_incompatible_entities.entities.json",
+    "requests": []
+}

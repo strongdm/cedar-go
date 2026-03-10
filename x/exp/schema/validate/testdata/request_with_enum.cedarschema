@@ -1,0 +1,42 @@
+entity User in [Group] {
+    name: String,
+    email: String,
+    age?: Long
+};
+
+entity Group {
+    name: String
+};
+
+entity Document in [Folder] {
+    title: String,
+    public: Bool
+} tags String;
+
+entity Folder;
+
+entity Color enum [
+    "red",
+    "green",
+    "blue"
+];
+
+action "view" appliesTo {
+    principal: [User],
+    resource: [Document],
+    context: {
+        ip: ipaddr
+    }
+};
+
+action "edit" in ["view"] appliesTo {
+    principal: [User],
+    resource: [Document],
+    context: {}
+};
+
+action "color_action" appliesTo {
+    principal: [Color],
+    resource: [Document],
+    context: {}
+};

@@ -1,0 +1,22 @@
+[
+  {
+    "uid": { "type": "User", "id": "alice" },
+    "parents": [],
+    "attrs": {
+      "name": "Alice",
+      "active": "not-a-bool",
+      "age": 30,
+      "manager": {"type": "User", "id": "bob"}
+    }
+  },
+  {
+    "uid": { "type": "User", "id": "bob" },
+    "parents": [],
+    "attrs": {
+      "name": "Bob",
+      "active": true,
+      "age": 35,
+      "manager": "not-an-entity"
+    }
+  }
+]

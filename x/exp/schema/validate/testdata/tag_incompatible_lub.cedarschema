@@ -1,0 +1,11 @@
+entity TypeA tags String;
+
+entity TypeB tags Long;
+
+entity Resource;
+
+action "do" appliesTo {
+    principal: [TypeA, TypeB],
+    resource: Resource,
+    context: { chooser: Bool },
+};

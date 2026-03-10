@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/unsafe_access_nonexistent.cedarschema",
+    "policies": "testdata/unsafe_access_nonexistent.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/unsafe_access_nonexistent.entities.json",
+    "requests": []
+}

@@ -1,0 +1,6 @@
+entity User;
+entity Admin;
+entity Document;
+entity Photo;
+action "viewDoc" appliesTo { principal: [User, Admin], resource: [Document] };
+action "viewPhoto" appliesTo { principal: [User, Admin], resource: [Photo] };

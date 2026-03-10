@@ -1,0 +1,52 @@
+{
+    "schema": "testdata/request_with_enum.cedarschema",
+    "policies": "testdata/request_with_enum.cedar",
+    "shouldValidate": true,
+    "entities": "testdata/request_with_enum.entities.json",
+    "requests": [
+        {
+            "description": "Valid enum principal",
+            "principal": { "type": "Color", "id": "red" },
+            "action": { "type": "Action", "id": "color_action" },
+            "resource": { "type": "Document", "id": "doc1" },
+            "context": {},
+            "decision": "deny",
+            "reason": [],
+            "errors": [],
+            "validateRequest": true
+        },
+        {
+            "description": "Invalid enum value",
+            "principal": { "type": "Color", "id": "purple" },
+            "action": { "type": "Action", "id": "color_action" },
+            "resource": { "type": "Document", "id": "doc1" },
+            "context": {},
+            "decision": "deny",
+            "reason": [],
+            "errors": [],
+            "validateRequest": true
+        },
+        {
+            "description": "Unknown principal type",
+            "principal": { "type": "Unknown", "id": "x" },
+            "action": { "type": "Action", "id": "view" },
+            "resource": { "type": "Document", "id": "doc1" },
+            "context": {},
+            "decision": "deny",
+            "reason": [],
+            "errors": [],
+            "validateRequest": true
+        },
+        {
+            "description": "Unknown resource type",
+            "principal": { "type": "User", "id": "alice" },
+            "action": { "type": "Action", "id": "view" },
+            "resource": { "type": "Unknown", "id": "x" },
+            "context": {},
+            "decision": "deny",
+            "reason": [],
+            "errors": [],
+            "validateRequest": true
+        }
+    ]
+}

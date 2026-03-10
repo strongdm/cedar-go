@@ -1,0 +1,11 @@
+[
+  {
+    "uid": {"type": "App::User", "id": "alice"},
+    "attrs": {
+      "name": "Alice",
+      "email": "alice@example.com",
+      "unknown": "extra"
+    },
+    "parents": []
+  }
+]

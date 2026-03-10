@@ -1,0 +1,17 @@
+[
+    {
+        "uid": {"type": "Action", "id": "view"},
+        "parents": [],
+        "attrs": {}
+    },
+    {
+        "uid": {"type": "Action", "id": "edit"},
+        "parents": [{"type": "Action", "id": "view"}],
+        "attrs": {}
+    },
+    {
+        "uid": {"type": "Action", "id": "admin"},
+        "parents": [{"type": "Action", "id": "edit"}, {"type": "Action", "id": "view"}],
+        "attrs": {}
+    }
+]

@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/comparison_operators.cedarschema",
+    "policies": "testdata/comparison_operators.cedar",
+    "shouldValidate": true,
+    "entities": "testdata/comparison_operators.entities.json",
+    "requests": []
+}

@@ -1,0 +1,11 @@
+{
+  "policyValidation": {
+    "strict": true,
+    "permissive": true
+  },
+  "entityValidation": {
+    "strict": true,
+    "permissive": true
+  },
+  "requestValidation": []
+}

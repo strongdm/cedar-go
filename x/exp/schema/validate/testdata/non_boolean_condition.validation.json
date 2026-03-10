@@ -1,0 +1,17 @@
+{
+  "policyValidation": {
+    "strict": false,
+    "permissive": false,
+    "strictErrors": [
+      "for policy `policy0`, unexpected type: expected Bool but saw Long"
+    ],
+    "permissiveErrors": [
+      "for policy `policy0`, unexpected type: expected Bool but saw Long"
+    ]
+  },
+  "entityValidation": {
+    "strict": true,
+    "permissive": true
+  },
+  "requestValidation": []
+}

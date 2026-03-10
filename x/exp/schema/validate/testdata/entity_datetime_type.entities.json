@@ -1,0 +1,7 @@
+[
+    {
+        "uid": {"type": "Event", "id": "meeting"},
+        "attrs": {"scheduledAt": {"__extn": {"fn": "datetime", "arg": "2024-01-15"}}},
+        "parents": []
+    }
+]

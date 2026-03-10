@@ -1,0 +1,17 @@
+{
+  "policyValidation": {
+    "strict": false,
+    "permissive": false,
+    "strictErrors": [
+      "for policy `policy1`, unable to guarantee safety of access to optional attribute `age` on entity type `User`"
+    ],
+    "permissiveErrors": [
+      "for policy `policy1`, unable to guarantee safety of access to optional attribute `age` on entity type `User`"
+    ]
+  },
+  "entityValidation": {
+    "strict": true,
+    "permissive": true
+  },
+  "requestValidation": []
+}

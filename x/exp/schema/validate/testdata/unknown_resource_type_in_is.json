@@ -1,0 +1,7 @@
+{
+  "schema": "testdata/unknown_resource_type_in_is.cedarschema",
+  "policies": "testdata/unknown_resource_type_in_is.cedar",
+  "shouldValidate": false,
+  "entities": "testdata/unknown_resource_type_in_is.entities.json",
+  "requests": []
+}

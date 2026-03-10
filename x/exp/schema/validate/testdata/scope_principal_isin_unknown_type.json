@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/scope_principal_isin_unknown_type.cedarschema",
+    "policies": "testdata/scope_principal_isin_unknown_type.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/scope_principal_isin_unknown_type.entities.json",
+    "requests": []
+}

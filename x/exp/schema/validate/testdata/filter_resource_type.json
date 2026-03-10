@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/filter_resource_type.cedarschema",
+    "policies": "testdata/filter_resource_type.cedar",
+    "shouldValidate": true,
+    "entities": "testdata/filter_resource_type.entities.json",
+    "requests": []
+}

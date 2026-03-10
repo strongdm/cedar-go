@@ -1,0 +1,4 @@
+entity Group;
+entity User in [Group] = { flag?: Bool };
+entity Document;
+action "view" appliesTo { principal: User, resource: Document };

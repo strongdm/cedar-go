@@ -1,0 +1,5 @@
+entity User;
+entity Admin;
+entity Group in [Group];
+entity Document;
+action "view" appliesTo { principal: [User, Admin], resource: [Document] };

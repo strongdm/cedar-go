@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/entity_valid_with_parents.cedarschema",
+    "policies": "testdata/entity_valid_with_parents.cedar",
+    "shouldValidate": true,
+    "entities": "testdata/entity_valid_with_parents.entities.json",
+    "requests": []
+}

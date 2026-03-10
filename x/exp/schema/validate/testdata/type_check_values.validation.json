@@ -1,0 +1,21 @@
+{
+  "policyValidation": {
+    "strict": false,
+    "permissive": false,
+    "strictErrors": [
+      "for policy `policy3`, unrecognized entity type `Unknown`",
+      "for policy `policy3`, unrecognized entity type `Unknown`",
+      "for policy `policy4`, empty set literals are forbidden in policies",
+      "for policy `policy4`, empty set literals are forbidden in policies"
+    ],
+    "permissiveErrors": [
+      "for policy `policy3`, unrecognized entity type `Unknown`",
+      "for policy `policy3`, unrecognized entity type `Unknown`"
+    ]
+  },
+  "entityValidation": {
+    "strict": true,
+    "permissive": true
+  },
+  "requestValidation": []
+}

@@ -1,0 +1,5 @@
+entity User {
+    timeout: duration,
+};
+entity Document;
+action "view" appliesTo { principal: User, resource: Document };

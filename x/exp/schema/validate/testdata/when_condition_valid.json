@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/when_condition_valid.cedarschema",
+    "policies": "testdata/when_condition_valid.cedar",
+    "shouldValidate": true,
+    "entities": "testdata/when_condition_valid.entities.json",
+    "requests": []
+}

@@ -1,0 +1,23 @@
+{
+  "policyValidation": {
+    "strict": false,
+    "permissive": false,
+    "strictErrors": [
+      "for policy `policy2`, unexpected type: expected Bool but saw Long",
+      "for policy `policy4`, unrecognized entity type `Unknown`",
+      "for policy `policy5`, unrecognized entity type `Unknown`",
+      "for policy `policy7`, unexpected type: expected Long but saw String"
+    ],
+    "permissiveErrors": [
+      "for policy `policy2`, unexpected type: expected Bool but saw Long",
+      "for policy `policy4`, unrecognized entity type `Unknown`",
+      "for policy `policy5`, unrecognized entity type `Unknown`",
+      "for policy `policy7`, unexpected type: expected Long but saw String"
+    ]
+  },
+  "entityValidation": {
+    "strict": true,
+    "permissive": true
+  },
+  "requestValidation": []
+}

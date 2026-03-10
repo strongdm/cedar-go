@@ -1,0 +1,17 @@
+{
+  "policyValidation": {
+    "strict": false,
+    "permissive": false,
+    "strictErrors": [
+      "for policy `policy0`, unable to guarantee safety of access to tag `\"flag\"` on entity type `App::Document`"
+    ],
+    "permissiveErrors": [
+      "for policy `policy0`, unable to guarantee safety of access to tag `\"flag\"` on entity type `App::Document`"
+    ]
+  },
+  "entityValidation": {
+    "strict": true,
+    "permissive": true
+  },
+  "requestValidation": []
+}

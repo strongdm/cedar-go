@@ -1,0 +1,10 @@
+entity User {
+    name: String,
+    email: String,
+};
+entity Admin {
+    name: String,
+    level: Long,
+};
+entity Document;
+action "view" appliesTo { principal: [User, Admin], resource: Document };

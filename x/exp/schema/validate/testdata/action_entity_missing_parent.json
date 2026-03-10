@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/action_entity_missing_parent.cedarschema",
+    "policies": "testdata/action_entity_missing_parent.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/action_entity_missing_parent.entities.json",
+    "requests": []
+}

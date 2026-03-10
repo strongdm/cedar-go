@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/or_short_circuit_unknown_entity.cedarschema",
+    "policies": "testdata/or_short_circuit_unknown_entity.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/or_short_circuit_unknown_entity.entities.json",
+    "requests": []
+}

@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/get_tag_operator.cedarschema",
+    "policies": "testdata/get_tag_operator.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/get_tag_operator.entities.json",
+    "requests": []
+}

@@ -1,0 +1,19 @@
+{
+    "schema": "testdata/arithmetic_invalid.cedarschema",
+    "policies": "testdata/arithmetic_invalid.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/arithmetic_invalid.entities.json",
+    "requests": [
+        {
+            "description": "Invalid arithmetic type error",
+            "principal": { "type": "User", "id": "alice" },
+            "action": { "type": "Action", "id": "view" },
+            "resource": { "type": "Document", "id": "doc1" },
+            "context": {},
+            "decision": "deny",
+            "reason": [],
+            "errors": [],
+            "validateRequest": true
+        }
+    ]
+}

@@ -1,0 +1,7 @@
+[
+  {
+    "uid": {"type": "Color", "id": "red"},
+    "attrs": {},
+    "parents": [{"type": "Group", "id": "admins"}]
+  }
+]

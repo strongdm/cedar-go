@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/principal_in_unrelated_entity.cedarschema",
+    "policies": "testdata/principal_in_unrelated_entity.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/principal_in_unrelated_entity.entities.json",
+    "requests": []
+}

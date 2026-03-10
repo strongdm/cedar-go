@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/policy_unconstrained.cedarschema",
+    "policies": "testdata/policy_unconstrained.cedar",
+    "shouldValidate": true,
+    "entities": "testdata/policy_unconstrained.entities.json",
+    "requests": []
+}

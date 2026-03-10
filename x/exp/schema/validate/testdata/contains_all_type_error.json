@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/contains_all_type_error.cedarschema",
+    "policies": "testdata/contains_all_type_error.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/contains_all_type_error.entities.json",
+    "requests": []
+}

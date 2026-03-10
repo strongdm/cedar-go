@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/access_multi_lub_attr.cedarschema",
+    "policies": "testdata/access_multi_lub_attr.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/access_multi_lub_attr.entities.json",
+    "requests": []
+}

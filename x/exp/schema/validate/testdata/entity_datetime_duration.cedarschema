@@ -1,0 +1,6 @@
+entity User {
+    created: datetime,
+    sessionLength: duration,
+};
+entity Document;
+action "view" appliesTo { principal: User, resource: Document };

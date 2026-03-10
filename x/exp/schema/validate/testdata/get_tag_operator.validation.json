@@ -1,0 +1,25 @@
+{
+  "policyValidation": {
+    "strict": false,
+    "permissive": false,
+    "strictErrors": [
+      "for policy `policy0`, unable to guarantee safety of access to tag `\"category\"` on entity type `Document`",
+      "for policy `policy1`, unable to guarantee safety of access to tag `\"x\"` on entity type `User`",
+      "for policy `policy2`, unexpected type: expected __cedar::internal::AnyEntity but saw Long",
+      "for policy `policy3`, unexpected type: expected String but saw Long",
+      "for policy `policy3`, unable to guarantee safety of access to tag `42` on entity type `Document`"
+    ],
+    "permissiveErrors": [
+      "for policy `policy0`, unable to guarantee safety of access to tag `\"category\"` on entity type `Document`",
+      "for policy `policy1`, unable to guarantee safety of access to tag `\"x\"` on entity type `User`",
+      "for policy `policy2`, unexpected type: expected __cedar::internal::AnyEntity but saw Long",
+      "for policy `policy3`, unexpected type: expected String but saw Long",
+      "for policy `policy3`, unable to guarantee safety of access to tag `42` on entity type `Document`"
+    ]
+  },
+  "entityValidation": {
+    "strict": true,
+    "permissive": true
+  },
+  "requestValidation": []
+}

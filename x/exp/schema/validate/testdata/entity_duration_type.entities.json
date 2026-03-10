@@ -1,0 +1,7 @@
+[
+    {
+        "uid": {"type": "Timer", "id": "t1"},
+        "attrs": {"timeout": {"__extn": {"fn": "duration", "arg": "5m"}}},
+        "parents": []
+    }
+]

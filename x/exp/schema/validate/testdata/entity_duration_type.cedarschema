@@ -1,0 +1,10 @@
+entity Timer {
+    timeout: __cedar::duration,
+};
+
+entity User;
+
+action "start" appliesTo {
+    principal: User,
+    resource: Timer,
+};

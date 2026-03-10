@@ -1,0 +1,14 @@
+{
+  "policyValidation": {
+    "strict": false,
+    "permissive": true,
+    "strictErrors": [
+      "for policy `policy0`, extension constructors may not be called with non-literal expressions"
+    ]
+  },
+  "entityValidation": {
+    "strict": true,
+    "permissive": true
+  },
+  "requestValidation": []
+}

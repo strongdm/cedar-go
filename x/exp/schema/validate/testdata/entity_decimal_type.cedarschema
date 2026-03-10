@@ -1,0 +1,9 @@
+entity User {
+    balance: decimal
+};
+entity Document;
+
+action "view" appliesTo {
+    principal: User,
+    resource: Document
+};

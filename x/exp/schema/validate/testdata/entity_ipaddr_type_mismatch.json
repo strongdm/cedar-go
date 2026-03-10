@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/entity_ipaddr_type_mismatch.cedarschema",
+    "policies": "testdata/entity_ipaddr_type_mismatch.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/entity_ipaddr_type_mismatch.entities.json",
+    "requests": []
+}

@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/typecheck_arithmetic.cedarschema",
+    "policies": "testdata/typecheck_arithmetic.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/typecheck_arithmetic.entities.json",
+    "requests": []
+}

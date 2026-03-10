@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/negate_operator.cedarschema",
+    "policies": "testdata/negate_operator.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/negate_operator.entities.json",
+    "requests": []
+}

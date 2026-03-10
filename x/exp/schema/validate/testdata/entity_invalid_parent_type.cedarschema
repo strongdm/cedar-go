@@ -1,0 +1,18 @@
+entity User in [Group] {
+  name: String,
+  email: String
+};
+
+entity Group {
+  name: String
+};
+
+entity Document {
+  title: String,
+  public: Bool
+};
+
+action view appliesTo {
+  principal: [User],
+  resource: [Document]
+};

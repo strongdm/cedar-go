@@ -1,0 +1,10 @@
+namespace Test {
+    entity User {};
+    entity Document {};
+    entity Color enum ["red", "green", "blue"];
+    
+    action view appliesTo {
+        principal: [Color],
+        resource: [Document]
+    };
+}

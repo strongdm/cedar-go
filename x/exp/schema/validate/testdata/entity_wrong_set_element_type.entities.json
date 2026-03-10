@@ -1,0 +1,1 @@
+[{"uid": {"type": "User", "id": "alice"}, "attrs": {"friends": ["not_a_uid"]}, "parents": []}]

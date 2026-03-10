@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/enum_entity_with_parents.cedarschema",
+    "policies": "testdata/enum_entity_with_parents.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/enum_entity_with_parents.entities.json",
+    "requests": []
+}

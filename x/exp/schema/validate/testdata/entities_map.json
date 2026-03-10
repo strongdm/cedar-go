@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/entities_map.cedarschema",
+    "policies": "testdata/entities_map.cedar",
+    "shouldValidate": true,
+    "entities": "testdata/entities_map.entities.json",
+    "requests": []
+}

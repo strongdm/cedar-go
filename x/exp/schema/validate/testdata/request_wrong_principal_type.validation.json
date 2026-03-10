@@ -1,0 +1,20 @@
+{
+  "policyValidation": {
+    "strict": true,
+    "permissive": true
+  },
+  "entityValidation": {
+    "strict": true,
+    "permissive": true
+  },
+  "requestValidation": [
+    {
+      "description": "Document cannot be principal for view action",
+      "strict": false,
+      "permissive": false,
+      "errors": [
+        "principal type `Document` is not valid for `Action::\"view\"`"
+      ]
+    }
+  ]
+}

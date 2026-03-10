@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/containsall_type_mismatch.cedarschema",
+    "policies": "testdata/containsall_type_mismatch.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/containsall_type_mismatch.entities.json",
+    "requests": []
+}

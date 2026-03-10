@@ -1,0 +1,8 @@
+entity User {
+    name: String,
+    email: __cedar::String,
+};
+entity Document {
+    title: String,
+};
+action "view" appliesTo { principal: User, resource: Document };

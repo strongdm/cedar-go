@@ -1,0 +1,9 @@
+entity User = {
+    name: String,
+    age?: Long,
+};
+
+action "view" appliesTo {
+    principal: User,
+    resource: User,
+};

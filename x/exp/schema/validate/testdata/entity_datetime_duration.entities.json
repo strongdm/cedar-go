@@ -1,0 +1,10 @@
+[
+    {
+        "uid": { "__entity": { "type": "User", "id": "alice" } },
+        "attrs": {
+            "created": { "__extn": { "fn": "datetime", "arg": "2024-01-01" } },
+            "sessionLength": { "__extn": { "fn": "duration", "arg": "1h30m" } }
+        },
+        "parents": []
+    }
+]

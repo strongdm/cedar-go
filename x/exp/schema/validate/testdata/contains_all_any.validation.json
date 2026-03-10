@@ -1,0 +1,19 @@
+{
+  "policyValidation": {
+    "strict": false,
+    "permissive": false,
+    "strictErrors": [
+      "for policy `policy2`, unexpected type: expected Set<__cedar::internal::Any> but saw Long",
+      "for policy `policy3`, unexpected type: expected Set<__cedar::internal::Any> but saw Long"
+    ],
+    "permissiveErrors": [
+      "for policy `policy2`, unexpected type: expected Set<__cedar::internal::Any> but saw Long",
+      "for policy `policy3`, unexpected type: expected Set<__cedar::internal::Any> but saw Long"
+    ]
+  },
+  "entityValidation": {
+    "strict": true,
+    "permissive": true
+  },
+  "requestValidation": []
+}

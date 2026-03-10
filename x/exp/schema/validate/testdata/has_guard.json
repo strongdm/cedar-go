@@ -1,0 +1,19 @@
+{
+    "schema": "testdata/has_guard.cedarschema",
+    "policies": "testdata/has_guard.cedar",
+    "shouldValidate": true,
+    "entities": "testdata/has_guard.entities.json",
+    "requests": [
+        {
+            "description": "User views Document",
+            "principal": { "type": "User", "id": "alice" },
+            "action": { "type": "Action", "id": "view" },
+            "resource": { "type": "Document", "id": "doc1" },
+            "context": {},
+            "decision": "allow",
+            "reason": ["policy0"],
+            "errors": [],
+            "validateRequest": true
+        }
+    ]
+}

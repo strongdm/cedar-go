@@ -1,0 +1,6 @@
+entity Org;
+entity Team in [Org];
+entity User in [Team];
+entity Document;
+action "view" appliesTo { principal: User, resource: Document };
+action "edit" appliesTo { principal: Team, resource: Document };

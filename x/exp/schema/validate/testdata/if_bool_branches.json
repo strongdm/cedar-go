@@ -1,0 +1,7 @@
+{
+  "schema": "testdata/if_bool_branches.cedarschema",
+  "policies": "testdata/if_bool_branches.cedar",
+  "shouldValidate": true,
+  "entities": "testdata/if_bool_branches.entities.json",
+  "requests": []
+}

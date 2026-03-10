@@ -1,0 +1,21 @@
+{
+  "policyValidation": {
+    "strict": false,
+    "permissive": false,
+    "strictErrors": [
+      "for policy `policy0`, unrecognized entity type `Bogus2`",
+      "for policy `policy0`, unrecognized entity type `Bogus`",
+      "for policy `policy0`, unrecognized entity type `Bogus`"
+    ],
+    "permissiveErrors": [
+      "for policy `policy0`, unrecognized entity type `Bogus2`",
+      "for policy `policy0`, unrecognized entity type `Bogus`",
+      "for policy `policy0`, unrecognized entity type `Bogus`"
+    ]
+  },
+  "entityValidation": {
+    "strict": true,
+    "permissive": true
+  },
+  "requestValidation": []
+}

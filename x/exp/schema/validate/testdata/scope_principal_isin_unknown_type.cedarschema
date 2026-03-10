@@ -1,0 +1,9 @@
+entity User in Group;
+entity Group;
+entity Document in Folder;
+entity Folder;
+
+action "view" appliesTo {
+    principal: User,
+    resource: Document,
+};

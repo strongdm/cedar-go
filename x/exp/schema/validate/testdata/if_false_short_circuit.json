@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/if_false_short_circuit.cedarschema",
+    "policies": "testdata/if_false_short_circuit.cedar",
+    "shouldValidate": true,
+    "entities": "testdata/if_false_short_circuit.entities.json",
+    "requests": []
+}

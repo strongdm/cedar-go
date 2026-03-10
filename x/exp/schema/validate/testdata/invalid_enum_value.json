@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/invalid_enum_value.cedarschema",
+    "policies": "testdata/invalid_enum_value.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/invalid_enum_value.entities.json",
+    "requests": []
+}

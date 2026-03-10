@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/containsany_rhs_sub_error.cedarschema",
+    "policies": "testdata/containsany_rhs_sub_error.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/containsany_rhs_sub_error.entities.json",
+    "requests": []
+}

@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/arithmetic_valid.cedarschema",
+    "policies": "testdata/arithmetic_valid.cedar",
+    "shouldValidate": true,
+    "entities": "testdata/arithmetic_valid.entities.json",
+    "requests": []
+}

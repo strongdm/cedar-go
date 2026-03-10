@@ -1,0 +1,23 @@
+{
+  "policyValidation": {
+    "strict": false,
+    "permissive": false,
+    "strictErrors": [
+      "for policy `policy0`, error during extension function argument validation: Failed to parse as IP address: `\"not-an-ip\"`",
+      "for policy `policy1`, error during extension function argument validation: Failed to parse as a decimal value: `\"not-a-decimal\"`",
+      "for policy `policy2`, error during extension function argument validation: Failed to parse as a datetime value: `\"not-a-datetime\"`",
+      "for policy `policy3`, error during extension function argument validation: Failed to parse as a duration value: `\"not-a-duration\"`"
+    ],
+    "permissiveErrors": [
+      "for policy `policy0`, error during extension function argument validation: Failed to parse as IP address: `\"not-an-ip\"`",
+      "for policy `policy1`, error during extension function argument validation: Failed to parse as a decimal value: `\"not-a-decimal\"`",
+      "for policy `policy2`, error during extension function argument validation: Failed to parse as a datetime value: `\"not-a-datetime\"`",
+      "for policy `policy3`, error during extension function argument validation: Failed to parse as a duration value: `\"not-a-duration\"`"
+    ]
+  },
+  "entityValidation": {
+    "strict": true,
+    "permissive": true
+  },
+  "requestValidation": []
+}

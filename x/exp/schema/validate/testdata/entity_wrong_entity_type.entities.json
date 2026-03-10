@@ -1,0 +1,9 @@
+[
+    {
+        "uid": {"type": "Document", "id": "doc1"},
+        "parents": [],
+        "attrs": {
+            "owner": {"type": "Document", "id": "doc2"}
+        }
+    }
+]

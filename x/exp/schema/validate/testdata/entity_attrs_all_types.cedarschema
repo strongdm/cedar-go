@@ -1,0 +1,15 @@
+entity User = {
+    name: String,
+    age: Long,
+    active: Bool,
+    groups: Set<String>,
+    ip: ipaddr,
+    balance: decimal,
+    created: datetime,
+    timeout: duration
+};
+
+action view appliesTo {
+    principal: [User],
+    resource: [User]
+};

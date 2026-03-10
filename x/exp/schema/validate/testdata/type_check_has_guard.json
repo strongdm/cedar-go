@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/type_check_has_guard.cedarschema",
+    "policies": "testdata/type_check_has_guard.cedar",
+    "shouldValidate": true,
+    "entities": "testdata/type_check_has_guard.entities.json",
+    "requests": []
+}

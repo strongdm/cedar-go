@@ -1,0 +1,12 @@
+[
+    {
+        "uid": {"type": "Test::Action", "id": "view"},
+        "parents": [],
+        "attrs": {}
+    },
+    {
+        "uid": {"type": "Test::Action", "id": "edit"},
+        "parents": [],
+        "attrs": {}
+    }
+]

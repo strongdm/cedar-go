@@ -1,0 +1,10 @@
+[
+    {
+        "uid": {"type": "Action", "id": "read"},
+        "parents": [],
+        "attrs": {},
+        "tags": {
+            "tag": "value"
+        }
+    }
+]

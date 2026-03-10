@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/non_boolean_condition.cedarschema",
+    "policies": "testdata/non_boolean_condition.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/non_boolean_condition.entities.json",
+    "requests": []
+}

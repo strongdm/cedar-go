@@ -1,0 +1,87 @@
+[
+    {
+        "uid": {"type": "Test::User", "id": "invalidParent"},
+        "parents": [{"type": "Test::Document", "id": "doc1"}],
+        "attrs": {
+            "name": "Alice",
+            "email": "alice@example.com"
+        }
+    },
+    {
+        "uid": {"type": "Test::User", "id": "missingRequired"},
+        "parents": [],
+        "attrs": {
+            "name": "Alice"
+        }
+    },
+    {
+        "uid": {"type": "Test::User", "id": "unexpectedAttr"},
+        "parents": [],
+        "attrs": {
+            "name": "Alice",
+            "email": "alice@example.com",
+            "unknown": "extra"
+        }
+    },
+    {
+        "uid": {"type": "Test::User", "id": "wrongAttrType"},
+        "parents": [],
+        "attrs": {
+            "name": 42,
+            "email": "alice@example.com"
+        }
+    },
+    {
+        "uid": {"type": "Test::Document", "id": "tagsValid"},
+        "parents": [{"type": "Test::Folder", "id": "folder1"}],
+        "attrs": {
+            "title": "My Doc",
+            "public": true
+        },
+        "tags": {
+            "category": "report"
+        }
+    },
+    {
+        "uid": {"type": "Test::User", "id": "tagsNotAllowed"},
+        "parents": [],
+        "attrs": {
+            "name": "Alice",
+            "email": "alice@example.com"
+        },
+        "tags": {
+            "tag1": "val"
+        }
+    },
+    {
+        "uid": {"type": "Test::Document", "id": "tagsWrongType"},
+        "parents": [{"type": "Test::Folder", "id": "folder1"}],
+        "attrs": {
+            "title": "My Doc",
+            "public": true
+        },
+        "tags": {
+            "category": 42
+        }
+    },
+    {
+        "uid": {"type": "Test::Action", "id": "view"},
+        "parents": [],
+        "attrs": {}
+    },
+    {
+        "uid": {"type": "Test::Action", "id": "edit"},
+        "parents": [{"type": "Test::Action", "id": "view"}],
+        "attrs": {}
+    },
+    {
+        "uid": {"type": "Test::Action", "id": "delete"},
+        "parents": [],
+        "attrs": {}
+    },
+    {
+        "uid": {"type": "Test::Folder", "id": "folder1"},
+        "parents": [],
+        "attrs": {}
+    }
+]

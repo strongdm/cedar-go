@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/optional_attr_no_guard.cedarschema",
+    "policies": "testdata/optional_attr_no_guard.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/optional_attr_no_guard.entities.json",
+    "requests": []
+}

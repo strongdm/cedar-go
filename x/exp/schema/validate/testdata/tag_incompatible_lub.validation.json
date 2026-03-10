@@ -1,0 +1,17 @@
+{
+  "policyValidation": {
+    "strict": false,
+    "permissive": false,
+    "strictErrors": [
+      "the types TypeA and TypeB are not compatible"
+    ],
+    "permissiveErrors": [
+      "for policy `policy0`, unable to guarantee safety of access to tag `\"foo\"`"
+    ]
+  },
+  "entityValidation": {
+    "strict": true,
+    "permissive": true
+  },
+  "requestValidation": []
+}

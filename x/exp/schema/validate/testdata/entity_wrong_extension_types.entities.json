@@ -1,0 +1,12 @@
+[
+  {
+    "uid": { "type": "User", "id": "alice" },
+    "parents": [],
+    "attrs": {
+      "birthday": "not-a-datetime",
+      "balance": "not-a-decimal",
+      "membership_period": "not-a-duration",
+      "ip_addr": "not-an-ip"
+    }
+  }
+]

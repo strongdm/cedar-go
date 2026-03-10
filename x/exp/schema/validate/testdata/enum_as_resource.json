@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/enum_as_resource.cedarschema",
+    "policies": "testdata/enum_as_resource.cedar",
+    "shouldValidate": true,
+    "entities": "testdata/enum_as_resource.entities.json",
+    "requests": []
+}

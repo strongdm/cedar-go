@@ -1,0 +1,16 @@
+{
+  "schema": "testdata/issubtype_relationships.cedarschema",
+  "policies": "testdata/issubtype_relationships.cedar",
+  "entities": "testdata/issubtype_relationships.entities.json",
+  "shouldValidate": true,
+  "requests": [
+    {
+      "description": "User views Group",
+      "principal": { "type": "User", "id": "alice" },
+      "action": { "type": "Action", "id": "view" },
+      "resource": { "type": "Group", "id": "group1" },
+      "context": {},
+      "validateRequest": true
+    }
+  ]
+}

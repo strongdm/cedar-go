@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/subtype_never.cedarschema",
+    "policies": "testdata/subtype_never.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/subtype_never.entities.json",
+    "requests": []
+}

@@ -1,0 +1,20 @@
+{
+  "policyValidation": {
+    "strict": true,
+    "permissive": true
+  },
+  "entityValidation": {
+    "strict": true,
+    "permissive": true
+  },
+  "requestValidation": [
+    {
+      "description": "Invalid enum resource value",
+      "strict": false,
+      "permissive": false,
+      "errors": [
+        "entity `Color::\"purple\"` is of an enumerated entity type, but `\"purple\"` is not declared as a valid eid"
+      ]
+    }
+  ]
+}

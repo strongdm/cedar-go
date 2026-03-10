@@ -1,0 +1,22 @@
+entity User in [Group] = {
+    "name": __cedar::String,
+    "age"?: __cedar::Long,
+    "email": __cedar::String,
+};
+
+entity Group = {
+    "name": __cedar::String,
+};
+
+entity Document in [Folder] = {
+    "title": __cedar::String,
+    "public": __cedar::Bool,
+};
+
+entity Folder;
+
+action "view" appliesTo {
+    principal: User,
+    resource: Document,
+    context: {},
+};

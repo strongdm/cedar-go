@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/literal_equality.cedarschema",
+    "policies": "testdata/literal_equality.cedar",
+    "shouldValidate": true,
+    "entities": "testdata/literal_equality.entities.json",
+    "requests": []
+}

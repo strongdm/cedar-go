@@ -1,0 +1,19 @@
+{
+    "schema": "testdata/variables_principal_context.cedarschema",
+    "policies": "testdata/variables_principal_context.cedar",
+    "shouldValidate": true,
+    "entities": "testdata/variables_principal_context.entities.json",
+    "requests": [
+        {
+            "description": "Valid request that exercises principal and context variables",
+            "principal": { "type": "User", "id": "alice" },
+            "action": { "type": "Action", "id": "view" },
+            "resource": { "type": "Document", "id": "doc1" },
+            "context": { "ip": { "__extn": { "fn": "ip", "arg": "127.0.0.1" } } },
+            "decision": "deny",
+            "reason": [],
+            "errors": [],
+            "validateRequest": true
+        }
+    ]
+}

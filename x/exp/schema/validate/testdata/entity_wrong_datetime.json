@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/entity_wrong_datetime.cedarschema",
+    "policies": "testdata/entity_wrong_datetime.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/entity_wrong_datetime.entities.json",
+    "requests": []
+}

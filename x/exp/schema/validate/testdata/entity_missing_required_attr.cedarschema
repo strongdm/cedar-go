@@ -1,0 +1,9 @@
+entity User {
+    name: String,
+    email: String,
+};
+
+action view appliesTo {
+    principal: [User],
+    resource: [User],
+};

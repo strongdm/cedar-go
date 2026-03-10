@@ -1,0 +1,13 @@
+[
+    {
+        "uid": {"type": "User", "id": "alice"},
+        "parents": [],
+        "attrs": {
+            "name": "Alice",
+            "email": "alice@example.com"
+        },
+        "tags": {
+            "tag1": "val"
+        }
+    }
+]

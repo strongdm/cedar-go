@@ -1,0 +1,10 @@
+[
+    {
+        "uid": {"type": "Color", "id": "red"},
+        "parents": [],
+        "attrs": {},
+        "tags": {
+            "t": "v"
+        }
+    }
+]

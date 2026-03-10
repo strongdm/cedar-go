@@ -1,0 +1,8 @@
+entity User;
+
+entity Color enum ["red", "green", "blue"];
+
+action color_view appliesTo {
+    principal: [User],
+    resource: [Color]
+};

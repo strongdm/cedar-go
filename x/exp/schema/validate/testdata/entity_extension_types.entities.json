@@ -1,0 +1,52 @@
+[
+  {
+    "uid": {"type": "Device", "id": "device1"},
+    "attrs": {
+      "ipAddress": {"__extn": {"fn": "ip", "arg": "192.168.1.1"}},
+      "price": {"__extn": {"fn": "decimal", "arg": "99.99"}},
+      "lastSeen": {"__extn": {"fn": "datetime", "arg": "2024-01-01T00:00:00Z"}},
+      "uptime": {"__extn": {"fn": "duration", "arg": "1h"}}
+    },
+    "parents": []
+  },
+  {
+    "uid": {"type": "Device", "id": "device2"},
+    "attrs": {
+      "ipAddress": 42,
+      "price": {"__extn": {"fn": "decimal", "arg": "99.99"}},
+      "lastSeen": {"__extn": {"fn": "datetime", "arg": "2024-01-01T00:00:00Z"}},
+      "uptime": {"__extn": {"fn": "duration", "arg": "1h"}}
+    },
+    "parents": []
+  },
+  {
+    "uid": {"type": "Device", "id": "device3"},
+    "attrs": {
+      "ipAddress": {"__extn": {"fn": "ip", "arg": "192.168.1.1"}},
+      "price": 100,
+      "lastSeen": {"__extn": {"fn": "datetime", "arg": "2024-01-01T00:00:00Z"}},
+      "uptime": {"__extn": {"fn": "duration", "arg": "1h"}}
+    },
+    "parents": []
+  },
+  {
+    "uid": {"type": "Device", "id": "device4"},
+    "attrs": {
+      "ipAddress": {"__extn": {"fn": "ip", "arg": "192.168.1.1"}},
+      "price": {"__extn": {"fn": "decimal", "arg": "99.99"}},
+      "lastSeen": "not a datetime",
+      "uptime": {"__extn": {"fn": "duration", "arg": "1h"}}
+    },
+    "parents": []
+  },
+  {
+    "uid": {"type": "Device", "id": "device5"},
+    "attrs": {
+      "ipAddress": {"__extn": {"fn": "ip", "arg": "192.168.1.1"}},
+      "price": {"__extn": {"fn": "decimal", "arg": "99.99"}},
+      "lastSeen": {"__extn": {"fn": "datetime", "arg": "2024-01-01T00:00:00Z"}},
+      "uptime": true
+    },
+    "parents": []
+  }
+]

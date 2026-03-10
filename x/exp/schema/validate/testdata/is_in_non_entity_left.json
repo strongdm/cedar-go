@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/is_in_non_entity_left.cedarschema",
+    "policies": "testdata/is_in_non_entity_left.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/is_in_non_entity_left.entities.json",
+    "requests": []
+}

@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/entity_validation_comprehensive.cedarschema",
+    "policies": "testdata/entity_validation_comprehensive.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/entity_validation_comprehensive.entities.json",
+    "requests": []
+}

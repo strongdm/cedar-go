@@ -1,0 +1,23 @@
+{
+  "policyValidation": {
+    "strict": false,
+    "permissive": false,
+    "strictErrors": [
+      "for policy `policy0`, unexpected type: expected Long but saw String"
+    ],
+    "permissiveErrors": [
+      "for policy `policy0`, unexpected type: expected Long but saw String"
+    ]
+  },
+  "entityValidation": {
+    "strict": true,
+    "permissive": true
+  },
+  "requestValidation": [
+    {
+      "description": "Invalid arithmetic type error",
+      "strict": true,
+      "permissive": true
+    }
+  ]
+}

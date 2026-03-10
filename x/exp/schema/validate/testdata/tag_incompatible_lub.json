@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/tag_incompatible_lub.cedarschema",
+    "policies": "testdata/tag_incompatible_lub.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/tag_incompatible_lub.entities.json",
+    "requests": []
+}

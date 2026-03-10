@@ -1,0 +1,14 @@
+{
+  "policyValidation": {
+    "strict": false,
+    "permissive": true,
+    "strictErrors": [
+      "the types {a: Long,} and {a: String,} are not compatible"
+    ]
+  },
+  "entityValidation": {
+    "strict": true,
+    "permissive": true
+  },
+  "requestValidation": []
+}

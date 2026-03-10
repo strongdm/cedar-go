@@ -1,0 +1,4 @@
+entity User;
+entity Document;
+action "read";
+action "view" in [Action::"read"] appliesTo { principal: [User], resource: [Document] };

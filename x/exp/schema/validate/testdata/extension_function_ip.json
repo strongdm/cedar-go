@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/extension_function_ip.cedarschema",
+    "policies": "testdata/extension_function_ip.cedar",
+    "shouldValidate": true,
+    "entities": "testdata/extension_function_ip.entities.json",
+    "requests": []
+}

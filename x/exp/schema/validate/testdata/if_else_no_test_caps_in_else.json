@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/if_else_no_test_caps_in_else.cedarschema",
+    "policies": "testdata/if_else_no_test_caps_in_else.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/if_else_no_test_caps_in_else.entities.json",
+    "requests": []
+}

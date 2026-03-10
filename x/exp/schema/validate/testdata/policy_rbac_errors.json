@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/policy_rbac_errors.cedarschema",
+    "policies": "testdata/policy_rbac_errors.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/policy_rbac_errors.entities.json",
+    "requests": []
+}

@@ -1,0 +1,7 @@
+{
+  "schema": "testdata/attribute_access_optional.cedarschema",
+  "policies": "testdata/attribute_access_optional.cedar",
+  "entities": "testdata/attribute_access_optional.entities.json",
+  "shouldValidate": false,
+  "requests": []
+}

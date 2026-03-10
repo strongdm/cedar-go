@@ -1,0 +1,5 @@
+entity Apple;
+entity Banana;
+entity User;
+entity Document;
+action "view" appliesTo { principal: [User], resource: [Document] };

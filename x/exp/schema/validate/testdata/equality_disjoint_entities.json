@@ -1,0 +1,7 @@
+{
+  "schema": "testdata/equality_disjoint_entities.cedarschema",
+  "policies": "testdata/equality_disjoint_entities.cedar",
+  "shouldValidate": true,
+  "entities": "testdata/equality_disjoint_entities.entities.json",
+  "requests": []
+}

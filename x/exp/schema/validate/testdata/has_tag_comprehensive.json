@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/has_tag_comprehensive.cedarschema",
+    "policies": "testdata/has_tag_comprehensive.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/has_tag_comprehensive.entities.json",
+    "requests": []
+}

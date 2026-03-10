@@ -1,0 +1,17 @@
+{
+  "policyValidation": {
+    "strict": false,
+    "permissive": false,
+    "strictErrors": [
+      "for policy `policy0`, attribute `unknownAttr` on entity type `Document` not found"
+    ],
+    "permissiveErrors": [
+      "for policy `policy0`, attribute `unknownAttr` on entity type `Document` not found"
+    ]
+  },
+  "entityValidation": {
+    "strict": true,
+    "permissive": true
+  },
+  "requestValidation": []
+}

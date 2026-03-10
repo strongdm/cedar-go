@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/hastag_action_entity_lub.cedarschema",
+    "policies": "testdata/hastag_action_entity_lub.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/hastag_action_entity_lub.entities.json",
+    "requests": []
+}

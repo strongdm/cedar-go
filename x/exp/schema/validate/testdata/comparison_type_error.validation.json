@@ -1,0 +1,23 @@
+{
+  "policyValidation": {
+    "strict": false,
+    "permissive": false,
+    "strictErrors": [
+      "for policy `policy1`, unexpected type: expected Long but saw String",
+      "for policy `policy2`, unexpected type: expected Long but saw String",
+      "for policy `policy3`, unexpected type: expected datetime, or duration, or Long but saw String",
+      "for policy `policy3`, unexpected type: expected datetime, or duration, or Long but saw String"
+    ],
+    "permissiveErrors": [
+      "for policy `policy1`, unexpected type: expected Long but saw String",
+      "for policy `policy2`, unexpected type: expected Long but saw String",
+      "for policy `policy3`, unexpected type: expected datetime, or duration, or Long but saw String",
+      "for policy `policy3`, unexpected type: expected datetime, or duration, or Long but saw String"
+    ]
+  },
+  "entityValidation": {
+    "strict": true,
+    "permissive": true
+  },
+  "requestValidation": []
+}

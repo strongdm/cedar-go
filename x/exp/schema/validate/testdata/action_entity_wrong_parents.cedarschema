@@ -1,0 +1,14 @@
+namespace Test {
+    entity User;
+    entity Document;
+    
+    action view appliesTo {
+        principal: [User],
+        resource: [Document]
+    };
+    
+    action edit in [view] appliesTo {
+        principal: [User],
+        resource: [Document]
+    };
+}

@@ -1,0 +1,17 @@
+{
+  "policyValidation": {
+    "strict": false,
+    "permissive": false,
+    "strictErrors": [
+      "the types Action and User are not compatible"
+    ],
+    "permissiveErrors": [
+      "for policy `policy0`, attribute `name` on entity types `Action`, `User` not found"
+    ]
+  },
+  "entityValidation": {
+    "strict": true,
+    "permissive": true
+  },
+  "requestValidation": []
+}

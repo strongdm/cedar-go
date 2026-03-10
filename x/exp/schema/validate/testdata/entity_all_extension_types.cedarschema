@@ -1,0 +1,11 @@
+entity User {
+    balance: decimal,
+    created: datetime,
+    timeout: duration
+};
+entity Document;
+
+action "view" appliesTo {
+    principal: User,
+    resource: Document
+};

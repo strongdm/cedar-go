@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/least_upper_bound.cedarschema",
+    "policies": "testdata/least_upper_bound.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/least_upper_bound.entities.json",
+    "requests": []
+}

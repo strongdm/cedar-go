@@ -1,0 +1,26 @@
+[
+    {
+        "uid": {"type": "Action", "id": "grandparent"},
+        "parents": [],
+        "attrs": {}
+    },
+    {
+        "uid": {"type": "Action", "id": "parent1"},
+        "parents": [{"type": "Action", "id": "grandparent"}],
+        "attrs": {}
+    },
+    {
+        "uid": {"type": "Action", "id": "parent2"},
+        "parents": [{"type": "Action", "id": "grandparent"}],
+        "attrs": {}
+    },
+    {
+        "uid": {"type": "Action", "id": "child"},
+        "parents": [
+            {"type": "Action", "id": "parent1"},
+            {"type": "Action", "id": "parent2"},
+            {"type": "Action", "id": "grandparent"}
+        ],
+        "attrs": {}
+    }
+]

@@ -1,0 +1,9 @@
+[
+    {
+        "uid": { "__entity": { "type": "User", "id": "alice" } },
+        "attrs": {
+            "scores": [1, 2, 3]
+        },
+        "parents": []
+    }
+]

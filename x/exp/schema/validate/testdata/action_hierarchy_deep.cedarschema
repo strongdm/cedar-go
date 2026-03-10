@@ -1,0 +1,9 @@
+entity User;
+entity Document;
+
+action "manage";
+action "write" in [Action::"manage"];
+action "edit" in [Action::"write"] appliesTo {
+    principal: User,
+    resource: Document,
+};

@@ -1,0 +1,10 @@
+entity User = {
+    name: String,
+    age: Long,
+    active: Bool
+};
+
+action view appliesTo {
+    principal: [User],
+    resource: [User]
+};

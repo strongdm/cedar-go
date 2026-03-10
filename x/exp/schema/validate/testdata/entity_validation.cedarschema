@@ -1,0 +1,31 @@
+entity User in [Group] = {
+  "name": __cedar::String,
+  "age"?: __cedar::Long,
+  "email": __cedar::String
+};
+
+entity Group = {
+  "name": __cedar::String
+};
+
+entity Document in [Folder] = {
+  "title": __cedar::String,
+  "public": Bool
+} tags __cedar::String;
+
+entity Folder;
+
+entity Color enum ["red", "green", "blue"];
+
+action view appliesTo {
+  principal: [User],
+  resource: [Document],
+  context: {
+    "ip": ipaddr
+  }
+};
+
+action edit in [view] appliesTo {
+  principal: [User],
+  resource: [Document]
+};

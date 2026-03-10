@@ -1,0 +1,16 @@
+{
+    "schema": "testdata/request_unknown_action.cedarschema",
+    "policies": "testdata/request_unknown_action.cedar",
+    "shouldValidate": true,
+    "entities": "testdata/request_unknown_action.entities.json",
+    "requests": [
+        {
+            "description": "Unknown action should fail validation",
+            "principal": { "type": "User", "id": "alice" },
+            "action": { "type": "Action", "id": "delete" },
+            "resource": { "type": "Document", "id": "doc1" },
+            "context": {},
+            "validateRequest": true
+        }
+    ]
+}

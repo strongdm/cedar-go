@@ -39,8 +39,8 @@ type corpusValidationMode struct {
 }
 
 type corpusValidation struct {
-	PolicyValidation corpusValidationMode `json:"policyValidation"`
-	EntityValidation corpusValidationMode `json:"entityValidation"`
+	PolicyValidation  corpusValidationMode `json:"policyValidation"`
+	EntityValidation  corpusValidationMode `json:"entityValidation"`
 	RequestValidation []struct {
 		Description string   `json:"description"`
 		Strict      *bool    `json:"strict"`

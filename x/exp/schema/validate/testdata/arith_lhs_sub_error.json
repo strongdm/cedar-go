@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/arith_lhs_sub_error.cedarschema",
+    "policies": "testdata/arith_lhs_sub_error.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/arith_lhs_sub_error.entities.json",
+    "requests": []
+}

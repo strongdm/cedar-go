@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/access_on_non_record.cedarschema",
+    "policies": "testdata/access_on_non_record.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/access_on_non_record.entities.json",
+    "requests": []
+}

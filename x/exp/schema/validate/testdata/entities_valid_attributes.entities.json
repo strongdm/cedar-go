@@ -1,0 +1,17 @@
+[
+    {
+        "uid": {"type": "Test::User", "id": "alice"},
+        "parents": [],
+        "attrs": {
+            "name": "Alice",
+            "email": "alice@example.com"
+        }
+    },
+    {
+        "uid": {"type": "Test::Group", "id": "admins"},
+        "parents": [],
+        "attrs": {
+            "name": "Admins"
+        }
+    }
+]

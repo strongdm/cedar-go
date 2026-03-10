@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/value_record_literal.cedarschema",
+    "policies": "testdata/value_record_literal.cedar",
+    "shouldValidate": true,
+    "entities": "testdata/value_record_literal.entities.json",
+    "requests": []
+}

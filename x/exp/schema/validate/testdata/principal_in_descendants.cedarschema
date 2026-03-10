@@ -1,0 +1,22 @@
+entity User in [Group] = {
+    name: String,
+    age?: Long,
+    email: String,
+};
+
+entity Group = {
+    name: String,
+};
+
+entity Document in [Folder] = {
+    title: String,
+    public: Bool,
+};
+
+entity Folder;
+
+action "view" appliesTo {
+    principal: User,
+    resource: Document,
+    context: { ip: ipaddr },
+};

@@ -1,0 +1,13 @@
+entity User in [Group] {
+    name: String,
+    email: String,
+};
+
+entity Group {
+    name: String,
+};
+
+action "view" appliesTo {
+    principal: User,
+    resource: User,
+};

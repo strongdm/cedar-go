@@ -1,0 +1,41 @@
+{
+  "policyValidation": {
+    "strict": true,
+    "permissive": true
+  },
+  "entityValidation": {
+    "strict": true,
+    "permissive": true
+  },
+  "requestValidation": [
+    {
+      "description": "Valid enum principal",
+      "strict": true,
+      "permissive": true
+    },
+    {
+      "description": "Invalid enum value",
+      "strict": false,
+      "permissive": false,
+      "errors": [
+        "entity `Color::\"purple\"` is of an enumerated entity type, but `\"purple\"` is not declared as a valid eid"
+      ]
+    },
+    {
+      "description": "Unknown principal type",
+      "strict": false,
+      "permissive": false,
+      "errors": [
+        "while parsing context, expected the record to have an attribute `ip`, but it does not"
+      ]
+    },
+    {
+      "description": "Unknown resource type",
+      "strict": false,
+      "permissive": false,
+      "errors": [
+        "while parsing context, expected the record to have an attribute `ip`, but it does not"
+      ]
+    }
+  ]
+}

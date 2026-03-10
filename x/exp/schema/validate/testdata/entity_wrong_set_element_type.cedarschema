@@ -1,0 +1,7 @@
+entity User { friends: Set<User> };
+entity Document;
+
+action "view" appliesTo {
+    principal: User,
+    resource: Document,
+};

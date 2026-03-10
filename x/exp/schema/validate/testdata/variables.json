@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/variables.cedarschema",
+    "policies": "testdata/variables.cedar",
+    "shouldValidate": true,
+    "entities": "testdata/variables.entities.json",
+    "requests": []
+}

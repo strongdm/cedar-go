@@ -1,0 +1,17 @@
+{
+  "policyValidation": {
+    "strict": true,
+    "permissive": true
+  },
+  "entityValidation": {
+    "strict": false,
+    "permissive": false,
+    "strictErrors": [
+      "transitive closure computation/enforcement error"
+    ],
+    "permissiveErrors": [
+      "transitive closure computation/enforcement error"
+    ]
+  },
+  "requestValidation": []
+}

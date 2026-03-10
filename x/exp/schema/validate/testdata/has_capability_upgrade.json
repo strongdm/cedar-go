@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/has_capability_upgrade.cedarschema",
+    "policies": "testdata/has_capability_upgrade.cedar",
+    "shouldValidate": true,
+    "entities": "testdata/has_capability_upgrade.entities.json",
+    "requests": []
+}

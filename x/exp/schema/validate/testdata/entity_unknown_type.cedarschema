@@ -1,0 +1,7 @@
+entity User;
+entity Group;
+
+action view appliesTo {
+    principal: [User],
+    resource: [User]
+};

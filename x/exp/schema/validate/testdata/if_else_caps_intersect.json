@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/if_else_caps_intersect.cedarschema",
+    "policies": "testdata/if_else_caps_intersect.cedar",
+    "shouldValidate": true,
+    "entities": "testdata/if_else_caps_intersect.entities.json",
+    "requests": []
+}

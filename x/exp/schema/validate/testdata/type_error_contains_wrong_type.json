@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/type_error_contains_wrong_type.cedarschema",
+    "policies": "testdata/type_error_contains_wrong_type.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/type_error_contains_wrong_type.entities.json",
+    "requests": []
+}

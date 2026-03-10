@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/strict_set_disjoint_entities.cedarschema",
+    "policies": "testdata/strict_set_disjoint_entities.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/strict_set_disjoint_entities.entities.json",
+    "requests": []
+}

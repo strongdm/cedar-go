@@ -1,0 +1,69 @@
+{
+    "schema": "testdata/request_validation.cedarschema",
+    "policies": "testdata/request_validation.cedar",
+    "shouldValidate": true,
+    "entities": "testdata/request_validation.entities.json",
+    "requests": [
+        {
+            "description": "valid request",
+            "principal": { "type": "User", "id": "alice" },
+            "action": { "type": "Action", "id": "view" },
+            "resource": { "type": "Document", "id": "doc1" },
+            "context": {
+                "ip": { "__extn": { "fn": "ip", "arg": "127.0.0.1" } }
+            },
+            "validateRequest": true,
+            "decision": "allow",
+            "reason": ["policy0"],
+            "errors": []
+        },
+        {
+            "description": "unknown action",
+            "principal": { "type": "User", "id": "alice" },
+            "action": { "type": "Action", "id": "delete" },
+            "resource": { "type": "Document", "id": "doc1" },
+            "context": {},
+            "validateRequest": true,
+            "decision": "deny",
+            "reason": [],
+            "errors": []
+        },
+        {
+            "description": "wrong principal type",
+            "principal": { "type": "Document", "id": "doc1" },
+            "action": { "type": "Action", "id": "view" },
+            "resource": { "type": "Document", "id": "doc1" },
+            "context": {
+                "ip": { "__extn": { "fn": "ip", "arg": "127.0.0.1" } }
+            },
+            "validateRequest": true,
+            "decision": "deny",
+            "reason": [],
+            "errors": []
+        },
+        {
+            "description": "wrong resource type",
+            "principal": { "type": "User", "id": "alice" },
+            "action": { "type": "Action", "id": "view" },
+            "resource": { "type": "User", "id": "bob" },
+            "context": {
+                "ip": { "__extn": { "fn": "ip", "arg": "127.0.0.1" } }
+            },
+            "validateRequest": true,
+            "decision": "deny",
+            "reason": [],
+            "errors": []
+        },
+        {
+            "description": "invalid context",
+            "principal": { "type": "User", "id": "alice" },
+            "action": { "type": "Action", "id": "view" },
+            "resource": { "type": "Document", "id": "doc1" },
+            "context": {},
+            "validateRequest": true,
+            "decision": "deny",
+            "reason": [],
+            "errors": []
+        }
+    ]
+}

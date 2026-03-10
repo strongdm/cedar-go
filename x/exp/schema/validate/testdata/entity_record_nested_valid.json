@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/entity_record_nested_valid.cedarschema",
+    "policies": "testdata/entity_record_nested_valid.cedar",
+    "shouldValidate": true,
+    "entities": "testdata/entity_record_nested_valid.entities.json",
+    "requests": []
+}

@@ -1,0 +1,7 @@
+[
+    {
+        "uid": { "__entity": { "type": "Action", "id": "nonexistent" } },
+        "attrs": {},
+        "parents": []
+    }
+]

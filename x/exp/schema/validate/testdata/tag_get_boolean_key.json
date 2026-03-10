@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/tag_get_boolean_key.cedarschema",
+    "policies": "testdata/tag_get_boolean_key.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/tag_get_boolean_key.entities.json",
+    "requests": []
+}

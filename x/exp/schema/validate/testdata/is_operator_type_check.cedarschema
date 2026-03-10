@@ -1,0 +1,7 @@
+entity User;
+entity Photo;
+entity Resource;
+action view appliesTo {
+  principal: [User, Photo],
+  resource: [Resource]
+};

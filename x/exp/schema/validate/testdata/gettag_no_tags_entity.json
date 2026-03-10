@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/gettag_no_tags_entity.cedarschema",
+    "policies": "testdata/gettag_no_tags_entity.cedar",
+    "shouldValidate": true,
+    "entities": "testdata/gettag_no_tags_entity.entities.json",
+    "requests": []
+}

@@ -1,0 +1,17 @@
+{
+  "policyValidation": {
+    "strict": false,
+    "permissive": false,
+    "strictErrors": [
+      "the types Set<Long> and Set<String> are not compatible"
+    ],
+    "permissiveErrors": [
+      "the types Set<Long> and Set<String> are not compatible"
+    ]
+  },
+  "entityValidation": {
+    "strict": true,
+    "permissive": true
+  },
+  "requestValidation": []
+}

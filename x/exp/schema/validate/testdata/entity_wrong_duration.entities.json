@@ -1,0 +1,9 @@
+[
+    {
+        "uid": { "__entity": { "type": "User", "id": "alice" } },
+        "attrs": {
+            "timeout": "not-a-duration"
+        },
+        "parents": []
+    }
+]

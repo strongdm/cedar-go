@@ -1,0 +1,16 @@
+{
+    "schema": "testdata/request_wrong_principal_type.cedarschema",
+    "policies": "testdata/request_wrong_principal_type.cedar",
+    "shouldValidate": true,
+    "entities": "testdata/request_wrong_principal_type.entities.json",
+    "requests": [
+        {
+            "description": "Document cannot be principal for view action",
+            "principal": { "type": "Document", "id": "doc1" },
+            "action": { "type": "Action", "id": "view" },
+            "resource": { "type": "Document", "id": "doc1" },
+            "context": { "ip": { "__extn": { "fn": "ip", "arg": "127.0.0.1" } } },
+            "validateRequest": true
+        }
+    ]
+}

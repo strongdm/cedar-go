@@ -1,0 +1,9 @@
+[
+    {
+        "uid": {"type": "User", "id": "alice"},
+        "attrs": {
+            "balance": {"__extn": {"fn": "decimal", "arg": "123.45"}}
+        },
+        "parents": []
+    }
+]

@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/has_on_entity_missing_attr.cedarschema",
+    "policies": "testdata/has_on_entity_missing_attr.cedar",
+    "shouldValidate": true,
+    "entities": "testdata/has_on_entity_missing_attr.entities.json",
+    "requests": []
+}

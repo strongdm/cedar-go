@@ -1,0 +1,7 @@
+[
+    {
+        "uid": {"type": "Test::Action", "id": "edit"},
+        "parents": [{"type": "Test::Action", "id": "edit"}],
+        "attrs": {}
+    }
+]

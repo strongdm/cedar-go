@@ -1,0 +1,11 @@
+entity User {
+    name: String,
+    age?: Long,
+};
+
+entity Group;
+
+action "view" appliesTo {
+    principal: User,
+    resource: User,
+};

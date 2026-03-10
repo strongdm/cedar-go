@@ -1,0 +1,14 @@
+entity Color enum ["red", "green", "blue"];
+
+entity User {
+  name: String,
+};
+
+entity Group {
+  name: String,
+};
+
+action view appliesTo {
+  principal: [User],
+  resource: [User]
+};

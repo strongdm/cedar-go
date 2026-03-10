@@ -1,0 +1,11 @@
+entity User;
+
+entity Document = {
+    "title": String,
+    "public": Bool,
+} tags String;
+
+action "view" appliesTo {
+    principal: User,
+    resource: Document,
+};

@@ -1,0 +1,12 @@
+entity User {
+    tags: Set<String>,
+};
+
+action view appliesTo {
+    principal: [User],
+    resource: [User],
+    context: {
+        requiredTags: Set<String>,
+        optionalTags: Set<String>,
+    },
+};

@@ -1,0 +1,107 @@
+[
+    {
+        "uid": {"type": "User", "id": "alice"},
+        "attrs": {
+            "name": "Alice",
+            "email": "alice@example.com"
+        },
+        "parents": [{"type": "Group", "id": "admins"}]
+    },
+    {
+        "uid": {"type": "Group", "id": "admins"},
+        "attrs": {
+            "name": "Admins"
+        },
+        "parents": []
+    },
+    {
+        "uid": {"type": "Unknown", "id": "x"},
+        "attrs": {},
+        "parents": []
+    },
+    {
+        "uid": {"type": "User", "id": "bob"},
+        "attrs": {
+            "name": "Bob",
+            "email": "bob@example.com"
+        },
+        "parents": [{"type": "Document", "id": "doc1"}]
+    },
+    {
+        "uid": {"type": "User", "id": "charlie"},
+        "attrs": {
+            "name": "Charlie"
+        },
+        "parents": []
+    },
+    {
+        "uid": {"type": "User", "id": "dave"},
+        "attrs": {
+            "name": "Dave",
+            "email": "dave@example.com",
+            "unknown": "extra"
+        },
+        "parents": []
+    },
+    {
+        "uid": {"type": "User", "id": "eve"},
+        "attrs": {
+            "name": 42,
+            "email": "eve@example.com"
+        },
+        "parents": []
+    },
+    {
+        "uid": {"type": "Document", "id": "doc1"},
+        "attrs": {
+            "title": "My Doc",
+            "public": true
+        },
+        "parents": [{"type": "Folder", "id": "folder1"}],
+        "tags": {
+            "category": "report"
+        }
+    },
+    {
+        "uid": {"type": "User", "id": "frank"},
+        "attrs": {
+            "name": "Frank",
+            "email": "frank@example.com"
+        },
+        "parents": [],
+        "tags": {
+            "tag1": "val"
+        }
+    },
+    {
+        "uid": {"type": "Document", "id": "doc2"},
+        "attrs": {
+            "title": "Another Doc",
+            "public": false
+        },
+        "parents": [],
+        "tags": {
+            "category": 42
+        }
+    },
+    {
+        "uid": {"type": "Color", "id": "red"},
+        "attrs": {},
+        "parents": []
+    },
+    {
+        "uid": {"type": "Color", "id": "purple"},
+        "attrs": {},
+        "parents": []
+    },
+    {
+        "uid": {"type": "Action", "id": "edit"},
+        "attrs": {},
+        "parents": [{"type": "Action", "id": "view"}]
+    },
+    {
+        "uid": {"type": "Action", "id": "delete"},
+        "attrs": {},
+        "parents": []
+    }
+]

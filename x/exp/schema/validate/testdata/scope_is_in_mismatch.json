@@ -1,0 +1,7 @@
+{
+  "schema": "testdata/scope_is_in_mismatch.cedarschema",
+  "policies": "testdata/scope_is_in_mismatch.cedar",
+  "shouldValidate": false,
+  "entities": "testdata/scope_is_in_mismatch.entities.json",
+  "requests": []
+}

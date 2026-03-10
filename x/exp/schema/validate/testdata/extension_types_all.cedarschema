@@ -1,0 +1,17 @@
+entity User {
+    birthday: datetime,
+    balance: decimal,
+    membership_period: duration
+};
+
+entity Document;
+
+action "view" appliesTo {
+    principal: User,
+    resource: Document,
+    context: {
+        access_time: datetime,
+        price: decimal,
+        timeout: duration
+    }
+};

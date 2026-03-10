@@ -1,0 +1,14 @@
+entity User;
+entity Document;
+
+entity Color enum ["red", "green", "blue"];
+
+action "view" appliesTo {
+    principal: User,
+    resource: Document,
+};
+
+action "color_action" appliesTo {
+    principal: Color,
+    resource: Document,
+};

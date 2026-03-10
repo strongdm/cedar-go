@@ -1,0 +1,7 @@
+entity User;
+entity Document;
+
+action read appliesTo {
+    principal: [User],
+    resource: [Document]
+};

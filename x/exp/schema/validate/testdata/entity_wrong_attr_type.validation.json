@@ -1,0 +1,17 @@
+{
+  "policyValidation": {
+    "strict": true,
+    "permissive": true
+  },
+  "entityValidation": {
+    "strict": false,
+    "permissive": false,
+    "strictErrors": [
+      "entity does not conform to the schema"
+    ],
+    "permissiveErrors": [
+      "entity does not conform to the schema"
+    ]
+  },
+  "requestValidation": []
+}

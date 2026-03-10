@@ -1,0 +1,9 @@
+[
+    {
+        "uid": {"type": "User", "id": "alice"},
+        "parents": [],
+        "attrs": {
+            "ip": "not-an-ipaddr"
+        }
+    }
+]

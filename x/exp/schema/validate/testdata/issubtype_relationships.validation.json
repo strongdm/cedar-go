@@ -1,0 +1,17 @@
+{
+  "policyValidation": {
+    "strict": true,
+    "permissive": true
+  },
+  "entityValidation": {
+    "strict": true,
+    "permissive": true
+  },
+  "requestValidation": [
+    {
+      "description": "User views Group",
+      "strict": true,
+      "permissive": true
+    }
+  ]
+}

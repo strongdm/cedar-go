@@ -1,0 +1,7 @@
+{
+  "schema": "testdata/principal_scope_in.cedarschema",
+  "policies": "testdata/principal_scope_in.cedar",
+  "shouldValidate": true,
+  "entities": "testdata/principal_scope_in.entities.json",
+  "requests": []
+}

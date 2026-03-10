@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/ite_record_lub.cedarschema",
+    "policies": "testdata/ite_record_lub.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/ite_record_lub.entities.json",
+    "requests": []
+}

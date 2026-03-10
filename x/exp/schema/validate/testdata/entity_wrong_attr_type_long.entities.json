@@ -1,0 +1,10 @@
+[
+    {
+        "uid": {"type": "User", "id": "alice"},
+        "parents": [],
+        "attrs": {
+            "name": {"__expr": "42"},
+            "email": "alice@example.com"
+        }
+    }
+]

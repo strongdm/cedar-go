@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/record_duplicate_key.cedarschema",
+    "policies": "testdata/record_duplicate_key.cedar",
+    "shouldValidate": true,
+    "entities": "testdata/record_duplicate_key.entities.json",
+    "requests": []
+}

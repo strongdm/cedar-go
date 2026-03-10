@@ -1,0 +1,20 @@
+[
+    {
+        "uid": {"type": "Test::User", "id": "alice"},
+        "attrs": {
+            "name": "Alice",
+            "email": "alice@example.com"
+        },
+        "parents": [
+            {"type": "Test::Document", "id": "doc1"}
+        ]
+    },
+    {
+        "uid": {"type": "Test::Document", "id": "doc1"},
+        "attrs": {
+            "title": "Doc 1",
+            "public": true
+        },
+        "parents": []
+    }
+]

@@ -1,0 +1,6 @@
+{
+  "schema": "testdata/enum_in_principal_scope.cedarschema",
+  "policies": "testdata/enum_in_principal_scope.cedar",
+  "entities": "testdata/enum_in_principal_scope.entities.json",
+  "requests": []
+}

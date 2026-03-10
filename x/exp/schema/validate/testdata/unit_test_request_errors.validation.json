@@ -1,0 +1,44 @@
+{
+  "policyValidation": {
+    "strict": true,
+    "permissive": true
+  },
+  "entityValidation": {
+    "strict": true,
+    "permissive": true
+  },
+  "requestValidation": [
+    {
+      "description": "unknownAction",
+      "strict": false,
+      "permissive": false,
+      "errors": [
+        "action `Action::\"delete\"` does not exist in the supplied schema"
+      ]
+    },
+    {
+      "description": "wrongPrincipalType",
+      "strict": false,
+      "permissive": false,
+      "errors": [
+        "principal type `Document` is not valid for `Action::\"view\"`"
+      ]
+    },
+    {
+      "description": "wrongResourceType",
+      "strict": false,
+      "permissive": false,
+      "errors": [
+        "resource type `User` is not valid for `Action::\"view\"`"
+      ]
+    },
+    {
+      "description": "invalidContext",
+      "strict": false,
+      "permissive": false,
+      "errors": [
+        "while parsing context, expected the record to have an attribute `ip`, but it does not"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+entity User;
+
+entity Status enum ["active", "inactive", "pending"];
+
+action updateStatus appliesTo {
+    principal: [User],
+    resource: [Status]
+};

@@ -1,0 +1,17 @@
+{
+  "policyValidation": {
+    "strict": false,
+    "permissive": false,
+    "strictErrors": [
+      "for policy `policy0`, attribute `missing` on entity type `User` not found"
+    ],
+    "permissiveErrors": [
+      "for policy `policy0`, attribute `missing` on entity type `User` not found"
+    ]
+  },
+  "entityValidation": {
+    "strict": true,
+    "permissive": true
+  },
+  "requestValidation": []
+}

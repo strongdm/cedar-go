@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/typecheck_is.cedarschema",
+    "policies": "testdata/typecheck_is.cedar",
+    "shouldValidate": true,
+    "entities": "testdata/typecheck_is.entities.json",
+    "requests": []
+}

@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/access_ite_partial_attr.cedarschema",
+    "policies": "testdata/access_ite_partial_attr.cedar",
+    "shouldValidate": true,
+    "entities": "testdata/access_ite_partial_attr.entities.json",
+    "requests": []
+}

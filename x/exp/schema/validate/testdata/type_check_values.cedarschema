@@ -1,0 +1,15 @@
+entity User in [Group];
+entity Group;
+entity Document;
+
+entity Color enum [
+    "red",
+    "green",
+    "blue"
+];
+
+action "view" appliesTo {
+    principal: User,
+    resource: Document,
+    context: {}
+};

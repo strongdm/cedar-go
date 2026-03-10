@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/set_lub_empty_rhs.cedarschema",
+    "policies": "testdata/set_lub_empty_rhs.cedar",
+    "entities": "testdata/set_lub_empty_rhs.entities.json",
+    "shouldValidate": true,
+    "requests": []
+}

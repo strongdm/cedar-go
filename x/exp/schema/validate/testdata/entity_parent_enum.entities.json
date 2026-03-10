@@ -1,0 +1,12 @@
+[
+    {
+        "uid": {"type": "User", "id": "alice"},
+        "parents": [{"type": "Color", "id": "red"}],
+        "attrs": {}
+    },
+    {
+        "uid": {"type": "User", "id": "bob"},
+        "parents": [{"type": "Color", "id": "purple"}],
+        "attrs": {}
+    }
+]

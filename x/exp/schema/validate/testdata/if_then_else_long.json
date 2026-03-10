@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/if_then_else_long.cedarschema",
+    "policies": "testdata/if_then_else_long.cedar",
+    "shouldValidate": true,
+    "entities": "testdata/if_then_else_long.entities.json",
+    "requests": []
+}

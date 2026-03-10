@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/logical_and_invalid.cedarschema",
+    "policies": "testdata/logical_and_invalid.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/logical_and_invalid.entities.json",
+    "requests": []
+}

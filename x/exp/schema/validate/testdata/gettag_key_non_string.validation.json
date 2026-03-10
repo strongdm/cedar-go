@@ -1,0 +1,19 @@
+{
+  "policyValidation": {
+    "strict": false,
+    "permissive": false,
+    "strictErrors": [
+      "for policy `policy0`, unable to guarantee safety of access to tag `1` on entity type `User`",
+      "for policy `policy0`, unexpected type: expected String but saw Long"
+    ],
+    "permissiveErrors": [
+      "for policy `policy0`, unable to guarantee safety of access to tag `1` on entity type `User`",
+      "for policy `policy0`, unexpected type: expected String but saw Long"
+    ]
+  },
+  "entityValidation": {
+    "strict": true,
+    "permissive": true
+  },
+  "requestValidation": []
+}

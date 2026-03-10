@@ -1,0 +1,17 @@
+{
+  "policyValidation": {
+    "strict": true,
+    "permissive": true
+  },
+  "entityValidation": {
+    "strict": true,
+    "permissive": true
+  },
+  "requestValidation": [
+    {
+      "description": "Valid enum resource",
+      "strict": true,
+      "permissive": true
+    }
+  ]
+}

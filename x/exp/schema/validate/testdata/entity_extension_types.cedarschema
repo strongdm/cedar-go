@@ -1,0 +1,11 @@
+entity Device {
+  ipAddress: ipaddr,
+  price: decimal,
+  lastSeen: datetime,
+  uptime: duration
+};
+
+action connect appliesTo {
+  principal: Device,
+  resource: Device
+};

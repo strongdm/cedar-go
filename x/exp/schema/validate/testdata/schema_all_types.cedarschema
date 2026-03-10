@@ -1,0 +1,18 @@
+entity Config {
+    name: String,
+    count: Long,
+    active: Bool,
+    tags: Set<String>,
+    metadata: { key: String, value: Long },
+    ip: __cedar::ipaddr,
+    amount: __cedar::decimal,
+    start: __cedar::datetime,
+    timeout: __cedar::duration,
+    owner: Config,
+};
+entity User;
+
+action "read" appliesTo {
+    principal: User,
+    resource: Config,
+};

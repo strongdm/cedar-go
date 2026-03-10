@@ -1,0 +1,4 @@
+entity A = { x: Long, flag?: Bool };
+entity B = { x: String };
+entity C;
+action "do" appliesTo { principal: A, resource: C };

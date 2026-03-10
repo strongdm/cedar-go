@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/record_access_missing.cedarschema",
+    "policies": "testdata/record_access_missing.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/record_access_missing.entities.json",
+    "requests": []
+}

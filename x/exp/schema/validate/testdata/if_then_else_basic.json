@@ -1,0 +1,19 @@
+{
+    "schema": "testdata/if_then_else_basic.cedarschema",
+    "policies": "testdata/if_then_else_basic.cedar",
+    "shouldValidate": true,
+    "entities": "testdata/if_then_else_basic.entities.json",
+    "requests": [
+        {
+            "description": "User views Document",
+            "principal": { "type": "User", "id": "alice" },
+            "action": { "type": "Action", "id": "view" },
+            "resource": { "type": "Document", "id": "doc1" },
+            "context": {},
+            "decision": "allow",
+            "reason": ["policy0"],
+            "errors": [],
+            "validateRequest": true
+        }
+    ]
+}

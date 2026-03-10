@@ -1,0 +1,11 @@
+[
+    {
+        "uid": {"type": "User", "id": "alice"},
+        "attrs": {
+            "balance": {"__extn": {"fn": "decimal", "arg": "123.45"}},
+            "created": {"__extn": {"fn": "datetime", "arg": "2024-01-01T00:00:00Z"}},
+            "timeout": {"__extn": {"fn": "duration", "arg": "1h"}}
+        },
+        "parents": []
+    }
+]

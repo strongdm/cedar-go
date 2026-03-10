@@ -1,0 +1,6 @@
+entity User {
+    created: datetime,
+    score: decimal,
+};
+entity Document;
+action "view" appliesTo { principal: User, resource: Document };

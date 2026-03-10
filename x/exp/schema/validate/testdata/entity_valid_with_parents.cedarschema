@@ -1,0 +1,9 @@
+entity User in [Group] {
+    name: String,
+    age?: Long,
+    email: String,
+};
+
+entity Group {
+    name: String,
+};

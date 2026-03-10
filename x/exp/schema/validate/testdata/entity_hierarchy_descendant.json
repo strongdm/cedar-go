@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/entity_hierarchy_descendant.cedarschema",
+    "policies": "testdata/entity_hierarchy_descendant.cedar",
+    "shouldValidate": true,
+    "entities": "testdata/entity_hierarchy_descendant.entities.json",
+    "requests": []
+}

@@ -1,0 +1,58 @@
+[
+    {
+        "uid": {"type": "User", "id": "alice"},
+        "parents": [],
+        "attrs": {
+            "name": "Alice",
+            "age": 30,
+            "active": true,
+            "groups": ["admin", "users"],
+            "ip": {"__extn": {"fn": "ip", "arg": "10.0.0.1"}},
+            "balance": {"__extn": {"fn": "decimal", "arg": "123.45"}},
+            "created": {"__extn": {"fn": "datetime", "arg": "2024-01-01T00:00:00Z"}},
+            "timeout": {"__extn": {"fn": "duration", "arg": "1h"}}
+        }
+    },
+    {
+        "uid": {"type": "User", "id": "bob"},
+        "parents": [],
+        "attrs": {
+            "name": "Bob",
+            "age": 25,
+            "active": "not_a_bool",
+            "groups": ["users"],
+            "ip": {"__extn": {"fn": "ip", "arg": "10.0.0.2"}},
+            "balance": {"__extn": {"fn": "decimal", "arg": "100.00"}},
+            "created": {"__extn": {"fn": "datetime", "arg": "2024-01-01T00:00:00Z"}},
+            "timeout": {"__extn": {"fn": "duration", "arg": "2h"}}
+        }
+    },
+    {
+        "uid": {"type": "User", "id": "charlie"},
+        "parents": [],
+        "attrs": {
+            "name": "Charlie",
+            "age": 35,
+            "active": true,
+            "groups": [1, 2, 3],
+            "ip": {"__extn": {"fn": "ip", "arg": "10.0.0.3"}},
+            "balance": {"__extn": {"fn": "decimal", "arg": "200.00"}},
+            "created": {"__extn": {"fn": "datetime", "arg": "2024-01-01T00:00:00Z"}},
+            "timeout": {"__extn": {"fn": "duration", "arg": "3h"}}
+        }
+    },
+    {
+        "uid": {"type": "User", "id": "dave"},
+        "parents": [],
+        "attrs": {
+            "name": "Dave",
+            "age": 40,
+            "active": true,
+            "groups": ["users"],
+            "ip": 12345,
+            "balance": {"__extn": {"fn": "decimal", "arg": "150.00"}},
+            "created": {"__extn": {"fn": "datetime", "arg": "2024-01-01T00:00:00Z"}},
+            "timeout": {"__extn": {"fn": "duration", "arg": "4h"}}
+        }
+    }
+]

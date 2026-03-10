@@ -1,0 +1,17 @@
+{
+  "policyValidation": {
+    "strict": false,
+    "permissive": false,
+    "strictErrors": [
+      "the types A and B are not compatible"
+    ],
+    "permissiveErrors": [
+      "for policy `policy0`, attribute `x` on entity types `A`, `B` not found"
+    ]
+  },
+  "entityValidation": {
+    "strict": true,
+    "permissive": true
+  },
+  "requestValidation": []
+}

@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/and_lhs_nil_error.cedarschema",
+    "policies": "testdata/and_lhs_nil_error.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/and_lhs_nil_error.entities.json",
+    "requests": []
+}

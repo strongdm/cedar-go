@@ -1,0 +1,23 @@
+{
+  "policyValidation": {
+    "strict": true,
+    "permissive": true
+  },
+  "entityValidation": {
+    "strict": false,
+    "permissive": false,
+    "strictErrors": [
+      "error during entity deserialization"
+    ],
+    "permissiveErrors": [
+      "error during entity deserialization"
+    ]
+  },
+  "requestValidation": [
+    {
+      "description": "Valid request",
+      "strict": true,
+      "permissive": true
+    }
+  ]
+}

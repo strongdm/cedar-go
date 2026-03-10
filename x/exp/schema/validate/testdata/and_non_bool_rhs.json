@@ -1,0 +1,7 @@
+{
+  "schema": "testdata/and_non_bool_rhs.cedarschema",
+  "policies": "testdata/and_non_bool_rhs.cedar",
+  "shouldValidate": false,
+  "entities": "testdata/and_non_bool_rhs.entities.json",
+  "requests": []
+}

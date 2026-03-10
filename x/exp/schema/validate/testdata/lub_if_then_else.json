@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/lub_if_then_else.cedarschema",
+    "policies": "testdata/lub_if_then_else.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/lub_if_then_else.entities.json",
+    "requests": []
+}

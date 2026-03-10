@@ -1,0 +1,7 @@
+{
+    "schema": "testdata/gettag_no_tags_with_cap.cedarschema",
+    "policies": "testdata/gettag_no_tags_with_cap.cedar",
+    "shouldValidate": false,
+    "entities": "testdata/gettag_no_tags_with_cap.entities.json",
+    "requests": []
+}
