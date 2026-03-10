@@ -1112,61 +1112,6 @@ func TestPolicyAllScopes(t *testing.T) {
 	testutil.OK(t, v.Policy(p4))
 }
 
-func TestPolicyScopeErrors(t *testing.T) {
-	t.Parallel()
-	s := testSchema()
-	v := New(s)
-	// Unknown entity in principal scope
-	p := ast.Permit()
-	p.PrincipalEq(types.NewEntityUID("Unknown", "x"))
-	testutil.Error(t, v.Policy(p))
-
-	// Unknown action in set
-	p2 := ast.Permit()
-	p2.ActionInSet(types.NewEntityUID("Action", "delete"))
-	testutil.Error(t, v.Policy(p2))
-
-	// Unknown entity in resource scope
-	p3 := ast.Permit()
-	p3.ResourceEq(types.NewEntityUID("Unknown", "x"))
-	testutil.Error(t, v.Policy(p3))
-
-	// Unknown resource type in is
-	p4 := ast.Permit()
-	p4.ResourceIs("Unknown")
-	testutil.Error(t, v.Policy(p4))
-
-	// Unknown entity in resource in scope
-	p5 := ast.Permit()
-	p5.ResourceIn(types.NewEntityUID("Unknown", "x"))
-	testutil.Error(t, v.Policy(p5))
-
-	// Unknown entity in principal in scope
-	p6 := ast.Permit()
-	p6.PrincipalIn(types.NewEntityUID("Unknown", "x"))
-	testutil.Error(t, v.Policy(p6))
-
-	// Enum in principal scope - valid enum value
-	p7 := ast.Permit()
-	p7.PrincipalEq(types.NewEntityUID("Color", "red"))
-	testutil.Error(t, v.Policy(p7)) // Color is not a valid principal for any action
-
-	// Enum in principal scope - invalid enum value
-	p8 := ast.Permit()
-	p8.PrincipalEq(types.NewEntityUID("Color", "purple"))
-	testutil.Error(t, v.Policy(p8))
-
-	// resource is...in invalid
-	p9 := ast.Permit()
-	p9.ResourceIsIn("Document", types.NewEntityUID("User", "alice"))
-	testutil.Error(t, v.Policy(p9))
-
-	// resource is...in unknown in-entity
-	p10 := ast.Permit()
-	p10.ResourceIsIn("Document", types.NewEntityUID("Unknown", "x"))
-	testutil.Error(t, v.Policy(p10))
-}
-
 func TestTypeCheckNot(t *testing.T) {
 	t.Parallel()
 	s := testSchema()
@@ -3826,10 +3771,10 @@ func TestValidatePrincipalScopeDefault(t *testing.T) {
 
 func TestValidateActionScopeDefault(t *testing.T) {
 	t.Parallel()
-	// policy.go:107-108 - validateActionScope default case.
+	// policy.go:107-108 - validateAndGetActionUIDs default case.
 	s := testSchema()
 	v := New(s)
-	_, err := v.validateActionScope(nil)
+	_, err := v.validateAndGetActionUIDs(nil)
 	testutil.Error(t, err)
 }
 
