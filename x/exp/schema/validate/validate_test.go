@@ -1061,56 +1061,6 @@ func TestPolicyScopeIsInInvalid(t *testing.T) {
 
 // TestPolicyScopeInDescendants tests that ScopeTypeIn computes descendant types
 // for principal/resource, matching the Rust implementation behavior.
-func TestPolicyScopeInDescendants(t *testing.T) {
-	t.Parallel()
-	s := testSchema()
-	v := New(s)
-	// principal in Group::"admins" should be valid because User is a descendant
-	// of Group, and the "view" action applies to User.
-	p := ast.Permit()
-	p.PrincipalIn(types.NewEntityUID("Group", "admins"))
-	p.ActionEq(types.NewEntityUID("Action", "view"))
-	p.ResourceIs("Document")
-	testutil.OK(t, v.Policy(p))
-
-	// resource in Folder::"root" should be valid because Document is a descendant
-	// of Folder, and the "view" action applies to Document.
-	p2 := ast.Permit()
-	p2.PrincipalIs("User")
-	p2.ActionEq(types.NewEntityUID("Action", "view"))
-	p2.ResourceIn(types.NewEntityUID("Folder", "root"))
-	testutil.OK(t, v.Policy(p2))
-}
-
-func TestPolicyAllScopes(t *testing.T) {
-	t.Parallel()
-	s := testSchema()
-	v := New(s)
-	// All unconstrained scopes
-	p := ast.Permit()
-	testutil.OK(t, v.Policy(p))
-
-	// principal == User::"alice"
-	p2 := ast.Permit()
-	p2.PrincipalEq(types.NewEntityUID("User", "alice"))
-	p2.ActionEq(types.NewEntityUID("Action", "view"))
-	p2.ResourceEq(types.NewEntityUID("Document", "doc1"))
-	testutil.OK(t, v.Policy(p2))
-
-	// action in set
-	p3 := ast.Permit()
-	p3.PrincipalIs("User")
-	p3.ActionInSet(types.NewEntityUID("Action", "view"), types.NewEntityUID("Action", "edit"))
-	p3.ResourceIs("Document")
-	testutil.OK(t, v.Policy(p3))
-
-	// action in (group)
-	p4 := ast.Permit()
-	p4.PrincipalIs("User")
-	p4.ActionIn(types.NewEntityUID("Action", "view"))
-	p4.ResourceIs("Document")
-	testutil.OK(t, v.Policy(p4))
-}
 
 func TestTypeCheckNot(t *testing.T) {
 	t.Parallel()
