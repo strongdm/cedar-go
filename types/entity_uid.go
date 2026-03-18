@@ -1,6 +1,7 @@
 package types
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"hash/fnv"
@@ -82,10 +83,11 @@ func (e *EntityUID) UnmarshalCedar(data []byte) error {
 }
 
 func (e *EntityUID) UnmarshalJSON(b []byte) error {
-	// XXX: We might have to do something here?? For one thing, no extra keys should be allowed.
-	// TODO: review after adding support for schemas
+	decoder := json.NewDecoder(bytes.NewReader(b))
+	decoder.DisallowUnknownFields()
+
 	var res entityValueJSON
-	if err := json.Unmarshal(b, &res); err != nil {
+	if err := decoder.Decode(&res); err != nil {
 		return err
 	}
 	if res.Entity != nil {
