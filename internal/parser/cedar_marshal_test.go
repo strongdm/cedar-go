@@ -68,6 +68,8 @@ func TestMarshalExpr(t *testing.T) {
 		{"add", ast.Long(1).Add(ast.Long(2)), "1 + 2"},
 		{"equals", ast.Principal().Equal(ast.Principal()), "principal == principal"},
 		{"access", ast.Context().Access("foo"), "context.foo"},
+		{"access_reserved_keyword", ast.Context().Access("true"), `context["true"]`},
+		{"has_reserved_keyword", ast.Context().Has("if"), `context has "if"`},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
