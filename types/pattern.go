@@ -60,7 +60,7 @@ func (p Pattern) MarshalCedar() []byte {
 		if comp.Wildcard {
 			buf.WriteRune('*')
 		}
-		quotedString := rust.EscapeString(comp.Literal)
+		quotedString := rust.EscapeCharAll(comp.Literal)
 		quotedString = strings.ReplaceAll(quotedString, "*", "\\*")
 		buf.WriteString(quotedString)
 	}
