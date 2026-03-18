@@ -1,6 +1,7 @@
 package types
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"hash/fnv"
@@ -46,7 +47,12 @@ func (e EntityUID) String() string { return string(e.Type) + "::" + strconv.Quot
 
 // MarshalCedar produces a valid MarshalCedar language representation of the EntityUID, e.g. `Type::"id"`.
 func (e EntityUID) MarshalCedar() []byte {
-	return []byte(e.String())
+	var buf bytes.Buffer
+	buf.WriteString(string(e.Type))
+	buf.WriteString(`::"`)
+	buf.WriteString(rust.EscapeString(string(e.ID)))
+	buf.WriteRune('"')
+	return buf.Bytes()
 }
 
 var errInvalidUID = errors.New("invalid EntityUID")
