@@ -5,33 +5,33 @@
     "strictErrors": [
       "for policy `policy0`, unexpected type: expected Long but saw String",
       "for policy `policy0`, unexpected type: expected Bool but saw Long",
-      "for policy `policy1`, unexpected type: expected Bool but saw Long",
       "for policy `policy1`, unexpected type: expected Long but saw String",
+      "for policy `policy1`, unexpected type: expected Bool but saw Long",
       "for policy `policy2`, unexpected type: expected Long but saw String",
       "for policy `policy2`, unexpected type: expected Bool but saw Long",
-      "for policy `policy3`, unexpected type: expected Long but saw String",
       "for policy `policy3`, unexpected type: expected Bool but saw Long",
-      "for policy `policy4`, attribute `missing` on entity type `User` not found",
+      "for policy `policy3`, unexpected type: expected Long but saw String",
       "for policy `policy4`, attribute `missing` on entity type `Admin` not found",
-      "for policy `policy5`, unexpected type: expected Long but saw String",
+      "for policy `policy4`, attribute `missing` on entity type `User` not found",
       "for policy `policy5`, unexpected type: expected Bool but saw Long",
+      "for policy `policy5`, unexpected type: expected Long but saw String",
       "for policy `policy5`, unexpected type: expected Bool but saw Long",
       "for policy `policy5`, unexpected type: expected Long but saw String"
     ],
     "permissiveErrors": [
-      "for policy `policy0`, unexpected type: expected Bool but saw Long",
       "for policy `policy0`, unexpected type: expected Long but saw String",
-      "for policy `policy1`, unexpected type: expected Long but saw String",
+      "for policy `policy0`, unexpected type: expected Bool but saw Long",
       "for policy `policy1`, unexpected type: expected Bool but saw Long",
-      "for policy `policy2`, unexpected type: expected Long but saw String",
+      "for policy `policy1`, unexpected type: expected Long but saw String",
       "for policy `policy2`, unexpected type: expected Bool but saw Long",
+      "for policy `policy2`, unexpected type: expected Long but saw String",
       "for policy `policy3`, unexpected type: expected Bool but saw Long",
       "for policy `policy3`, unexpected type: expected Long but saw String",
       "for policy `policy4`, attribute `missing` on entity type `Admin` not found",
       "for policy `policy4`, attribute `missing` on entity type `User` not found",
-      "for policy `policy5`, unexpected type: expected Bool but saw Long",
-      "for policy `policy5`, unexpected type: expected Bool but saw Long",
       "for policy `policy5`, unexpected type: expected Long but saw String",
+      "for policy `policy5`, unexpected type: expected Bool but saw Long",
+      "for policy `policy5`, unexpected type: expected Bool but saw Long",
       "for policy `policy5`, unexpected type: expected Long but saw String"
     ],
     "perPolicy": {
@@ -43,8 +43,8 @@
           "for policy `policy0`, unexpected type: expected Long but saw String"
         ],
         "permissiveErrors": [
-          "for policy `policy0`, unexpected type: expected Bool but saw Long",
-          "for policy `policy0`, unexpected type: expected Long but saw String"
+          "for policy `policy0`, unexpected type: expected Long but saw String",
+          "for policy `policy0`, unexpected type: expected Bool but saw Long"
         ]
       },
       "policy1": {
@@ -55,8 +55,8 @@
           "for policy `policy1`, unexpected type: expected Long but saw String"
         ],
         "permissiveErrors": [
-          "for policy `policy1`, unexpected type: expected Bool but saw Long",
-          "for policy `policy1`, unexpected type: expected Long but saw String"
+          "for policy `policy1`, unexpected type: expected Long but saw String",
+          "for policy `policy1`, unexpected type: expected Bool but saw Long"
         ]
       },
       "policy2": {
@@ -67,8 +67,8 @@
           "for policy `policy2`, unexpected type: expected Long but saw String"
         ],
         "permissiveErrors": [
-          "for policy `policy2`, unexpected type: expected Bool but saw Long",
-          "for policy `policy2`, unexpected type: expected Long but saw String"
+          "for policy `policy2`, unexpected type: expected Long but saw String",
+          "for policy `policy2`, unexpected type: expected Bool but saw Long"
         ]
       },
       "policy3": {
@@ -91,8 +91,8 @@
           "for policy `policy4`, attribute `missing` on entity type `User` not found"
         ],
         "permissiveErrors": [
-          "for policy `policy4`, attribute `missing` on entity type `Admin` not found",
-          "for policy `policy4`, attribute `missing` on entity type `User` not found"
+          "for policy `policy4`, attribute `missing` on entity type `User` not found",
+          "for policy `policy4`, attribute `missing` on entity type `Admin` not found"
         ]
       },
       "policy5": {
@@ -100,15 +100,15 @@
         "permissive": false,
         "strictErrors": [
           "for policy `policy5`, unexpected type: expected Bool but saw Long",
-          "for policy `policy5`, unexpected type: expected Long but saw String",
           "for policy `policy5`, unexpected type: expected Bool but saw Long",
+          "for policy `policy5`, unexpected type: expected Long but saw String",
           "for policy `policy5`, unexpected type: expected Long but saw String"
         ],
         "permissiveErrors": [
           "for policy `policy5`, unexpected type: expected Bool but saw Long",
           "for policy `policy5`, unexpected type: expected Long but saw String",
-          "for policy `policy5`, unexpected type: expected Long but saw String",
-          "for policy `policy5`, unexpected type: expected Bool but saw Long"
+          "for policy `policy5`, unexpected type: expected Bool but saw Long",
+          "for policy `policy5`, unexpected type: expected Long but saw String"
         ]
       }
     }

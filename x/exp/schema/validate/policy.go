@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 
 	"github.com/cedar-policy/cedar-go/types"
 	"github.com/cedar-policy/cedar-go/x/exp/ast"
@@ -39,24 +40,26 @@ func (v *Validator) Policy(policyID string, policy *ast.Policy) error {
 	}
 
 	// Check action application
-	if err := v.validateActionApplication(principalTypes, resourceTypes, actionUIDs); err != nil {
-		errs = append(errs, err)
+	actionAppErr := v.validateActionApplication(principalTypes, resourceTypes, actionUIDs)
+	if actionAppErr != nil {
+		errs = append(errs, actionAppErr)
 	}
 
 	// Expression type checking
 	allEnvs := v.generateRequestEnvs()
 	envs := v.filterEnvsForPolicy(allEnvs, principalTypes, resourceTypes, actionUIDs)
 
-	if len(envs) > 0 {
-		// Check for empty action set literal in strict mode. This matches Rust
-		// where the scope is part of the typechecked condition — the empty set
-		// check only fires when prior scope constraints don't short-circuit.
-		if v.strict {
-			if sc, ok := policy.Action.(ast.ScopeTypeInSet); ok && len(sc.Entities) == 0 {
-				errs = append(errs, fmt.Errorf("empty set literals are forbidden in policies"))
-			}
+	// In strict mode, empty action set scopes always report this error.
+	if v.strict {
+		if sc, ok := policy.Action.(ast.ScopeTypeInSet); ok && len(sc.Entities) == 0 {
+			errs = append(errs, fmt.Errorf("empty set literals are forbidden in policies"))
 		}
-		if len(policy.Conditions) > 0 {
+	}
+
+	if len(envs) > 0 {
+		// In permissive mode, if action applicability already failed, Rust does
+		// not typecheck policy conditions.
+		if len(policy.Conditions) > 0 && (v.strict || actionAppErr == nil) {
 			if err := v.typecheckConditions(envs, policy.Conditions); err != nil {
 				errs = append(errs, flattenErrors(err)...)
 			}
@@ -338,14 +341,18 @@ func (v *Validator) typecheckConditions(envs []requestEnv, conditions []ast.Cond
 	var allErrs []error
 	for _, cond := range conditions {
 		// Collect error multisets per environment and merge (element-wise max count).
-		// This deduplicates identical errors across environments while preserving
-		// duplicates from different expression positions within the same environment.
+		// For dynamic tag-key diagnostics:
+		// - `principal.*` tag keys aggregate by principal type
+		// - `resource.*` tag keys aggregate by resource type
 		type errEntry struct {
 			err   error
 			count int
 		}
 		merged := map[string]*errEntry{}
 		var mergedOrder []string
+		const unsafeTagPrefix = "unable to guarantee safety of access to tag `"
+		principalTagByType := map[string]map[types.EntityType]int{}
+		resourceTagByType := map[string]map[types.EntityType]int{}
 		for _, env := range envs {
 			caps := newCapabilitySet()
 			t, _, err := v.typeOfExpr(&env, cond.Body, caps)
@@ -370,13 +377,52 @@ func (v *Validator) typecheckConditions(envs []requestEnv, conditions []ast.Cond
 					envCounts[msg] = &envErr{err: e, count: 1}
 				}
 			}
-			// Merge: deduplicate across environments, preserving per-environment counts.
-			// The same expression evaluated in different type contexts produces the same
-			// count for any shared error message, so first-seen count is sufficient.
 			for msg, ee := range envCounts {
 				if _, ok := merged[msg]; !ok {
 					mergedOrder = append(mergedOrder, msg)
 					merged[msg] = &errEntry{err: ee.err, count: ee.count}
+				}
+				merged[msg].count = max(merged[msg].count, ee.count)
+				if strings.HasPrefix(msg, unsafeTagPrefix) && strings.Contains(msg, "`principal.") {
+					byType, ok := principalTagByType[msg]
+					if !ok {
+						byType = map[types.EntityType]int{}
+						principalTagByType[msg] = byType
+					}
+					if ee.count > byType[env.principalType] {
+						byType[env.principalType] = ee.count
+					}
+				}
+				if strings.HasPrefix(msg, unsafeTagPrefix) && strings.Contains(msg, "`resource.") {
+					byType, ok := resourceTagByType[msg]
+					if !ok {
+						byType = map[types.EntityType]int{}
+						resourceTagByType[msg] = byType
+					}
+					if ee.count > byType[env.resourceType] {
+						byType[env.resourceType] = ee.count
+					}
+				}
+			}
+		}
+		for _, msg := range mergedOrder {
+			if byType, ok := principalTagByType[msg]; ok {
+				total := 0
+				for _, count := range byType {
+					total += count
+				}
+				if total > 0 {
+					merged[msg].count = total
+				}
+				continue
+			}
+			if byType, ok := resourceTagByType[msg]; ok {
+				total := 0
+				for _, count := range byType {
+					total += count
+				}
+				if total > 0 {
+					merged[msg].count = total
 				}
 			}
 		}
