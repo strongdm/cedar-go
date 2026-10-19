@@ -317,11 +317,11 @@ func partial(env Env, n ast.IsNode) (ast.IsNode, error) {
 				return newRecordLiteralEval(m)
 			},
 			func(nodes []ast.IsNode) ast.IsNode {
-				el := make([]ast.RecordElementNode, len(nodes))
+				pairs := make(ast.Pairs, len(nodes))
 				for i, val := range nodes {
-					el[i] = ast.RecordElementNode{Key: v.Elements[i].Key, Value: val}
+					pairs[i] = ast.Pair{Key: v.Elements[i].Key, Value: ast.NewNode(val)}
 				}
-				return ast.NodeTypeRecord{Elements: el}
+				return ast.Record(pairs).AsIsNode()
 			},
 		)
 	case ast.NodeTypeSet:

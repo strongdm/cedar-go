@@ -1,7 +1,9 @@
 package ast
 
 import (
+	"maps"
 	"net/netip"
+	"slices"
 	"time"
 
 	"github.com/cedar-policy/cedar-go/types"
@@ -50,17 +52,16 @@ type Pair struct {
 
 type Pairs []Pair
 
-// In the case where duplicate keys exist, the latter value will be preserved.
+// Record builds a record literal whose elements are sorted by key. In the
+// case where duplicate keys exist, the latter value will be preserved.
 func Record(elements Pairs) Node {
-	var res NodeTypeRecord
-	m := make(map[types.String]int, len(elements))
+	m := make(map[types.String]IsNode, len(elements))
 	for _, v := range elements {
-		if i, ok := m[v.Key]; ok {
-			res.Elements[i] = RecordElementNode{Key: types.String(v.Key), Value: v.Value.v}
-			continue
-		}
-		m[v.Key] = len(res.Elements)
-		res.Elements = append(res.Elements, RecordElementNode{Key: types.String(v.Key), Value: v.Value.v})
+		m[v.Key] = v.Value.v
+	}
+	var res NodeTypeRecord
+	for _, k := range slices.Sorted(maps.Keys(m)) {
+		res.Elements = append(res.Elements, RecordElementNode{Key: k, Value: m[k]})
 	}
 	return NewNode(res)
 }

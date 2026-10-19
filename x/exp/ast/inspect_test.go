@@ -43,7 +43,7 @@ func TestInspectCounts(t *testing.T) {
 		{"Not", NewNode(NodeTypeNot{UnaryNode: UnaryNode{Arg: leaf1}}), 2},
 		{"IsEmpty", NewNode(NodeTypeIsEmpty{UnaryNode: UnaryNode{Arg: leaf1}}), 2},
 		{"ExtensionCall", NewNode(NodeTypeExtensionCall{Name: "f", Args: []IsNode{leaf1, leaf2}}), 3},
-		{"Record", NewNode(NodeTypeRecord{Elements: []RecordElementNode{{Key: "k", Value: leaf1}}}), 2},
+		{"Record", Record(Pairs{{Key: "k", Value: NewNode(leaf1)}}), 2},
 		{"Set", NewNode(NodeTypeSet{Elements: []IsNode{leaf1, leaf2}}), 3},
 		{"Variable", NewNode(NodeTypeVariable{Name: "v"}), 1},
 		{"StrOpNode", NewNode(NodeTypeAccess{StrOpNode{Arg: leaf1, Value: "a"}}), 2},
