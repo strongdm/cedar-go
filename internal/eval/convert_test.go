@@ -79,6 +79,19 @@ func TestToEval(t *testing.T) {
 			testutil.OK,
 		},
 		{
+			"recordFirstErrorInKeyOrder",
+			ast.Record(ast.Pairs{
+				{Key: "c", Value: errNode("c")},
+				{Key: "a", Value: errNode("a")},
+				{Key: "b", Value: errNode("b")},
+			}),
+			nil,
+			func(t testutil.TB, err error) {
+				testutil.Error(t, err)
+				testutil.Equals(t, err.Error(), "a")
+			},
+		},
+		{
 			"set",
 			ast.Set(ast.Long(42)),
 			types.NewSet(types.Long(42)),

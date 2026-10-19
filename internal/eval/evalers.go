@@ -725,22 +725,27 @@ func (n *isEmptyEval) Eval(env Env) (types.Value, error) {
 }
 
 // recordLiteralEval
-type recordLiteralEval struct {
-	elements map[types.String]Evaler
+type recordElementEval struct {
+	key   types.String
+	value Evaler
 }
 
-func newRecordLiteralEval(elements map[types.String]Evaler) *recordLiteralEval {
+type recordLiteralEval struct {
+	elements []recordElementEval
+}
+
+func newRecordLiteralEval(elements []recordElementEval) *recordLiteralEval {
 	return &recordLiteralEval{elements: elements}
 }
 
 func (n *recordLiteralEval) Eval(env Env) (types.Value, error) {
-	vals := types.RecordMap{}
-	for k, en := range n.elements {
-		v, err := en.Eval(env)
+	vals := make(types.RecordMap, len(n.elements))
+	for _, e := range n.elements {
+		v, err := e.value.Eval(env)
 		if err != nil {
 			return zeroValue(), err
 		}
-		vals[k] = v
+		vals[e.key] = v
 	}
 	return types.NewRecord(vals), nil
 }

@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/cedar-policy/cedar-go/internal/consts"
-	"github.com/cedar-policy/cedar-go/types"
 	"github.com/cedar-policy/cedar-go/x/exp/ast"
 )
 
@@ -35,11 +34,11 @@ func ToEval(n ast.IsNode) Evaler {
 	case ast.NodeValue:
 		return newLiteralEval(v.Value)
 	case ast.NodeTypeRecord:
-		m := make(map[types.String]Evaler, len(v.Elements))
-		for _, e := range v.Elements {
-			m[e.Key] = ToEval(e.Value)
+		elements := make([]recordElementEval, len(v.Elements))
+		for i, e := range v.Elements {
+			elements[i] = recordElementEval{key: e.Key, value: ToEval(e.Value)}
 		}
-		return newRecordLiteralEval(m)
+		return newRecordLiteralEval(elements)
 	case ast.NodeTypeSet:
 		s := make([]Evaler, len(v.Elements))
 		for i, e := range v.Elements {

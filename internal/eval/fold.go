@@ -196,11 +196,11 @@ func fold(n ast.IsNode) ast.IsNode {
 		}
 		return tryFold(elements,
 			func(values []types.Value) Evaler {
-				m := make(map[types.String]Evaler, len(values))
+				elements := make([]recordElementEval, len(values))
 				for i, val := range values {
-					m[types.String(v.Elements[i].Key)] = newLiteralEval(val)
+					elements[i] = recordElementEval{key: v.Elements[i].Key, value: newLiteralEval(val)}
 				}
-				return newRecordLiteralEval(m)
+				return newRecordLiteralEval(elements)
 			},
 			func(nodes []ast.IsNode) ast.IsNode {
 				pairs := make(ast.Pairs, len(nodes))

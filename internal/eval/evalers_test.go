@@ -1,6 +1,7 @@
 package eval
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"net/netip"
@@ -1349,16 +1350,22 @@ func TestRecordLiteralNode(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name   string
-		elems  map[types.String]Evaler
+		elems  []recordElementEval
 		result types.Value
 		err    error
 	}{
-		{"empty", map[types.String]Evaler{}, types.Record{}, nil},
-		{"errorNode", map[types.String]Evaler{"foo": newErrorEval(errTest)}, zeroValue(), errTest},
+		{"empty", nil, types.Record{}, nil},
+		{"errorNode", []recordElementEval{{"foo", newErrorEval(errTest)}}, zeroValue(), errTest},
+		{"firstError",
+			[]recordElementEval{
+				{"a", newErrorEval(errTest)},
+				{"b", newErrorEval(errors.New("b"))},
+				{"c", newErrorEval(errors.New("c"))},
+			}, zeroValue(), errTest},
 		{"ok",
-			map[types.String]Evaler{
-				"foo": newLiteralEval(types.True),
-				"bar": newLiteralEval(types.String("baz")),
+			[]recordElementEval{
+				{"bar", newLiteralEval(types.String("baz"))},
+				{"foo", newLiteralEval(types.True)},
 			}, types.NewRecord(types.RecordMap{
 				"foo": types.True,
 				"bar": types.String("baz"),
