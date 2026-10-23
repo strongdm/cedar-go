@@ -5,7 +5,8 @@ import (
 )
 
 type Node struct {
-	v IsNode // NOTE: not an embed because a `Node` is not a `node`
+	v   IsNode // NOTE: not an embed because a `Node` is not a `node`
+	err error
 }
 
 func NewNode(v IsNode) Node {
@@ -205,10 +206,10 @@ func stripNodes(args []Node) []IsNode {
 }
 
 func NewExtensionCall(method types.Path, args ...Node) Node {
-	return NewNode(NodeTypeExtensionCall{
+	return newNode(NodeTypeExtensionCall{
 		Name: method,
 		Args: stripNodes(args),
-	})
+	}, checkExtensionName(method), nodesErr(args))
 }
 
 func NewMethodCall(lhs Node, method types.Path, args ...Node) Node {
@@ -217,10 +218,10 @@ func NewMethodCall(lhs Node, method types.Path, args ...Node) Node {
 	for i, v := range args {
 		res[i+1] = v.v
 	}
-	return NewNode(NodeTypeExtensionCall{
+	return newNode(NodeTypeExtensionCall{
 		Name: method,
 		Args: res,
-	})
+	}, lhs.err, checkExtensionName(method), nodesErr(args))
 }
 
 type NodeTypeContains struct {

@@ -1,6 +1,7 @@
 package ast
 
 import (
+	"cmp"
 	"net/netip"
 	"time"
 
@@ -40,7 +41,7 @@ func Long[T int | int64 | types.Long](l T) Node {
 //	    ast.Context().Access("fooCount"),
 //	)
 func Set(nodes ...Node) Node {
-	return NewNode(NodeTypeSet{Elements: stripNodes(nodes)})
+	return newNode(NodeTypeSet{Elements: stripNodes(nodes)}, nodesErr(nodes))
 }
 
 type Pair struct {
@@ -53,8 +54,10 @@ type Pairs []Pair
 // In the case where duplicate keys exist, the latter value will be preserved.
 func Record(elements Pairs) Node {
 	var res NodeTypeRecord
+	var err error
 	m := make(map[types.String]int, len(elements))
 	for _, v := range elements {
+		err = cmp.Or(err, v.Value.err)
 		if i, ok := m[v.Key]; ok {
 			res.Elements[i] = RecordElementNode{Key: types.String(v.Key), Value: v.Value.v}
 			continue
@@ -62,7 +65,7 @@ func Record(elements Pairs) Node {
 		m[v.Key] = len(res.Elements)
 		res.Elements = append(res.Elements, RecordElementNode{Key: types.String(v.Key), Value: v.Value.v})
 	}
-	return NewNode(res)
+	return newNode(res, err)
 }
 
 func EntityUID(typ types.Ident, id types.String) Node {
@@ -87,5 +90,5 @@ func ExtensionCall(name types.Path, args ...Node) Node {
 }
 
 func Value(v types.Value) Node {
-	return NewNode(NodeValue{Value: v})
+	return newNode(NodeValue{Value: v}, checkValue(v))
 }

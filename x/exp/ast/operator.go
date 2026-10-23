@@ -10,27 +10,27 @@ import "github.com/cedar-policy/cedar-go/types"
 //                      |_|
 
 func (lhs Node) Equal(rhs Node) Node {
-	return NewNode(NodeTypeEquals{BinaryNode: BinaryNode{Left: lhs.v, Right: rhs.v}})
+	return newNode(NodeTypeEquals{BinaryNode: BinaryNode{Left: lhs.v, Right: rhs.v}}, lhs.err, rhs.err)
 }
 
 func (lhs Node) NotEqual(rhs Node) Node {
-	return NewNode(NodeTypeNotEquals{BinaryNode: BinaryNode{Left: lhs.v, Right: rhs.v}})
+	return newNode(NodeTypeNotEquals{BinaryNode: BinaryNode{Left: lhs.v, Right: rhs.v}}, lhs.err, rhs.err)
 }
 
 func (lhs Node) LessThan(rhs Node) Node {
-	return NewNode(NodeTypeLessThan{BinaryNode: BinaryNode{Left: lhs.v, Right: rhs.v}})
+	return newNode(NodeTypeLessThan{BinaryNode: BinaryNode{Left: lhs.v, Right: rhs.v}}, lhs.err, rhs.err)
 }
 
 func (lhs Node) LessThanOrEqual(rhs Node) Node {
-	return NewNode(NodeTypeLessThanOrEqual{BinaryNode: BinaryNode{Left: lhs.v, Right: rhs.v}})
+	return newNode(NodeTypeLessThanOrEqual{BinaryNode: BinaryNode{Left: lhs.v, Right: rhs.v}}, lhs.err, rhs.err)
 }
 
 func (lhs Node) GreaterThan(rhs Node) Node {
-	return NewNode(NodeTypeGreaterThan{BinaryNode: BinaryNode{Left: lhs.v, Right: rhs.v}})
+	return newNode(NodeTypeGreaterThan{BinaryNode: BinaryNode{Left: lhs.v, Right: rhs.v}}, lhs.err, rhs.err)
 }
 
 func (lhs Node) GreaterThanOrEqual(rhs Node) Node {
-	return NewNode(NodeTypeGreaterThanOrEqual{BinaryNode: BinaryNode{Left: lhs.v, Right: rhs.v}})
+	return newNode(NodeTypeGreaterThanOrEqual{BinaryNode: BinaryNode{Left: lhs.v, Right: rhs.v}}, lhs.err, rhs.err)
 }
 
 func (lhs Node) DecimalLessThan(rhs Node) Node {
@@ -50,7 +50,7 @@ func (lhs Node) DecimalGreaterThanOrEqual(rhs Node) Node {
 }
 
 func (lhs Node) Like(pattern types.Pattern) Node {
-	return NewNode(NodeTypeLike{Arg: lhs.v, Value: pattern})
+	return newNode(NodeTypeLike{Arg: lhs.v, Value: pattern}, lhs.err)
 }
 
 //  _                _           _
@@ -61,19 +61,19 @@ func (lhs Node) Like(pattern types.Pattern) Node {
 //             |___/
 
 func (lhs Node) And(rhs Node) Node {
-	return NewNode(NodeTypeAnd{BinaryNode: BinaryNode{Left: lhs.v, Right: rhs.v}})
+	return newNode(NodeTypeAnd{BinaryNode: BinaryNode{Left: lhs.v, Right: rhs.v}}, lhs.err, rhs.err)
 }
 
 func (lhs Node) Or(rhs Node) Node {
-	return NewNode(NodeTypeOr{BinaryNode: BinaryNode{Left: lhs.v, Right: rhs.v}})
+	return newNode(NodeTypeOr{BinaryNode: BinaryNode{Left: lhs.v, Right: rhs.v}}, lhs.err, rhs.err)
 }
 
 func Not(rhs Node) Node {
-	return NewNode(NodeTypeNot{UnaryNode: UnaryNode{Arg: rhs.v}})
+	return newNode(NodeTypeNot{UnaryNode: UnaryNode{Arg: rhs.v}}, rhs.err)
 }
 
 func IfThenElse(condition Node, thenNode Node, elseNode Node) Node {
-	return NewNode(NodeTypeIfThenElse{If: condition.v, Then: thenNode.v, Else: elseNode.v})
+	return newNode(NodeTypeIfThenElse{If: condition.v, Then: thenNode.v, Else: elseNode.v}, condition.err, thenNode.err, elseNode.err)
 }
 
 //     _         _ _   _                    _   _
@@ -83,19 +83,19 @@ func IfThenElse(condition Node, thenNode Node, elseNode Node) Node {
 // /_/   \_\_|  |_|\__|_| |_|_| |_| |_|\___|\__|_|\___|
 
 func (lhs Node) Add(rhs Node) Node {
-	return NewNode(NodeTypeAdd{BinaryNode: BinaryNode{Left: lhs.v, Right: rhs.v}})
+	return newNode(NodeTypeAdd{BinaryNode: BinaryNode{Left: lhs.v, Right: rhs.v}}, lhs.err, rhs.err)
 }
 
 func (lhs Node) Subtract(rhs Node) Node {
-	return NewNode(NodeTypeSub{BinaryNode: BinaryNode{Left: lhs.v, Right: rhs.v}})
+	return newNode(NodeTypeSub{BinaryNode: BinaryNode{Left: lhs.v, Right: rhs.v}}, lhs.err, rhs.err)
 }
 
 func (lhs Node) Multiply(rhs Node) Node {
-	return NewNode(NodeTypeMult{BinaryNode: BinaryNode{Left: lhs.v, Right: rhs.v}})
+	return newNode(NodeTypeMult{BinaryNode: BinaryNode{Left: lhs.v, Right: rhs.v}}, lhs.err, rhs.err)
 }
 
 func Negate(rhs Node) Node {
-	return NewNode(NodeTypeNegate{UnaryNode: UnaryNode{Arg: rhs.v}})
+	return newNode(NodeTypeNegate{UnaryNode: UnaryNode{Arg: rhs.v}}, rhs.err)
 }
 
 //  _   _ _                         _
@@ -106,47 +106,47 @@ func Negate(rhs Node) Node {
 //                                        |___/
 
 func (lhs Node) In(rhs Node) Node {
-	return NewNode(NodeTypeIn{BinaryNode: BinaryNode{Left: lhs.v, Right: rhs.v}})
+	return newNode(NodeTypeIn{BinaryNode: BinaryNode{Left: lhs.v, Right: rhs.v}}, lhs.err, rhs.err)
 }
 
 func (lhs Node) Is(entityType types.EntityType) Node {
-	return NewNode(NodeTypeIs{Left: lhs.v, EntityType: entityType})
+	return newNode(NodeTypeIs{Left: lhs.v, EntityType: entityType}, lhs.err, checkEntityType(entityType))
 }
 
 func (lhs Node) IsIn(entityType types.EntityType, rhs Node) Node {
-	return NewNode(NodeTypeIsIn{NodeTypeIs: NodeTypeIs{Left: lhs.v, EntityType: entityType}, Entity: rhs.v})
+	return newNode(NodeTypeIsIn{NodeTypeIs: NodeTypeIs{Left: lhs.v, EntityType: entityType}, Entity: rhs.v}, lhs.err, checkEntityType(entityType), rhs.err)
 }
 
 func (lhs Node) Contains(rhs Node) Node {
-	return NewNode(NodeTypeContains{BinaryNode: BinaryNode{Left: lhs.v, Right: rhs.v}})
+	return newNode(NodeTypeContains{BinaryNode: BinaryNode{Left: lhs.v, Right: rhs.v}}, lhs.err, rhs.err)
 }
 
 func (lhs Node) ContainsAll(rhs Node) Node {
-	return NewNode(NodeTypeContainsAll{BinaryNode: BinaryNode{Left: lhs.v, Right: rhs.v}})
+	return newNode(NodeTypeContainsAll{BinaryNode: BinaryNode{Left: lhs.v, Right: rhs.v}}, lhs.err, rhs.err)
 }
 
 func (lhs Node) ContainsAny(rhs Node) Node {
-	return NewNode(NodeTypeContainsAny{BinaryNode: BinaryNode{Left: lhs.v, Right: rhs.v}})
+	return newNode(NodeTypeContainsAny{BinaryNode: BinaryNode{Left: lhs.v, Right: rhs.v}}, lhs.err, rhs.err)
 }
 
 func (lhs Node) Access(attr types.String) Node {
-	return NewNode(NodeTypeAccess{StrOpNode: StrOpNode{Arg: lhs.v, Value: attr}})
+	return newNode(NodeTypeAccess{StrOpNode: StrOpNode{Arg: lhs.v, Value: attr}}, lhs.err)
 }
 
 func (lhs Node) Has(attr types.String) Node {
-	return NewNode(NodeTypeHas{StrOpNode: StrOpNode{Arg: lhs.v, Value: attr}})
+	return newNode(NodeTypeHas{StrOpNode: StrOpNode{Arg: lhs.v, Value: attr}}, lhs.err)
 }
 
 func (lhs Node) GetTag(rhs Node) Node {
-	return NewNode(NodeTypeGetTag{BinaryNode: BinaryNode{Left: lhs.v, Right: rhs.v}})
+	return newNode(NodeTypeGetTag{BinaryNode: BinaryNode{Left: lhs.v, Right: rhs.v}}, lhs.err, rhs.err)
 }
 
 func (lhs Node) HasTag(rhs Node) Node {
-	return NewNode(NodeTypeHasTag{BinaryNode: BinaryNode{Left: lhs.v, Right: rhs.v}})
+	return newNode(NodeTypeHasTag{BinaryNode: BinaryNode{Left: lhs.v, Right: rhs.v}}, lhs.err, rhs.err)
 }
 
 func (lhs Node) IsEmpty() Node {
-	return NewNode(NodeTypeIsEmpty{UnaryNode: UnaryNode{lhs.v}})
+	return newNode(NodeTypeIsEmpty{UnaryNode: UnaryNode{lhs.v}}, lhs.err)
 }
 
 //  ___ ____   _       _     _
