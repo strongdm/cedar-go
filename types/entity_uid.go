@@ -2,12 +2,14 @@ package types
 
 import (
 	"errors"
+	"fmt"
 	"hash/fnv"
 	"strings"
 
 	"github.com/go-json-experiment/json"
 
 	"github.com/cedar-policy/cedar-go/internal/mapset"
+	"github.com/cedar-policy/cedar-go/internal/names"
 	"github.com/cedar-policy/cedar-go/internal/rust"
 )
 
@@ -66,6 +68,9 @@ func (e *EntityUID) UnmarshalCedar(data []byte) error {
 		return errInvalidUID
 	}
 
+	if !names.IsName(s[:idx]) {
+		return errInvalidUID
+	}
 	typ := EntityType(s[:idx])
 	quoted := s[idx+2:] // include the leading `"`
 
@@ -90,19 +95,23 @@ func (e *EntityUID) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &res); err != nil {
 		return err
 	}
+	var typ, id *string
 	if res.Entity != nil {
 		if res.Entity.Type == nil || res.Entity.ID == nil {
 			return errJSONEntityNotFound
 		}
-		e.Type = EntityType(*res.Entity.Type)
-		e.ID = String(*res.Entity.ID)
-		return nil
+		typ, id = res.Entity.Type, res.Entity.ID
 	} else if res.Type != nil && res.ID != nil { // require both Type and ID to parse "implicit" JSON
-		e.Type = EntityType(*res.Type)
-		e.ID = String(*res.ID)
-		return nil
+		typ, id = res.Type, res.ID
+	} else {
+		return errJSONEntityNotFound
 	}
-	return errJSONEntityNotFound
+	if !names.IsName(*typ) {
+		return fmt.Errorf("%w: %q", errJSONInvalidType, *typ)
+	}
+	e.Type = EntityType(*typ)
+	e.ID = String(*id)
+	return nil
 }
 
 // MarshalJSON marshals the EntityUID into JSON using the explicit form.

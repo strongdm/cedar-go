@@ -6,6 +6,8 @@ import (
 
 	"github.com/go-json-experiment/json"
 	"github.com/go-json-experiment/json/jsontext"
+
+	"github.com/cedar-policy/cedar-go/internal/names"
 )
 
 var (
@@ -16,6 +18,7 @@ var (
 	errJSONExtFnMatch      = fmt.Errorf("json extn mismatch")
 	errJSONExtNotFound     = fmt.Errorf("json extn not found")
 	errJSONEntityNotFound  = fmt.Errorf("json entity not found")
+	errJSONInvalidType     = fmt.Errorf("invalid entity type")
 )
 
 type extn struct {
@@ -86,6 +89,9 @@ func (v *explicitValue) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 		if len(m) == 1 {
 			if entity, ok := m["__entity"]; ok {
 				if uid, ok := coerceValueToEntityUID(entity.Value); ok {
+					if !names.IsName(string(uid.Type)) {
+						return fmt.Errorf("%w: %q", errJSONInvalidType, uid.Type)
+					}
 					v.Value = uid
 					return nil
 				}
@@ -131,10 +137,8 @@ func (v *explicitValue) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 //   - JSON null is an error.
 //
 // To match Rust Cedar's behavior, extra members inside "__entity" and
-// "__extn" objects are ignored.
-//
-// Unlike Rust Cedar, UnmarshalJSON doesn't currently validate entity type
-// names.
+// "__extn" objects are ignored, and an "__entity" whose type isn't a valid
+// Cedar name is an error.
 func UnmarshalJSON(b []byte, v *Value) error {
 	var val explicitValue
 	if err := json.Unmarshal(b, &val); err != nil {
