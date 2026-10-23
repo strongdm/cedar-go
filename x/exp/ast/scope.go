@@ -1,6 +1,8 @@
 package ast
 
 import (
+	"cmp"
+
 	"github.com/cedar-policy/cedar-go/types"
 )
 
@@ -32,56 +34,67 @@ func (s Scope) IsIn(entityType types.EntityType, entity types.EntityUID) ScopeTy
 
 func (p *Policy) PrincipalEq(entity types.EntityUID) *Policy {
 	p.Principal = Scope{}.Eq(entity)
+	p.err = cmp.Or(p.err, checkEntityUIDs(entity))
 	return p
 }
 
 func (p *Policy) PrincipalIn(entity types.EntityUID) *Policy {
 	p.Principal = Scope{}.In(entity)
+	p.err = cmp.Or(p.err, checkEntityUIDs(entity))
 	return p
 }
 
 func (p *Policy) PrincipalIs(entityType types.EntityType) *Policy {
 	p.Principal = Scope{}.Is(entityType)
+	p.err = cmp.Or(p.err, checkEntityType(entityType))
 	return p
 }
 
 func (p *Policy) PrincipalIsIn(entityType types.EntityType, entity types.EntityUID) *Policy {
 	p.Principal = Scope{}.IsIn(entityType, entity)
+	p.err = cmp.Or(p.err, checkEntityType(entityType), checkEntityUIDs(entity))
 	return p
 }
 
 func (p *Policy) ActionEq(entity types.EntityUID) *Policy {
 	p.Action = Scope{}.Eq(entity)
+	p.err = cmp.Or(p.err, checkEntityUIDs(entity))
 	return p
 }
 
 func (p *Policy) ActionIn(entity types.EntityUID) *Policy {
 	p.Action = Scope{}.In(entity)
+	p.err = cmp.Or(p.err, checkEntityUIDs(entity))
 	return p
 }
 
 func (p *Policy) ActionInSet(entities ...types.EntityUID) *Policy {
 	p.Action = Scope{}.InSet(entities)
+	p.err = cmp.Or(p.err, checkEntityUIDs(entities...))
 	return p
 }
 
 func (p *Policy) ResourceEq(entity types.EntityUID) *Policy {
 	p.Resource = Scope{}.Eq(entity)
+	p.err = cmp.Or(p.err, checkEntityUIDs(entity))
 	return p
 }
 
 func (p *Policy) ResourceIn(entity types.EntityUID) *Policy {
 	p.Resource = Scope{}.In(entity)
+	p.err = cmp.Or(p.err, checkEntityUIDs(entity))
 	return p
 }
 
 func (p *Policy) ResourceIs(entityType types.EntityType) *Policy {
 	p.Resource = Scope{}.Is(entityType)
+	p.err = cmp.Or(p.err, checkEntityType(entityType))
 	return p
 }
 
 func (p *Policy) ResourceIsIn(entityType types.EntityType, entity types.EntityUID) *Policy {
 	p.Resource = Scope{}.IsIn(entityType, entity)
+	p.err = cmp.Or(p.err, checkEntityType(entityType), checkEntityUIDs(entity))
 	return p
 }
 

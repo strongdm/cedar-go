@@ -1,6 +1,8 @@
 package ast
 
 import (
+	"cmp"
+
 	"github.com/cedar-policy/cedar-go/types"
 )
 
@@ -44,32 +46,36 @@ type Policy struct {
 	Resource    IsResourceScopeNode
 	Conditions  []ConditionType
 	Position    Position
+	err         error
 }
 
-func newPolicy(effect Effect, annotations []AnnotationType) *Policy {
+func newPolicy(effect Effect, annotations []AnnotationType, err error) *Policy {
 	return &Policy{
 		Effect:      effect,
 		Annotations: annotations,
 		Principal:   Scope{}.All(),
 		Action:      Scope{}.All(),
 		Resource:    Scope{}.All(),
+		err:         err,
 	}
 }
 
 func Permit() *Policy {
-	return newPolicy(EffectPermit, nil)
+	return newPolicy(EffectPermit, nil, nil)
 }
 
 func Forbid() *Policy {
-	return newPolicy(EffectForbid, nil)
+	return newPolicy(EffectForbid, nil, nil)
 }
 
 func (p *Policy) When(node Node) *Policy {
 	p.Conditions = append(p.Conditions, ConditionType{Condition: ConditionWhen, Body: node.v})
+	p.err = cmp.Or(p.err, node.err)
 	return p
 }
 
 func (p *Policy) Unless(node Node) *Policy {
 	p.Conditions = append(p.Conditions, ConditionType{Condition: ConditionUnless, Body: node.v})
+	p.err = cmp.Or(p.err, node.err)
 	return p
 }
