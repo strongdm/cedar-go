@@ -38,6 +38,7 @@ type Entity = types.Entity
 type EntityMap = types.EntityMap
 type EntityType = types.EntityType
 type EntityUIDSet = types.EntityUIDSet
+type Path = types.Path
 type Pattern = types.Pattern
 type Wildcard = types.Wildcard
 
@@ -64,6 +65,7 @@ const (
 	Forbid = types.Forbid
 )
 
+type AnnotationKey = types.AnnotationKey
 type Annotations = types.Annotations
 
 type Position = types.Position
@@ -105,6 +107,25 @@ func NewDuration(d time.Duration) Duration {
 // NewDatetime returns a Cedar Datetime from a Go time.Time value
 func NewDatetime(t time.Time) Datetime {
 	return types.NewDatetime(t)
+}
+
+// NewPath returns the Path specified in s, or an error if s isn't a valid
+// Cedar path.
+func NewPath(s string) (Path, error) {
+	return types.NewPath(s)
+}
+
+// NewEntityType returns the EntityType named by s, or an error if s isn't a
+// valid Cedar path. See NewPath.
+func NewEntityType(s string) (EntityType, error) {
+	return types.NewEntityType(s)
+}
+
+// NewAnnotationKey returns the AnnotationKey named by s, or an error if s isn't
+// a single Cedar identifier. Unlike most identifiers in Cedar, annotation keys
+// may be reserved keywords, such as `if` or `true`.
+func NewAnnotationKey(s string) (AnnotationKey, error) {
+	return types.NewAnnotationKey(s)
 }
 
 // NewEntityUID returns an EntityUID given an EntityType and identifier
